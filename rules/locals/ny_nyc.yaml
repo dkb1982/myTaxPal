@@ -1,0 +1,214 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# New York City - Progressive city income tax (4 brackets)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-NY-NYC"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "New York City (PLACEHOLDER)"
+jurisdiction_abbreviation: "NYC"
+parent_jurisdiction_id: "US-NY"
+parent_state: "NY"
+
+# Geographic identifiers
+fips_code: "3651000"
+zip_prefixes:
+  - "100"  # Manhattan
+  - "101"  # Manhattan
+  - "102"  # Manhattan
+  - "103"  # Staten Island
+  - "104"  # Bronx
+  - "110"  # Queens
+  - "111"  # Queens
+  - "112"  # Brooklyn
+  - "113"  # Queens
+  - "114"  # Queens
+  - "116"  # Queens
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "city_income_tax"
+applies_to: "residents_only"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - PROGRESSIVE TAX
+# PLACEHOLDER: All rates and thresholds need verification
+rate_schedule:
+  rate_type: "graduated"
+  tax_base: "nyc_taxable_income"  # Similar to NY state taxable income
+
+  brackets:
+    # Single filers - PLACEHOLDER VALUES
+    - bracket_id: "NYC-2025-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 12000
+      rate: 0.03078
+      base_tax: 0
+    - bracket_id: "NYC-2025-S-2"
+      filing_status: "single"
+      income_from: 12000
+      income_to: 25000
+      rate: 0.03762
+      base_tax: 369.36
+    - bracket_id: "NYC-2025-S-3"
+      filing_status: "single"
+      income_from: 25000
+      income_to: 50000
+      rate: 0.03819
+      base_tax: 858.42
+    - bracket_id: "NYC-2025-S-4"
+      filing_status: "single"
+      income_from: 50000
+      income_to: null
+      rate: 0.03876
+      base_tax: 1813.17
+
+    # Married Filing Jointly - PLACEHOLDER VALUES
+    - bracket_id: "NYC-2025-MFJ-1"
+      filing_status: "mfj"
+      income_from: 0
+      income_to: 21600
+      rate: 0.03078
+      base_tax: 0
+    - bracket_id: "NYC-2025-MFJ-2"
+      filing_status: "mfj"
+      income_from: 21600
+      income_to: 45000
+      rate: 0.03762
+      base_tax: 664.85
+    - bracket_id: "NYC-2025-MFJ-3"
+      filing_status: "mfj"
+      income_from: 45000
+      income_to: 90000
+      rate: 0.03819
+      base_tax: 1545.16
+    - bracket_id: "NYC-2025-MFJ-4"
+      filing_status: "mfj"
+      income_from: 90000
+      income_to: null
+      rate: 0.03876
+      base_tax: 3263.71
+
+    # Married Filing Separately - PLACEHOLDER VALUES
+    - bracket_id: "NYC-2025-MFS-1"
+      filing_status: "mfs"
+      income_from: 0
+      income_to: 12000
+      rate: 0.03078
+      base_tax: 0
+    - bracket_id: "NYC-2025-MFS-2"
+      filing_status: "mfs"
+      income_from: 12000
+      income_to: 25000
+      rate: 0.03762
+      base_tax: 369.36
+    - bracket_id: "NYC-2025-MFS-3"
+      filing_status: "mfs"
+      income_from: 25000
+      income_to: 50000
+      rate: 0.03819
+      base_tax: 858.42
+    - bracket_id: "NYC-2025-MFS-4"
+      filing_status: "mfs"
+      income_from: 50000
+      income_to: null
+      rate: 0.03876
+      base_tax: 1813.17
+
+    # Head of Household - PLACEHOLDER VALUES
+    - bracket_id: "NYC-2025-HOH-1"
+      filing_status: "hoh"
+      income_from: 0
+      income_to: 14400
+      rate: 0.03078
+      base_tax: 0
+    - bracket_id: "NYC-2025-HOH-2"
+      filing_status: "hoh"
+      income_from: 14400
+      income_to: 30000
+      rate: 0.03762
+      base_tax: 443.23
+    - bracket_id: "NYC-2025-HOH-3"
+      filing_status: "hoh"
+      income_from: 30000
+      income_to: 60000
+      rate: 0.03819
+      base_tax: 1030.09
+    - bracket_id: "NYC-2025-HOH-4"
+      filing_status: "hoh"
+      income_from: 60000
+      income_to: null
+      rate: 0.03876
+      base_tax: 2175.79
+
+    # QSS - Same as MFJ
+    - bracket_id: "NYC-2025-QSS-1"
+      filing_status: "qss"
+      income_from: 0
+      income_to: 21600
+      rate: 0.03078
+      base_tax: 0
+    - bracket_id: "NYC-2025-QSS-2"
+      filing_status: "qss"
+      income_from: 21600
+      income_to: 45000
+      rate: 0.03762
+      base_tax: 664.85
+    - bracket_id: "NYC-2025-QSS-3"
+      filing_status: "qss"
+      income_from: 45000
+      income_to: 90000
+      rate: 0.03819
+      base_tax: 1545.16
+    - bracket_id: "NYC-2025-QSS-4"
+      filing_status: "qss"
+      income_from: 90000
+      income_to: null
+      rate: 0.03876
+      base_tax: 3263.71
+
+# Credits
+credits:
+  school_tax_credit:
+    available: true
+    amount: 125  # PLACEHOLDER
+    income_limit: 250000  # PLACEHOLDER
+    notes: "PLACEHOLDER - NYC school tax credit for lower income residents"
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "NYC-210"
+  collection_agency: "NYC Department of Finance"
+
+# Local-specific configuration
+local_config:
+  special_notes:
+    - "PLACEHOLDER: NYC has progressive income tax for residents only"
+    - "PLACEHOLDER: Non-residents who work in NYC do NOT pay NYC income tax"
+    - "PLACEHOLDER: Must also pay NY state tax"
+    - "PLACEHOLDER: School tax credit may reduce liability"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "NYC progressive city tax - placeholder for development"

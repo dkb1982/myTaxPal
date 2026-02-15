@@ -1,0 +1,67 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Colorado - Flat tax state (4.4%)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-CO"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "Colorado (PLACEHOLDER)"
+jurisdiction_abbreviation: "CO"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "flat"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Colorado flat 4.4% rate
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.044  # PLACEHOLDER - 4.4%
+  brackets: []
+  surtaxes: []
+
+# Deductions - Colorado uses federal taxable income as starting point
+deductions:
+  standard_deduction:
+    available: false  # Uses federal taxable income
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_taxable_income"  # Colorado starts from federal taxable income
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "PLACEHOLDER: Colorado uses federal taxable income as starting point"
+    - "PLACEHOLDER: Flat rate of 4.4%"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Flat tax state - placeholder for development"

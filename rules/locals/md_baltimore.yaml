@@ -1,0 +1,68 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Baltimore - County piggyback tax (percentage of MD state tax)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-MD-BAL"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Baltimore City (PLACEHOLDER)"
+jurisdiction_abbreviation: "BAL"
+parent_jurisdiction_id: "US-MD"
+parent_state: "MD"
+
+# Geographic identifiers
+fips_code: "2404000"
+zip_prefixes:
+  - "212"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "county_piggyback"
+applies_to: "residents_only"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - PIGGYBACK TAX
+# PLACEHOLDER: Rate needs verification
+rate_schedule:
+  rate_type: "piggyback"
+  tax_base: "md_taxable_income"  # Based on Maryland taxable income
+
+  piggyback:
+    base: "md_taxable_income"
+    rate: 0.032  # PLACEHOLDER - 3.2% of MD taxable income
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "Included in MD state return"
+  collection_agency: "Maryland Comptroller"
+
+# Local-specific configuration
+local_config:
+  special_notes:
+    - "PLACEHOLDER: Baltimore City tax is calculated as percentage of MD taxable income"
+    - "PLACEHOLDER: Filed with Maryland state return, not separately"
+    - "PLACEHOLDER: Rate is 3.2% - highest in MD"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Baltimore piggyback tax - placeholder for development"

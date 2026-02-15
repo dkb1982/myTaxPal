@@ -1,0 +1,84 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Philadelphia - Wage tax (flat rate, different for residents/non-residents)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-PA-PHL"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Philadelphia (PLACEHOLDER)"
+jurisdiction_abbreviation: "PHL"
+parent_jurisdiction_id: "US-PA"
+parent_state: "PA"
+
+# Geographic identifiers
+fips_code: "4260000"
+zip_prefixes:
+  - "190"
+  - "191"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "city_wage_tax"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX (different rates for residents/non-residents)
+# PLACEHOLDER: All rates need verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "wages_only"  # Philadelphia taxes wages, not all income
+
+  flat_rates:
+    resident_rate: 0.0375  # PLACEHOLDER - 3.75%
+    nonresident_rate: 0.0344  # PLACEHOLDER - 3.44%
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "Philadelphia Wage Tax Return"
+  collection_agency: "Philadelphia Department of Revenue"
+
+# Local-specific configuration
+local_config:
+  tax_base_includes:
+    - "Wages and salaries"
+    - "Commissions"
+    - "Bonuses"
+    - "Stock options (at exercise)"
+    - "Net self-employment income"
+  tax_base_excludes:
+    - "Interest and dividends"
+    - "Capital gains"
+    - "Rental income"
+    - "Retirement income"
+  withholding_required: true
+  employer_withholding: true
+  special_notes:
+    - "PLACEHOLDER: Philadelphia wage tax is one of the highest local taxes in the US"
+    - "PLACEHOLDER: Employers are required to withhold"
+    - "PLACEHOLDER: Different rates for residents vs non-residents"
+    - "PLACEHOLDER: Only wages/earned income are taxed, not investment income"
+    - "PLACEHOLDER: Philadelphia does NOT use the PA EIT system"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Philadelphia wage tax - placeholder for development"

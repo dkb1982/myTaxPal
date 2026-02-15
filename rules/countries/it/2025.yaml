@@ -1,0 +1,84 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Italy Tax Year: January 1 to December 31
+# IRPEF + regional/municipal surtaxes
+# =============================================================================
+
+jurisdiction_id: "IT"
+tax_year: 2025
+jurisdiction_type: "country"
+jurisdiction_name: "Italy (PLACEHOLDER)"
+jurisdiction_abbreviation: "IT"
+parent_jurisdiction_id: null
+
+country_code: "IT"
+currency_code: "EUR"
+tax_year_format: "calendar"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "IT-2025-23"
+      filing_status: "all"
+      income_from: 0
+      income_to: 28000
+      rate: 0.23
+      base_tax: 0
+    - bracket_id: "IT-2025-35"
+      filing_status: "all"
+      income_from: 28000
+      income_to: 50000
+      rate: 0.35
+      base_tax: 6440
+    - bracket_id: "IT-2025-43"
+      filing_status: "all"
+      income_from: 50000
+      income_to: null
+      rate: 0.43
+      base_tax: 14140
+  surtaxes: []
+
+social_insurance:
+  components:
+    - component_id: "IT-INPS"
+      name: "INPS (Social Insurance)"
+      type: "general_social"
+      employee_rate: 0.0919
+      employer_rate: 0.2381
+      ceiling: 113520
+      floor: 0
+      notes: "General social insurance contribution"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER - Verify with Agenzia delle Entrate"
+
+references:
+  - source_name: "Agenzia delle Entrate"
+    url: "https://www.agenziaentrate.gov.it"
+    retrieved_date: null
+    notes: "Italian tax authority"

@@ -1,0 +1,30 @@
+# =============================================================================
+# PLACEHOLDER EXCHANGE RATES - DO NOT USE FOR REAL FINANCIAL CALCULATIONS
+# =============================================================================
+# These exchange rates are STATIC PLACEHOLDER values for development and testing.
+# For actual financial planning, use current market rates from a reliable source.
+#
+# Rates are expressed as: 1 USD = X local currency
+# Example: USD: 1.0, GBP: 0.79 means 1 USD = 0.79 GBP
+# =============================================================================
+
+date: "2025-01-01"
+source: "PLACEHOLDER - Development use only"
+
+# All rates vs USD
+rates:
+  USD: 1.0       # US Dollar (base)
+  GBP: 0.79      # British Pound Sterling
+  EUR: 0.92      # Euro
+  SGD: 1.34      # Singapore Dollar
+  HKD: 7.82      # Hong Kong Dollar
+  AED: 3.67      # UAE Dirham
+  JPY: 149.50    # Japanese Yen
+  AUD: 1.53      # Australian Dollar
+  CAD: 1.36      # Canadian Dollar
+
+# Notes:
+# - These rates do not reflect actual market conditions
+# - Exchange rates fluctuate constantly
+# - Always verify with current rates before making financial decisions
+# - Consider using live exchange rate APIs for production

@@ -1,0 +1,67 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Newark - Payroll tax (flat rate on employers, passed to employees)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-NJ-NEW"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Newark (PLACEHOLDER)"
+jurisdiction_abbreviation: "NEW"
+parent_jurisdiction_id: "US-NJ"
+parent_state: "NJ"
+
+# Geographic identifiers
+fips_code: "3451000"
+zip_prefixes:
+  - "071"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "payroll_tax"
+applies_to: "workers_only"  # Technically employer tax but affects workers
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Rate needs verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "payroll"
+
+  flat_rates:
+    rate: 0.01  # PLACEHOLDER - 1.0%
+
+# Filing requirements
+filing:
+  filing_required: false  # Employer tax
+  form_name: "Employer Payroll Tax Return"
+  collection_agency: "City of Newark"
+
+# Local-specific configuration
+local_config:
+  tax_type_description: "Employer payroll tax, not direct employee income tax"
+  special_notes:
+    - "PLACEHOLDER: Newark payroll tax is an employer tax"
+    - "PLACEHOLDER: Rate of 1% on wages paid"
+    - "PLACEHOLDER: May affect employee compensation indirectly"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Newark payroll tax - placeholder for development"

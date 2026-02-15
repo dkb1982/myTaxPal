@@ -1,0 +1,84 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Columbus - Municipal income tax (flat rate with credit system)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-OH-COL"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Columbus (PLACEHOLDER)"
+jurisdiction_abbreviation: "COL"
+parent_jurisdiction_id: "US-OH"
+parent_state: "OH"
+
+# Geographic identifiers
+fips_code: "3918000"
+zip_prefixes:
+  - "432"
+  - "431"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "municipal_income_tax"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Rate needs verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "earned_income"
+
+  flat_rates:
+    rate: 0.025  # PLACEHOLDER - 2.5%
+
+# Credit system
+credits:
+  credit_for_taxes_paid_elsewhere: true
+  credit_limit: "full_rate"
+  credit_description: "PLACEHOLDER - Credit for taxes paid to work city, limited to Columbus rate"
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "Municipal Income Tax Return"
+  collection_agency: "RITA (Regional Income Tax Agency)"
+
+# Local-specific configuration
+local_config:
+  tax_base_includes:
+    - "Wages and salaries"
+    - "Net self-employment income"
+  tax_base_excludes:
+    - "Interest and dividends"
+    - "Capital gains"
+    - "Retirement income"
+  credit_system:
+    allows_credit: true
+    max_credit_rate: 0.025
+    notes: "Residents get credit for taxes paid to work city"
+  special_notes:
+    - "PLACEHOLDER: Columbus uses 2.5% flat rate"
+    - "PLACEHOLDER: Collected by RITA"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Columbus municipal tax - placeholder for development"

@@ -1,0 +1,75 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Massachusetts - Flat tax (5.0%) + 4% surtax on income over $1M
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-MA"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "Massachusetts (PLACEHOLDER)"
+jurisdiction_abbreviation: "MA"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "flat"  # With surtax
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX with SURTAX
+# PLACEHOLDER: Massachusetts 5.0% flat rate + 4% millionaire surtax
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.05  # PLACEHOLDER - 5.0%
+  brackets: []
+  surtaxes:
+    - surtax_id: "MA-MILLIONAIRE-2025"
+      name: "Millionaire's Tax (Fair Share Amendment)"
+      threshold: 1000000  # PLACEHOLDER - $1M threshold
+      rate: 0.04  # PLACEHOLDER - 4% additional tax
+      filing_status: "all"
+      description: "PLACEHOLDER - 4% additional tax on income over $1 million"
+
+# Deductions - PLACEHOLDER VALUES
+deductions:
+  standard_deduction:
+    available: false  # MA uses personal exemptions instead
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 4400  # PLACEHOLDER
+    dependent_exemption_available: true
+    dependent_exemption_amount: 1000  # PLACEHOLDER
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "PLACEHOLDER: Massachusetts flat 5.0% rate"
+    - "PLACEHOLDER: 4% surtax on income over $1 million (Millionaire's Tax)"
+    - "PLACEHOLDER: Uses personal exemptions, not standard deduction"
+    - "PLACEHOLDER: Threshold is indexed for inflation"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Flat tax state with millionaire surtax - placeholder for development"

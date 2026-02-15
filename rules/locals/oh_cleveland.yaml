@@ -1,0 +1,85 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Cleveland - Municipal income tax (flat rate with credit system)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-OH-CLE"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Cleveland (PLACEHOLDER)"
+jurisdiction_abbreviation: "CLE"
+parent_jurisdiction_id: "US-OH"
+parent_state: "OH"
+
+# Geographic identifiers
+fips_code: "3916000"
+zip_prefixes:
+  - "441"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "municipal_income_tax"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Rate needs verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "earned_income"  # Ohio municipalities tax earned income
+
+  flat_rates:
+    rate: 0.025  # PLACEHOLDER - 2.5%
+
+# Credit system
+credits:
+  credit_for_taxes_paid_elsewhere: true
+  credit_limit: "full_rate"  # Up to the full local rate
+  credit_description: "PLACEHOLDER - Credit for taxes paid to work city, limited to Cleveland rate"
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "Municipal Income Tax Return"
+  collection_agency: "Central Collection Agency (CCA)"
+
+# Local-specific configuration
+local_config:
+  tax_base_includes:
+    - "Wages and salaries"
+    - "Net self-employment income"
+    - "Lottery/gambling winnings"
+  tax_base_excludes:
+    - "Interest and dividends"
+    - "Capital gains"
+    - "Retirement income"
+  credit_system:
+    allows_credit: true
+    max_credit_rate: 0.025
+    notes: "Residents get credit for taxes paid to work city, limited to Cleveland rate"
+  special_notes:
+    - "PLACEHOLDER: Cleveland uses 2.5% flat rate"
+    - "PLACEHOLDER: Credit system allows credit for taxes paid to work city"
+    - "PLACEHOLDER: Collected by CCA (Central Collection Agency)"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Cleveland municipal tax - placeholder for development"

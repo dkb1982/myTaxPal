@@ -1,0 +1,74 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Washington has no state income tax on wages/salaries.
+# Washington DOES have a capital gains tax (7% on gains > $270K) - PLACEHOLDER
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-WA"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "Washington (PLACEHOLDER)"
+jurisdiction_abbreviation: "WA"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics - NO GENERAL INCOME TAX (but has capital gains tax)
+has_income_tax: false
+income_tax_type: "none"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - NO TAX on regular income
+rate_schedule:
+  rate_type: "none"
+  flat_rate: null
+  brackets: []
+  surtaxes: []
+
+# Deductions - Not applicable for regular income
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "not_applicable"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  # Capital gains tax configuration - PLACEHOLDER VALUES
+  capital_gains_tax:
+    enabled: true
+    rate: 0.07  # PLACEHOLDER - 7%
+    threshold: 270000  # PLACEHOLDER - Applies to gains over this amount
+    notes: "PLACEHOLDER - Washington taxes capital gains over $270,000 at 7%"
+  special_notes:
+    - "Washington has no state income tax on wages/salaries"
+    - "PLACEHOLDER: Capital gains tax of 7% on gains > $270,000"
+    - "Must verify current threshold and any exemptions"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS. Capital gains tax requires verification."
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Capital gains tax state - placeholder for development"

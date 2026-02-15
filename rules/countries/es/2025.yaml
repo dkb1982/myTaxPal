@@ -1,0 +1,111 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Spain Tax Year: January 1 to December 31
+# IRPF split between state and autonomous community
+# =============================================================================
+
+jurisdiction_id: "ES"
+tax_year: 2025
+jurisdiction_type: "country"
+jurisdiction_name: "Spain (PLACEHOLDER)"
+jurisdiction_abbreviation: "ES"
+parent_jurisdiction_id: null
+
+country_code: "ES"
+currency_code: "EUR"
+tax_year_format: "calendar"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# State portion only (50% of total)
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "ES-STATE-2025-9.5"
+      filing_status: "all"
+      income_from: 0
+      income_to: 12450
+      rate: 0.095
+      base_tax: 0
+    - bracket_id: "ES-STATE-2025-12"
+      filing_status: "all"
+      income_from: 12450
+      income_to: 20200
+      rate: 0.12
+      base_tax: 1183
+    - bracket_id: "ES-STATE-2025-15"
+      filing_status: "all"
+      income_from: 20200
+      income_to: 35200
+      rate: 0.15
+      base_tax: 2113
+    - bracket_id: "ES-STATE-2025-18.5"
+      filing_status: "all"
+      income_from: 35200
+      income_to: 60000
+      rate: 0.185
+      base_tax: 4363
+    - bracket_id: "ES-STATE-2025-22.5"
+      filing_status: "all"
+      income_from: 60000
+      income_to: 300000
+      rate: 0.225
+      base_tax: 8951
+    - bracket_id: "ES-STATE-2025-24.5"
+      filing_status: "all"
+      income_from: 300000
+      income_to: null
+      rate: 0.245
+      base_tax: 62951
+  surtaxes: []
+
+social_insurance:
+  components:
+    - component_id: "ES-SS-COMMON"
+      name: "Seguridad Social (Contingencias)"
+      type: "general_social"
+      employee_rate: 0.047
+      employer_rate: 0.236
+      ceiling: 56652  # Monthly 4720.5 * 12
+      floor: 0
+      notes: "Common contingencies"
+    - component_id: "ES-SS-UNEMPLOYMENT"
+      name: "Seguridad Social (Desempleo)"
+      type: "unemployment"
+      employee_rate: 0.0155
+      employer_rate: 0.055
+      ceiling: 56652
+      floor: 0
+      notes: "Unemployment insurance"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 5550  # Minimo personal
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER - Verify with Agencia Tributaria"
+
+references:
+  - source_name: "Agencia Tributaria"
+    url: "https://www.agenciatributaria.es"
+    retrieved_date: null
+    notes: "Spanish tax authority"

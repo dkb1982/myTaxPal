@@ -1,0 +1,84 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Australia Tax Year: July 1 to June 30
+# =============================================================================
+
+jurisdiction_id: "AU"
+tax_year: 2025
+jurisdiction_type: "country"
+jurisdiction_name: "Australia (PLACEHOLDER)"
+jurisdiction_abbreviation: "AU"
+parent_jurisdiction_id: null
+
+country_code: "AU"
+currency_code: "AUD"
+tax_year_format: "aus_fiscal"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2025-07-01"
+effective_end_date: "2026-06-30"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "AU-2025-0"
+      filing_status: "all"
+      income_from: 0
+      income_to: 18200
+      rate: 0.00
+      base_tax: 0
+    - bracket_id: "AU-2025-19"
+      filing_status: "all"
+      income_from: 18200
+      income_to: 45000
+      rate: 0.19
+      base_tax: 0
+    - bracket_id: "AU-2025-32.5"
+      filing_status: "all"
+      income_from: 45000
+      income_to: 120000
+      rate: 0.325
+      base_tax: 5092
+    - bracket_id: "AU-2025-37"
+      filing_status: "all"
+      income_from: 120000
+      income_to: 180000
+      rate: 0.37
+      base_tax: 29467
+    - bracket_id: "AU-2025-45"
+      filing_status: "all"
+      income_from: 180000
+      income_to: null
+      rate: 0.45
+      base_tax: 51667
+  surtaxes: []
+
+# No mandatory employee social insurance (employer pays superannuation)
+social_insurance: null
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER - Verify with ATO"
+
+references:
+  - source_name: "ATO"
+    url: "https://www.ato.gov.au"
+    retrieved_date: null
+    notes: "Australian tax authority"

@@ -1,0 +1,29 @@
+# Test scenario: Simple single filer with W-2 income
+# All values are FAKE and for testing only
+
+input:
+  tax_year: 2025
+  filing_status: single
+  residence_state: CA
+  wages:
+    - employer_name: "Acme Corp"
+      employer_state: "CA"
+      gross_wages: 75000
+      federal_withholding: 12000
+
+expected:
+  gross_income: 75000
+  agi: 75000
+  standard_deduction: 15000
+  taxable_income: 60000
+  # Tax calculation using test brackets:
+  # 10% on $10,000 = $1,000
+  # 20% on $40,000 = $8,000
+  # 30% on $10,000 = $3,000
+  # Total = $12,000
+  tax_before_credits: 12000
+  total_tax: 12000
+  total_withholding: 12000
+  refund_or_owed: 0
+  marginal_rate: 0.30
+  effective_rate: 0.16  # 12000/75000 = 0.16

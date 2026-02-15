@@ -1,0 +1,3 @@
+# Invalid YAML - missing required fields
+jurisdiction_id: "US"
+# Missing: tax_year, jurisdiction_type, etc.

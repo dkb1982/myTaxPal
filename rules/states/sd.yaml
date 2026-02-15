@@ -1,0 +1,65 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# South Dakota has no state income tax.
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-SD"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "South Dakota (PLACEHOLDER)"
+jurisdiction_abbreviation: "SD"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics - NO INCOME TAX
+has_income_tax: false
+income_tax_type: "none"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - NO TAX
+rate_schedule:
+  rate_type: "none"
+  flat_rate: null
+  brackets: []
+  surtaxes: []
+
+# Deductions - Not applicable
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "not_applicable"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "South Dakota has no state income tax"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "No income tax state - placeholder for development"

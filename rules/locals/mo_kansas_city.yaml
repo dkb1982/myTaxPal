@@ -1,0 +1,74 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Kansas City - Earnings tax (flat rate)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-MO-KCM"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Kansas City (PLACEHOLDER)"
+jurisdiction_abbreviation: "KCM"
+parent_jurisdiction_id: "US-MO"
+parent_state: "MO"
+
+# Geographic identifiers
+fips_code: "2938000"
+zip_prefixes:
+  - "641"
+  - "640"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "earnings_tax"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Rate needs verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "earned_income"
+
+  flat_rates:
+    rate: 0.01  # PLACEHOLDER - 1.0%
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "RD-109 Earnings Tax Return"
+  collection_agency: "City of Kansas City Revenue Division"
+
+# Local-specific configuration
+local_config:
+  tax_base_includes:
+    - "Wages and salaries"
+    - "Net self-employment income"
+  tax_base_excludes:
+    - "Interest and dividends"
+    - "Capital gains"
+    - "Retirement income"
+  special_notes:
+    - "PLACEHOLDER: Kansas City earnings tax is 1%"
+    - "PLACEHOLDER: Applies to both residents and workers"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Kansas City earnings tax - placeholder for development"

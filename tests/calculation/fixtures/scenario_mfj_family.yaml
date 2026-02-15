@@ -1,0 +1,43 @@
+# Test scenario: Married filing jointly with children
+# All values are FAKE and for testing only
+
+input:
+  tax_year: 2025
+  filing_status: mfj
+  residence_state: CA
+  wages:
+    - employer_name: "Primary Job"
+      employer_state: "CA"
+      gross_wages: 80000
+      federal_withholding: 12000
+    - employer_name: "Secondary Job"
+      employer_state: "CA"
+      gross_wages: 40000
+      federal_withholding: 5000
+  dependents:
+    - name: "Child 1"
+      relationship: "child"
+      age_at_year_end: 8
+      has_ssn: true
+      qualifies_for_ctc: true
+    - name: "Child 2"
+      relationship: "child"
+      age_at_year_end: 12
+      has_ssn: true
+      qualifies_for_ctc: true
+
+expected:
+  gross_income: 120000
+  agi: 120000
+  standard_deduction: 30000
+  taxable_income: 90000
+  # Tax calculation using MFJ test brackets:
+  # 10% on $20,000 = $2,000
+  # 20% on $70,000 = $14,000
+  # Total = $16,000
+  tax_before_credits: 16000
+  # Child Tax Credit: 2 children x $2,000 = $4,000
+  total_credits: 4000
+  total_tax: 12000  # 16000 - 4000
+  total_withholding: 17000
+  refund_or_owed: -5000  # Refund of $5,000

@@ -1,0 +1,89 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Kentucky - Flat tax state (4.0%)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-KY"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "Kentucky (PLACEHOLDER)"
+jurisdiction_abbreviation: "KY"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "flat"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Kentucky flat 4.0% rate (reduced from 4.5%)
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.04  # PLACEHOLDER - 4.0%
+  brackets: []
+  surtaxes: []
+
+# Deductions - PLACEHOLDER VALUES
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 3160  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfj"
+        amount: 6320  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfs"
+        amount: 3160  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "hoh"
+        amount: 3160  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "qss"
+        amount: 6320  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  reciprocity_states:
+    - "IL"   # Illinois
+    - "IN"   # Indiana
+    - "MI"   # Michigan
+    - "OH"   # Ohio
+    - "VA"   # Virginia
+    - "WI"   # Wisconsin
+    - "WV"   # West Virginia
+  special_notes:
+    - "PLACEHOLDER: Kentucky flat 4.0% rate"
+    - "PLACEHOLDER: Some cities like Louisville have local income taxes"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Flat tax state - placeholder for development"

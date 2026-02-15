@@ -1,0 +1,74 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Yonkers - Resident surcharge (% of NY state tax) + non-resident wage tax
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-NY-YON"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Yonkers (PLACEHOLDER)"
+jurisdiction_abbreviation: "YON"
+parent_jurisdiction_id: "US-NY"
+parent_state: "NY"
+
+# Geographic identifiers
+fips_code: "3684000"
+zip_prefixes:
+  - "107"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "resident_surcharge"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - MIXED (surcharge for residents, flat for non-residents)
+# PLACEHOLDER: Rates need verification
+rate_schedule:
+  rate_type: "mixed"
+
+  # For residents: percentage of NY state tax
+  resident_surcharge:
+    base: "ny_state_tax"
+    rate: 0.1675  # PLACEHOLDER - 16.75% of NY state tax
+
+  # For non-residents: flat rate on wages
+  nonresident_rate:
+    tax_base: "wages"
+    rate: 0.005  # PLACEHOLDER - 0.5% of wages
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "Included in NY state return (IT-201/IT-203)"
+  collection_agency: "New York State Department of Taxation and Finance"
+
+# Local-specific configuration
+local_config:
+  special_notes:
+    - "PLACEHOLDER: Yonkers has unique tax structure"
+    - "PLACEHOLDER: Residents pay 16.75% of their NY state tax as surcharge"
+    - "PLACEHOLDER: Non-residents pay 0.5% of wages earned in Yonkers"
+    - "PLACEHOLDER: Filed with NY state return"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Yonkers resident surcharge - placeholder for development"

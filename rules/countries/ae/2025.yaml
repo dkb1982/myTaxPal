@@ -1,0 +1,72 @@
+# =============================================================================
+# UAE (United Arab Emirates) Tax Rules
+# =============================================================================
+# The UAE has NO personal income tax on employment income.
+# This file documents that fact and provides context.
+#
+# UAE Tax Year: N/A (no income tax)
+# =============================================================================
+
+# Identity
+jurisdiction_id: "AE"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "country"
+jurisdiction_name: "United Arab Emirates"
+jurisdiction_abbreviation: "UAE"
+parent_jurisdiction_id: null
+
+# International extensions
+country_code: "AE"
+currency_code: "AED"
+tax_year_format: "calendar"
+
+# Tax characteristics
+has_income_tax: false
+income_tax_type: "none"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - No Income Tax
+rate_schedule:
+  rate_type: "none"
+  flat_rate: null
+  brackets: []
+  surtaxes: []
+
+# No social insurance requirements for expats
+social_insurance: null
+
+# No deductions needed
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# Verification
+verification:
+  status: "verified"
+  last_verified: "2025-01-01"
+  verified_by: null
+  notes: |
+    UAE has no personal income tax.
+    However, note:
+    - VAT at 5% applies to goods and services
+    - Corporate tax (9%) introduced in 2023 for businesses above threshold
+    - No capital gains tax on personal investments
+    - End-of-service gratuity is an employer obligation, not a tax
+
+references:
+  - source_name: "UAE Federal Tax Authority"
+    url: "https://tax.gov.ae"
+    retrieved_date: null
+    notes: "Confirms no personal income tax"

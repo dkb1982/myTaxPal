@@ -1,0 +1,75 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Louisville - Occupational tax (flat rate)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-KY-LOU"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Louisville (PLACEHOLDER)"
+jurisdiction_abbreviation: "LOU"
+parent_jurisdiction_id: "US-KY"
+parent_state: "KY"
+
+# Geographic identifiers
+fips_code: "2148006"
+zip_prefixes:
+  - "402"
+  - "401"
+  - "400"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "occupational_tax"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Rate needs verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "earned_income"
+
+  flat_rates:
+    rate: 0.0225  # PLACEHOLDER - 2.25%
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "OL-3"
+  collection_agency: "Louisville Metro Revenue Commission"
+
+# Local-specific configuration
+local_config:
+  tax_base_includes:
+    - "Wages and salaries"
+    - "Net self-employment income"
+  tax_base_excludes:
+    - "Interest and dividends"
+    - "Capital gains"
+    - "Retirement income"
+  special_notes:
+    - "PLACEHOLDER: Louisville occupational tax is 2.25%"
+    - "PLACEHOLDER: Called 'occupational license fee'"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Louisville occupational tax - placeholder for development"

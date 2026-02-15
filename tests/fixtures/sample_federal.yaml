@@ -1,0 +1,76 @@
+# =============================================================================
+# SAMPLE TEST FIXTURE - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# This file contains FAKE tax values for testing purposes only.
+# =============================================================================
+
+jurisdiction_id: "US"
+tax_year: 2025
+
+jurisdiction_type: "federal"
+jurisdiction_name: "Test Federal Rules"
+jurisdiction_abbreviation: "US"
+parent_jurisdiction_id: null
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "TEST-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 10000
+      rate: 0.10
+      base_tax: 0
+    - bracket_id: "TEST-S-2"
+      filing_status: "single"
+      income_from: 10000
+      income_to: 50000
+      rate: 0.20
+      base_tax: 1000
+    - bracket_id: "TEST-S-3"
+      filing_status: "single"
+      income_from: 50000
+      income_to: null
+      rate: 0.30
+      base_tax: 9000
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 15000
+        dependent_claimed_elsewhere: 1500
+      - filing_status: "mfj"
+        amount: 30000
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+payroll_taxes:
+  social_security_wage_base: 168600
+  social_security_rate: 0.062
+  medicare_rate: 0.0145
+  additional_medicare_threshold: 200000
+  additional_medicare_rate: 0.009
+  self_employment_factor: 0.9235
+
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "Test fixture data"
+
+references: []

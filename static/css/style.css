@@ -1,0 +1,1562 @@
+/*
+ * TaxEstimate - Design System & Component Styles
+ * Self-contained: no external CSS framework dependency.
+ */
+
+/* =============================================================================
+   Design Tokens (Light Theme)
+   ============================================================================= */
+
+:root {
+    --color-bg: #FAFBFC;
+    --color-surface: #FFFFFF;
+    --color-surface-alt: #F0F4F8;
+    --color-border: #E2E8F0;
+    --color-text: #1E293B;
+    --color-text-muted: #64748B;
+    --color-accent: #4F46E5;
+    --color-accent-hover: #4338CA;
+    --color-accent-light: #EEF2FF;
+    --color-success: #059669;
+    --color-success-light: #ECFDF5;
+    --color-danger: #DC2626;
+    --color-danger-light: #FEF2F2;
+    --color-warning: #D97706;
+
+    --color-header-bg: #4F46E5;
+    --color-header-text: #FFFFFF;
+    --color-header-subtitle: rgba(255, 255, 255, 0.8);
+
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Fira Mono", monospace;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 9999px;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 25px rgba(79, 70, 229, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06);
+
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --space-2xl: 3rem;
+}
+
+/* =============================================================================
+   Dark Theme
+   ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg: #0F172A;
+        --color-surface: #1E293B;
+        --color-surface-alt: #1E293B;
+        --color-border: #334155;
+        --color-text: #E2E8F0;
+        --color-text-muted: #94A3B8;
+        --color-accent: #818CF8;
+        --color-accent-hover: #A5B4FC;
+        --color-accent-light: rgba(129, 140, 248, 0.15);
+        --color-success: #34D399;
+        --color-success-light: rgba(52, 211, 153, 0.15);
+        --color-danger: #F87171;
+        --color-danger-light: rgba(248, 113, 113, 0.15);
+        --color-warning: #FBBF24;
+
+        --color-header-bg: #312E81;
+        --color-header-text: #E2E8F0;
+        --color-header-subtitle: rgba(226, 232, 240, 0.7);
+
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* =============================================================================
+   CSS Reset & Base Element Styles
+   ============================================================================= */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--space-xl);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 0;
+    margin-bottom: var(--space-sm);
+    line-height: 1.25;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.1rem; }
+
+p {
+    margin-top: 0;
+    margin-bottom: var(--space-md);
+}
+
+a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+}
+
+/* --- Forms base --- */
+
+label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: var(--space-xs);
+}
+
+input, select, textarea {
+    display: block;
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    display: inline-block;
+    width: auto;
+}
+
+/* --- Buttons base --- */
+
+button, .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-sm) var(--space-lg);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #FFFFFF;
+    background-color: var(--color-accent);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    text-decoration: none;
+}
+
+button:hover, .btn:hover {
+    background-color: var(--color-accent-hover);
+}
+
+button:focus-visible, .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+button:disabled, .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --- Tables base --- */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: var(--space-md);
+}
+
+th, td {
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+}
+
+th {
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+}
+
+td {
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* --- Fieldset base --- */
+
+fieldset {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin: 0 0 var(--space-lg) 0;
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+legend {
+    font-weight: 700;
+    padding: var(--space-xs) var(--space-sm);
+    color: var(--color-accent);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* --- Details/summary base --- */
+
+details {
+    margin: var(--space-sm) 0;
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+}
+
+details summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: var(--space-sm);
+    margin: calc(-1 * var(--space-sm));
+    border-radius: var(--radius-md);
+    user-select: none;
+    list-style: none;
+}
+
+details summary::-webkit-details-marker {
+    display: none;
+}
+
+details summary::before {
+    content: "\25B8  ";
+    font-size: 0.75em;
+    transition: transform 0.15s ease;
+    display: inline-block;
+}
+
+details[open] summary::before {
+    content: "\25BE  ";
+}
+
+details summary:hover {
+    background-color: var(--color-border);
+}
+
+details[open] summary {
+    margin-bottom: var(--space-sm);
+}
+
+details .region-count {
+    font-weight: normal;
+    color: var(--color-text-muted);
+}
+
+details .checkbox-grid {
+    margin-top: var(--space-sm);
+}
+
+/* =============================================================================
+   Header
+   ============================================================================= */
+
+header {
+    text-align: center;
+    margin: calc(-1 * var(--space-xl)) calc(-1 * var(--space-xl)) var(--space-2xl);
+    padding: var(--space-2xl) var(--space-xl);
+    background: var(--color-header-bg);
+    background-image: linear-gradient(135deg, var(--color-header-bg) 0%, #7C3AED 100%);
+    color: var(--color-header-text);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+header h1 {
+    margin-bottom: var(--space-xs);
+    color: var(--color-header-text);
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+}
+
+header p {
+    color: var(--color-header-subtitle);
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+/* =============================================================================
+   Mode Toggle  --  Pill-shaped Segmented Control
+   ============================================================================= */
+
+.mode-toggle {
+    display: inline-flex;
+    background-color: var(--color-surface-alt);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xs);
+    margin-bottom: var(--space-xl);
+    gap: 0;
+    justify-content: center;
+    width: auto;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border);
+}
+
+.mode-btn {
+    padding: var(--space-sm) var(--space-lg);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-lg);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.mode-btn:hover {
+    color: var(--color-text);
+}
+
+.mode-btn.active {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    box-shadow: var(--shadow-md);
+    font-weight: 600;
+}
+
+/* Center the toggle container */
+.mode-toggle-wrapper,
+nav:has(.mode-toggle) {
+    display: flex;
+    justify-content: center;
+}
+
+/* =============================================================================
+   Form Styles
+   ============================================================================= */
+
+form label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    margin-top: var(--space-md);
+}
+
+form label:first-of-type {
+    margin-top: 0;
+}
+
+input[type="number"] {
+    font-family: var(--font-mono);
+    text-align: right;
+}
+
+button[type="submit"] {
+    width: 100%;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: var(--space-md) var(--space-lg);
+    margin-top: var(--space-lg);
+    background: linear-gradient(135deg, var(--color-accent) 0%, #7C3AED 100%);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button[type="submit"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Field hints */
+.field-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: normal;
+    margin-top: var(--space-xs);
+}
+
+/* =============================================================================
+   Loading Indicator
+   ============================================================================= */
+
+#loading {
+    text-align: center;
+    padding: var(--space-xl);
+    font-style: italic;
+    color: var(--color-text-muted);
+}
+
+.loading-text {
+    color: var(--color-text-muted);
+    font-style: italic;
+    grid-column: 1 / -1;
+}
+
+/* =============================================================================
+   Results Section
+   ============================================================================= */
+
+#results {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-md);
+}
+
+#results h2 {
+    text-align: center;
+}
+
+#results h3 {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+    scroll-margin-top: 200px;
+}
+
+/* =============================================================================
+   Results Nav  --  Horizontal Pill Links
+   ============================================================================= */
+
+.results-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-sm) 0;
+    justify-content: center;
+}
+
+.results-nav a {
+    display: inline-block;
+    padding: var(--space-xs) var(--space-md);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-accent);
+    background-color: var(--color-accent-light);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.results-nav a:hover,
+.results-nav a:focus {
+    background-color: var(--color-accent);
+    color: #FFFFFF;
+    text-decoration: none;
+}
+
+/* Scroll margin for section anchors so they clear the sticky summary */
+[id^="section-"],
+#federal-breakdown-section,
+#state-breakdown-section,
+#fica-breakdown-section,
+#bracket-breakdown {
+    scroll-margin-top: 200px;
+}
+
+/* =============================================================================
+   Summary Card  --  Sticky, Elevated
+   ============================================================================= */
+
+.summary-card {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(135deg, var(--color-accent) 0%, #7C3AED 100%);
+    color: #FFFFFF;
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-xl);
+    margin-bottom: var(--space-lg);
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(79, 70, 229, 0.25);
+}
+
+.summary-card-amount {
+    font-size: 2.5rem;
+    font-weight: 800;
+    font-family: var(--font-body);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.summary-card-label {
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: var(--space-xs);
+    font-size: 0.9rem;
+}
+
+/* Status badge on the summary card amount */
+.summary-card-badge,
+.status-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-lg);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-left: var(--space-sm);
+    vertical-align: middle;
+}
+
+.status-badge--refund,
+.summary-card-badge.refund {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ECFDF5;
+}
+
+.status-badge--owed,
+.summary-card-badge.owed {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #FEF2F2;
+}
+
+/* Rate columns with vertical separators via CSS grid */
+.summary-card-rates {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0;
+    margin-top: var(--space-lg);
+    font-size: 0.9rem;
+}
+
+.summary-rate {
+    text-align: center;
+    padding: 0 var(--space-md);
+    position: relative;
+}
+
+/* Vertical separators between rate columns */
+.summary-rate + .summary-rate::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10%;
+    height: 80%;
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.summary-rate-value {
+    font-weight: 700;
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    color: #FFFFFF;
+}
+
+.summary-rate-label {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    display: block;
+    margin-top: var(--space-xs);
+}
+
+/* =============================================================================
+   Result Tables (bracket, state, income-type, etc.)
+   ============================================================================= */
+
+#bracket-table,
+.state-table {
+    width: 100%;
+    margin-bottom: var(--space-md);
+}
+
+#bracket-table td:last-child,
+.state-table td:last-child {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+.state-table td:first-child {
+    font-weight: normal;
+}
+
+#bracket-table th {
+    text-align: left;
+    padding-bottom: var(--space-sm);
+}
+
+#bracket-table th:last-child,
+#bracket-table th:nth-child(3),
+#bracket-table th:nth-child(4) {
+    text-align: right;
+}
+
+#bracket-table td:nth-child(3),
+#bracket-table td:nth-child(4) {
+    text-align: right;
+}
+
+/* Result highlighting */
+.result-positive {
+    color: var(--color-success);
+    font-weight: bold;
+}
+
+.result-negative {
+    color: var(--color-danger);
+    font-weight: bold;
+}
+
+.result-neutral {
+    font-weight: bold;
+}
+
+/* Row for totals/important lines */
+.row-total {
+    border-top: 2px solid var(--color-border);
+    font-weight: bold;
+}
+
+.row-total td {
+    padding-top: var(--space-sm);
+}
+
+/* =============================================================================
+   Disclaimers
+   ============================================================================= */
+
+#disclaimers,
+#intl-disclaimers,
+#compare-disclaimers {
+    margin-top: var(--space-xl);
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-text-muted);
+}
+
+#disclaimers h4,
+#intl-disclaimers h4,
+#compare-disclaimers h4 {
+    margin-top: 0;
+    margin-bottom: var(--space-sm);
+}
+
+#disclaimers ul,
+#intl-disclaimers ul,
+#compare-disclaimers ul {
+    margin: 0;
+    padding-left: var(--space-lg);
+}
+
+#disclaimers li,
+#intl-disclaimers li,
+#compare-disclaimers li {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-xs);
+}
+
+/* =============================================================================
+   Error Section
+   ============================================================================= */
+
+#error {
+    background-color: rgba(220, 38, 38, 0.06);
+    border: 2px solid var(--color-danger);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-top: var(--space-xl);
+}
+
+#error h2 {
+    color: var(--color-danger);
+    margin-top: 0;
+}
+
+#error-message {
+    margin-bottom: var(--space-md);
+}
+
+#error-dismiss {
+    background-color: var(--color-danger);
+    color: #FFFFFF;
+}
+
+/* =============================================================================
+   Footer
+   ============================================================================= */
+
+footer {
+    margin: var(--space-2xl) calc(-1 * var(--space-xl)) 0;
+    padding: var(--space-xl);
+    background-color: var(--color-surface-alt);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+footer p {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+footer small {
+    font-size: 0.8rem;
+}
+
+/* =============================================================================
+   State Results
+   ============================================================================= */
+
+.state-result {
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.state-result h4 {
+    margin-top: 0;
+    margin-bottom: var(--space-md);
+}
+
+.no-state-tax {
+    font-style: italic;
+    color: var(--color-text-muted);
+    padding: var(--space-md);
+    text-align: center;
+}
+
+/* =============================================================================
+   Checkbox Grid
+   ============================================================================= */
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+}
+
+.checkbox-grid label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin: 0;
+    font-weight: normal;
+}
+
+.checkbox-grid input[type="checkbox"] {
+    margin: 0;
+}
+
+#us-states-grid.checkbox-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* No tax state badge */
+.no-tax-badge {
+    font-size: 0.7rem;
+    background-color: rgba(22, 163, 74, 0.12);
+    color: var(--color-success);
+    padding: 0.1rem 0.35rem;
+    border-radius: var(--radius-sm);
+    margin-left: var(--space-xs);
+}
+
+/* Selection count */
+#selection-count {
+    font-weight: bold;
+}
+
+.selection-limit-reached {
+    color: #B45309;
+}
+
+.selection-limit-exceeded {
+    color: var(--color-danger);
+}
+
+/* =============================================================================
+   Region Search + Chips
+   ============================================================================= */
+
+.chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0;
+    min-height: 2rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--color-accent);
+    background-color: rgba(37, 99, 235, 0.08);
+    border-radius: var(--radius-lg);
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+}
+
+.chip:hover {
+    background-color: rgba(37, 99, 235, 0.15);
+}
+
+.chip button,
+.chip .chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    font-size: 0.75rem;
+    line-height: 1;
+    color: var(--color-accent);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.chip button:hover,
+.chip .chip-remove:hover {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: var(--color-accent-hover);
+}
+
+.region-counter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 var(--space-xs);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    background-color: var(--color-accent);
+    border-radius: var(--radius-lg);
+}
+
+.region-counter-badge.badge-warning {
+    background-color: #d97706;
+}
+
+.region-counter-badge.badge-limit {
+    background-color: var(--color-danger);
+}
+
+.region-search-input {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    font-size: 0.9rem;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    margin-bottom: var(--space-sm);
+}
+
+.region-search-input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.region-search-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* =============================================================================
+   Progressive Disclosure  --  Optional Income
+   ============================================================================= */
+
+.optional-income {
+    margin: var(--space-md) 0;
+    border: none;
+    padding: 0;
+    background: transparent;
+    border-radius: var(--radius-md);
+}
+
+.optional-income summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--color-accent);
+    font-weight: 500;
+    font-size: 0.9rem;
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease;
+    list-style: none;
+}
+
+.optional-income summary::-webkit-details-marker {
+    display: none;
+}
+
+.optional-income summary::before {
+    content: "+";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+    color: #FFFFFF;
+    flex-shrink: 0;
+}
+
+.optional-income[open] summary::before {
+    content: "\2212";
+}
+
+.optional-income[open] summary {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    margin-bottom: 0;
+    background-color: var(--color-surface);
+}
+
+.optional-income summary:hover {
+    background-color: var(--color-border);
+}
+
+.optional-income .optional-income-content {
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+/* Live total income counter */
+.total-income-display {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.total-income-display-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+/* =============================================================================
+   International & Compare Results
+   ============================================================================= */
+
+#intl-results,
+#compare-results {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-md);
+}
+
+#intl-results h2,
+#compare-results h2 {
+    text-align: center;
+}
+
+#intl-results h3,
+#compare-results h3 {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-xs);
+    border-bottom: 1px solid var(--color-border);
+    scroll-margin-top: 200px;
+}
+
+/* International tables */
+#intl-summary-table,
+#intl-breakdown-table,
+#compare-table {
+    width: 100%;
+    margin-bottom: var(--space-md);
+}
+
+#intl-summary-table td:last-child,
+#intl-breakdown-table td:nth-child(2) {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+#compare-table th {
+    text-align: left;
+    padding-bottom: var(--space-sm);
+}
+
+#compare-table th:nth-child(2),
+#compare-table th:nth-child(3),
+#compare-table th:nth-child(4) {
+    text-align: right;
+}
+
+#compare-table td:nth-child(2),
+#compare-table td:nth-child(3),
+#compare-table td:nth-child(4) {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+/* Compare table row clickable */
+#compare-table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+#compare-table tbody tr:hover {
+    background-color: var(--color-surface);
+}
+
+/* Comparison best options */
+#compare-best {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+#compare-best p {
+    margin: var(--space-sm) 0;
+}
+
+/* Compare info text */
+#compare-info {
+    text-align: center;
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+}
+
+/* Income type breakdown tables */
+#intl-income-type-breakdown,
+#compare-income-type-breakdown {
+    margin-top: var(--space-lg);
+}
+
+#intl-income-type-table,
+#compare-income-type-table {
+    width: 100%;
+    margin-bottom: var(--space-md);
+}
+
+#intl-income-type-table th,
+#compare-income-type-table th {
+    text-align: left;
+    padding-bottom: var(--space-sm);
+}
+
+#intl-income-type-table th:nth-child(2),
+#intl-income-type-table th:nth-child(3),
+#intl-income-type-table th:nth-child(4),
+#compare-income-type-table th:nth-child(2),
+#compare-income-type-table th:nth-child(3),
+#compare-income-type-table th:nth-child(4) {
+    text-align: right;
+}
+
+#intl-income-type-table td:nth-child(2),
+#intl-income-type-table td:nth-child(3),
+#intl-income-type-table td:nth-child(4),
+#compare-income-type-table td:nth-child(2),
+#compare-income-type-table td:nth-child(3),
+#compare-income-type-table td:nth-child(4) {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+/* Treatment column styling */
+#intl-income-type-table td:nth-child(5),
+#compare-income-type-table td:nth-child(5) {
+    text-transform: capitalize;
+}
+
+/* =============================================================================
+   Detailed Breakdown Styles
+   ============================================================================= */
+
+.breakdown-section {
+    margin: var(--space-md) 0;
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+    border-left: 3px solid var(--color-accent);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.breakdown-section summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    cursor: pointer;
+    font-weight: 600;
+    background-color: var(--color-surface);
+    user-select: none;
+    list-style: none;
+    margin: 0;
+    border-radius: 0;
+}
+
+.breakdown-section summary::-webkit-details-marker {
+    display: none;
+}
+
+.breakdown-section summary::before {
+    content: "\25B8  ";
+    font-size: 0.75em;
+    margin-right: var(--space-sm);
+}
+
+.breakdown-section[open] summary::before {
+    content: "\25BE  ";
+}
+
+.breakdown-section summary:hover {
+    background-color: var(--color-border);
+}
+
+.breakdown-section-amount {
+    font-family: var(--font-mono);
+    font-weight: normal;
+}
+
+.breakdown-section-rate {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-left: var(--space-sm);
+}
+
+.breakdown-section-content {
+    padding: var(--space-md) var(--space-lg);
+}
+
+/* Nested breakdown for bracket details */
+.breakdown-nested {
+    margin: var(--space-md) 0;
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md);
+}
+
+.breakdown-nested-title {
+    font-weight: 600;
+    margin-bottom: var(--space-sm);
+    font-size: 0.9rem;
+}
+
+/* Bracket table within breakdowns */
+.bracket-breakdown-table {
+    width: 100%;
+    font-size: 0.9rem;
+    margin: var(--space-sm) 0;
+}
+
+.bracket-breakdown-table th {
+    text-align: left;
+    padding: var(--space-xs) var(--space-sm);
+    font-weight: normal;
+    color: var(--color-text-muted);
+}
+
+.bracket-breakdown-table th:nth-child(2),
+.bracket-breakdown-table th:nth-child(3),
+.bracket-breakdown-table th:nth-child(4) {
+    text-align: right;
+}
+
+.bracket-breakdown-table td {
+    padding: var(--space-xs) var(--space-sm);
+}
+
+.bracket-breakdown-table td:nth-child(2),
+.bracket-breakdown-table td:nth-child(3),
+.bracket-breakdown-table td:nth-child(4) {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+.bracket-breakdown-table .current-bracket {
+    background-color: rgba(37, 99, 235, 0.1);
+    font-weight: bold;
+}
+
+.bracket-breakdown-table tfoot td {
+    border-top: 2px solid var(--color-border);
+    font-weight: bold;
+}
+
+/* Component row within breakdown */
+.breakdown-component {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.breakdown-component:last-child {
+    border-bottom: none;
+}
+
+.breakdown-component-name {
+    flex: 1;
+}
+
+.breakdown-component-amount {
+    font-family: var(--font-mono);
+    text-align: right;
+    min-width: 100px;
+}
+
+.breakdown-component-rate {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-align: right;
+    min-width: 60px;
+    margin-left: var(--space-sm);
+}
+
+/* Not applicable indicator */
+.not-applicable {
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Tax note/explanation */
+.breakdown-note {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-top: var(--space-sm);
+    padding: var(--space-sm);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-sm);
+}
+
+/* Income type breakdown table */
+.income-type-table {
+    width: 100%;
+    margin: var(--space-md) 0;
+    font-size: 0.9rem;
+}
+
+.income-type-table th {
+    text-align: left;
+    padding: var(--space-sm);
+    font-weight: 600;
+}
+
+.income-type-table th:nth-child(2),
+.income-type-table th:nth-child(3),
+.income-type-table th:nth-child(4),
+.income-type-table th:nth-child(5) {
+    text-align: right;
+}
+
+.income-type-table td {
+    padding: var(--space-sm);
+}
+
+.income-type-table td:nth-child(2),
+.income-type-table td:nth-child(3),
+.income-type-table td:nth-child(4),
+.income-type-table td:nth-child(5) {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+.income-type-table .preferential {
+    color: var(--color-success);
+}
+
+.income-type-table .exempt {
+    color: var(--color-accent);
+}
+
+/* =============================================================================
+   FICA Section
+   ============================================================================= */
+
+.fica-detail {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-xs) var(--space-md);
+    font-size: 0.9rem;
+}
+
+.fica-detail-label {
+    color: var(--color-text-muted);
+}
+
+.fica-detail-value {
+    font-family: var(--font-mono);
+    text-align: right;
+}
+
+/* =============================================================================
+   Modal (for Compare Breakdown)
+   ============================================================================= */
+
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px);
+}
+
+.modal-backdrop.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: var(--color-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    max-width: 640px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    background-color: var(--color-bg);
+    z-index: 1;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.modal-total {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+}
+
+.modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease;
+}
+
+.modal-close:hover {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+}
+
+.modal-body {
+    padding: var(--space-md) var(--space-lg);
+}
+
+.modal-footer {
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+}
+
+/* =============================================================================
+   Responsive -- 600px breakpoint
+   ============================================================================= */
+
+@media (max-width: 600px) {
+    body {
+        padding: var(--space-md);
+    }
+
+    fieldset {
+        padding: var(--space-md);
+    }
+
+    #bracket-table {
+        font-size: 0.85rem;
+    }
+
+    /* Keep mode toggle horizontal on mobile */
+    .mode-toggle {
+        flex-direction: row;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .mode-btn {
+        padding: var(--space-sm) var(--space-md);
+        font-size: 0.8rem;
+    }
+
+    .checkbox-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #us-states-grid.checkbox-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #intl-income-type-table,
+    #compare-income-type-table {
+        font-size: 0.85rem;
+    }
+
+    .field-hint {
+        font-size: 0.65rem;
+    }
+
+    /* Summary card adjustments */
+    .summary-card {
+        padding: var(--space-md);
+    }
+
+    .summary-card-amount {
+        font-size: 1.75rem;
+    }
+
+    .summary-card-rates {
+        grid-template-columns: 1fr;
+        gap: var(--space-sm);
+    }
+
+    .summary-rate + .summary-rate::before {
+        display: none;
+    }
+
+    /* Breakdown responsive */
+    .breakdown-section summary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-xs);
+    }
+
+    .breakdown-component {
+        flex-wrap: wrap;
+    }
+
+    .bracket-breakdown-table {
+        font-size: 0.8rem;
+    }
+
+    /* Results nav wraps nicely */
+    .results-nav {
+        gap: var(--space-xs);
+    }
+
+    .results-nav a {
+        font-size: 0.8rem;
+        padding: var(--space-xs) var(--space-sm);
+    }
+
+    /* Modal responsive */
+    .modal-content {
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .modal-header h3 {
+        font-size: 1rem;
+    }
+
+    .income-type-table {
+        font-size: 0.8rem;
+    }
+
+    /* Chip adjustments */
+    .chip-container {
+        gap: var(--space-xs);
+    }
+
+    .chip {
+        font-size: 0.75rem;
+    }
+}

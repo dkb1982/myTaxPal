@@ -1,0 +1,148 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# This file contains PLACEHOLDER tax values for development and testing.
+# All rates, brackets, and thresholds are for development purposes only.
+# German tax calculation uses a continuous formula; brackets are simplified.
+#
+# German Tax Year: January 1 to December 31
+# =============================================================================
+
+# Identity
+jurisdiction_id: "DE"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "country"
+jurisdiction_name: "Germany (PLACEHOLDER)"
+jurisdiction_abbreviation: "DE"
+parent_jurisdiction_id: null
+
+# International extensions
+country_code: "DE"
+currency_code: "EUR"
+tax_year_format: "calendar"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "graduated"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - PLACEHOLDER (simplified)
+# Note: Germany uses a continuous progressive formula, not simple brackets
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # Grundfreibetrag (tax-free threshold)
+    - bracket_id: "DE-2025-BASIC"
+      filing_status: "all"
+      income_from: 0
+      income_to: 11604
+      rate: 0.00
+      base_tax: 0
+    # Progressive zone 1 (simplified average)
+    - bracket_id: "DE-2025-PROG1"
+      filing_status: "all"
+      income_from: 11604
+      income_to: 17005
+      rate: 0.14
+      base_tax: 0
+    # Progressive zone 2 (simplified average)
+    - bracket_id: "DE-2025-PROG2"
+      filing_status: "all"
+      income_from: 17005
+      income_to: 66760
+      rate: 0.24
+      base_tax: 756
+    # Proportional zone (42%)
+    - bracket_id: "DE-2025-PROP"
+      filing_status: "all"
+      income_from: 66760
+      income_to: 277825
+      rate: 0.42
+      base_tax: 12697
+    # Reichensteuer (45%)
+    - bracket_id: "DE-2025-REICH"
+      filing_status: "all"
+      income_from: 277825
+      income_to: null
+      rate: 0.45
+      base_tax: 101334
+  surtaxes: []
+
+# Solidarity Surcharge - PLACEHOLDER
+solidarity_surcharge_rate: 0.055
+
+# Church Tax - PLACEHOLDER
+church_tax_rate: 0.09  # 9% in most states, 8% in Bavaria/Baden-Wurttemberg
+
+# Social Insurance - PLACEHOLDER
+social_insurance:
+  components:
+    - component_id: "DE-PENSION"
+      name: "Rentenversicherung"
+      type: "pension"
+      employee_rate: 0.093
+      employer_rate: 0.093
+      ceiling: 90600
+      floor: 0
+      notes: "Pension insurance"
+    - component_id: "DE-HEALTH"
+      name: "Krankenversicherung"
+      type: "health"
+      employee_rate: 0.073
+      employer_rate: 0.073
+      ceiling: 62100
+      floor: 0
+      notes: "Health insurance (+ ~0.8% addon)"
+    - component_id: "DE-UNEMPLOYMENT"
+      name: "Arbeitslosenversicherung"
+      type: "unemployment"
+      employee_rate: 0.013
+      employer_rate: 0.013
+      ceiling: 90600
+      floor: 0
+      notes: "Unemployment insurance"
+    - component_id: "DE-CARE"
+      name: "Pflegeversicherung"
+      type: "long_term_care"
+      employee_rate: 0.017
+      employer_rate: 0.017
+      ceiling: 62100
+      floor: 0
+      notes: "Long-term care (+0.6% if childless)"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+# Deductions - PLACEHOLDER
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 1230  # Werbungskostenpauschale
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Bundesministerium der Finanzen"
+    url: "https://www.bundesfinanzministerium.de"
+    retrieved_date: null
+    notes: "Verify all rates from official German finance ministry"

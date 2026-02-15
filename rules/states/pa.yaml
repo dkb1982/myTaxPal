@@ -1,0 +1,86 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Pennsylvania - Flat tax state (3.07%) - Plus extensive local taxes
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-PA"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "Pennsylvania (PLACEHOLDER)"
+jurisdiction_abbreviation: "PA"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "flat"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Pennsylvania flat 3.07% rate
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0307  # PLACEHOLDER - 3.07%
+  brackets: []
+  surtaxes: []
+
+# Deductions - Pennsylvania has NO standard deduction
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "state_defined"  # PA uses 8 classes of income
+  tax_base_description: "Pennsylvania uses 8 classes of income, each taxed at 3.07%"
+  has_local_income_tax: true
+  local_tax_mandatory: true  # Most PA residents must pay local EIT
+  reciprocity_states:
+    - "IN"   # Indiana
+    - "MD"   # Maryland
+    - "NJ"   # New Jersey
+    - "OH"   # Ohio
+    - "VA"   # Virginia
+    - "WV"   # West Virginia
+  income_classes:
+    - "Compensation (wages, salaries)"
+    - "Net profits (self-employment)"
+    - "Net gains from sale of property"
+    - "Interest"
+    - "Dividends"
+    - "Rents and royalties"
+    - "Estate or trust income"
+    - "Gambling and lottery winnings"
+  special_notes:
+    - "PLACEHOLDER: Pennsylvania flat 3.07% rate on all 8 income classes"
+    - "PLACEHOLDER: Local Earned Income Tax (EIT) applies in most municipalities"
+    - "PLACEHOLDER: Philadelphia has special wage tax instead of EIT"
+    - "PLACEHOLDER: Retirement income is generally exempt"
+    - "IMPORTANT: PA does NOT follow federal income definitions"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Flat tax state with extensive local taxes - placeholder for development"

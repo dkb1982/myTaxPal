@@ -1,0 +1,72 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Illinois - Flat tax state (4.95%) - Constitutional flat rate
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-IL"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "Illinois (PLACEHOLDER)"
+jurisdiction_abbreviation: "IL"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "flat"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Illinois constitutional flat 4.95% rate
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0495  # PLACEHOLDER - 4.95%
+  brackets: []
+  surtaxes: []
+
+# Deductions - Illinois has no standard deduction but has personal exemptions
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 2625  # PLACEHOLDER
+    dependent_exemption_available: true
+    dependent_exemption_amount: 2625  # PLACEHOLDER
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states:
+    - "IA"   # Iowa
+    - "KY"   # Kentucky
+    - "MI"   # Michigan
+    - "WI"   # Wisconsin
+  special_notes:
+    - "PLACEHOLDER: Illinois has a constitutional flat tax"
+    - "PLACEHOLDER: All retirement income is exempt"
+    - "PLACEHOLDER: Personal exemption amounts need verification"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Flat tax state - placeholder for development"

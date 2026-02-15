@@ -1,0 +1,39 @@
+# Invalid YAML - wrong type for tax_year (string instead of int)
+jurisdiction_id: "US"
+tax_year: "twenty-twenty-five"  # ERROR: Should be integer
+
+jurisdiction_type: "federal"
+jurisdiction_name: "Type Error Test"
+jurisdiction_abbreviation: "US"
+parent_jurisdiction_id: null
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "Invalid test data"
+
+references: []

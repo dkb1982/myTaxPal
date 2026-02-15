@@ -1,0 +1,137 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# This file contains PLACEHOLDER tax values for development and testing.
+# All rates, brackets, and thresholds are for development purposes only.
+# Verify all values from gov.uk before any production use.
+#
+# UK Tax Year: April 6, 2025 to April 5, 2026
+# =============================================================================
+
+# Identity
+jurisdiction_id: "GB"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "country"
+jurisdiction_name: "United Kingdom (PLACEHOLDER)"
+jurisdiction_abbreviation: "UK"
+parent_jurisdiction_id: null
+
+# International extensions
+country_code: "GB"
+currency_code: "GBP"
+tax_year_format: "uk_fiscal"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "graduated"
+
+# Effective dates (UK fiscal year)
+effective_start_date: "2025-04-06"
+effective_end_date: "2026-04-05"
+
+# Rate Schedule - PLACEHOLDER VALUES
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # Personal Allowance (0%)
+    - bracket_id: "GB-2025-PA"
+      filing_status: "all"
+      income_from: 0
+      income_to: 12570
+      rate: 0.00
+      base_tax: 0
+    # Basic Rate
+    - bracket_id: "GB-2025-BASIC"
+      filing_status: "all"
+      income_from: 12570
+      income_to: 50270
+      rate: 0.20
+      base_tax: 0
+    # Higher Rate
+    - bracket_id: "GB-2025-HIGHER"
+      filing_status: "all"
+      income_from: 50270
+      income_to: 125140
+      rate: 0.40
+      base_tax: 7540  # 37700 * 0.20
+    # Additional Rate
+    - bracket_id: "GB-2025-ADDITIONAL"
+      filing_status: "all"
+      income_from: 125140
+      income_to: null
+      rate: 0.45
+      base_tax: 37428  # Previous + (125140-50270) * 0.40
+  surtaxes: []
+
+# Personal Allowance Taper - PLACEHOLDER
+personal_allowance_taper:
+  base_amount: 12570
+  taper_threshold: 100000
+  taper_rate: 0.5
+  minimum: 0
+
+# National Insurance - PLACEHOLDER
+social_insurance:
+  components:
+    - component_id: "GB-NI-CLASS1"
+      name: "National Insurance Class 1"
+      type: "general_social"
+      employee_rate: 0.12
+      employer_rate: 0.138
+      floor: 12570
+      ceiling: null
+      notes: "12% on earnings 12,570 to 50,270, then 2%"
+  calculation_method: "banded"
+  employer_contribution: true
+  employee_contribution: true
+
+# Student Loan Plans - PLACEHOLDER
+student_loan_plans:
+  - plan_id: "plan_1"
+    name: "Plan 1 (pre-2012)"
+    threshold: 22015
+    rate: 0.09
+  - plan_id: "plan_2"
+    name: "Plan 2 (post-2012)"
+    threshold: 27295
+    rate: 0.09
+  - plan_id: "plan_4"
+    name: "Plan 4 (Scotland)"
+    threshold: 27660
+    rate: 0.09
+  - plan_id: "plan_5"
+    name: "Plan 5 (post-2023)"
+    threshold: 25000
+    rate: 0.09
+  - plan_id: "postgrad"
+    name: "Postgraduate Loan"
+    threshold: 21000
+    rate: 0.06
+
+# Deductions - PLACEHOLDER
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "gov.uk"
+    url: "https://www.gov.uk/income-tax-rates"
+    retrieved_date: null
+    notes: "Verify all rates from official HMRC sources"

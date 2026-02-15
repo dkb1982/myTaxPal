@@ -1,0 +1,92 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# New Hampshire taxes interest and dividends only (phasing out by 2027).
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-NH"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "New Hampshire (PLACEHOLDER)"
+jurisdiction_abbreviation: "NH"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics - INTEREST/DIVIDENDS ONLY
+has_income_tax: true
+income_tax_type: "interest_dividends_only"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - Interest/Dividends tax only
+# PLACEHOLDER: Rate is being phased out - was 5%, reducing to 0% by 2027
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.03  # PLACEHOLDER - 3% for 2025 (phasing out)
+  brackets: []
+  surtaxes: []
+
+# Deductions
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 2400  # PLACEHOLDER - exemption for I&D tax
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfj"
+        amount: 4800  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfs"
+        amount: 2400  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "hoh"
+        amount: 2400  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "qss"
+        amount: 4800  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  taxable_income_types:
+    - "interest"
+    - "dividends"
+  excluded_income_types:
+    - "wages"
+    - "self_employment"
+    - "capital_gains"
+    - "retirement"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "PLACEHOLDER: New Hampshire only taxes interest and dividends"
+    - "PLACEHOLDER: Tax is being phased out - 0% by 2027"
+    - "PLACEHOLDER: Rate for 2025 needs verification"
+    - "Wages, salaries, and other income are NOT taxed"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS. Interest/dividend tax phaseout schedule needs verification."
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Interest/dividend tax only state - placeholder for development"

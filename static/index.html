@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaxEstimate - Tax Calculator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-normalize@3/modern-normalize.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>TaxEstimate</h1>
+        <p>Tax estimation for US and International jurisdictions</p>
+    </header>
+
+    <main>
+        <!-- Mode Toggle -->
+        <div class="mode-toggle-wrapper">
+            <div class="mode-toggle">
+                <button type="button" id="mode-us" class="mode-btn active">US Tax</button>
+                <button type="button" id="mode-intl" class="mode-btn">International</button>
+                <button type="button" id="mode-compare" class="mode-btn">Compare</button>
+            </div>
+        </div>
+
+        <!-- US Tax Form (Default) -->
+        <form id="tax-form">
+            <!-- Tax Year -->
+            <fieldset>
+                <legend>Tax Year</legend>
+                <label for="tax-year">Select Tax Year</label>
+                <select id="tax-year" name="tax_year" required>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+            </fieldset>
+
+            <!-- Filing Status -->
+            <fieldset>
+                <legend>Filing Status</legend>
+                <label for="filing-status">Select Filing Status</label>
+                <select id="filing-status" name="filing_status" required>
+                    <option value="single">Single</option>
+                    <option value="mfj">Married Filing Jointly</option>
+                    <option value="mfs">Married Filing Separately</option>
+                    <option value="hoh">Head of Household</option>
+                    <option value="qss">Qualifying Surviving Spouse</option>
+                </select>
+            </fieldset>
+
+            <!-- State of Residence -->
+            <fieldset>
+                <legend>State of Residence</legend>
+                <label for="residence-state">Select State</label>
+                <select id="residence-state" name="residence_state" required>
+                    <option value="">-- Select State --</option>
+                    <!-- Populated by JavaScript -->
+                </select>
+            </fieldset>
+
+            <!-- Income -->
+            <fieldset>
+                <legend>Income</legend>
+
+                <label for="wages">W-2 Wages (Box 1)</label>
+                <input type="number" id="wages" name="wages" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
+
+                <label for="federal-withholding">Federal Withholding (Box 2)</label>
+                <input type="number" id="federal-withholding" name="federal_withholding" min="0" step="0.01" placeholder="0.00" value="0">
+
+                <label for="state-withholding">State Withholding (Box 17)</label>
+                <input type="number" id="state-withholding" name="state_withholding" min="0" step="0.01" placeholder="0.00" value="0">
+
+                <details class="optional-income">
+                    <summary>Additional Income Types (optional)</summary>
+
+                    <label for="interest">Taxable Interest Income</label>
+                    <input type="number" id="interest" name="interest" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
+
+                    <label for="dividends">Ordinary Dividend Income</label>
+                    <input type="number" id="dividends" name="dividends" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
+
+                    <label for="ltcg">
+                        Long-Term Capital Gains (held > 1 year)
+                        <small class="field-hint">Taxed at preferential rates: 0%, 15%, or 20%</small>
+                    </label>
+                    <input type="number" id="ltcg" name="ltcg" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
+
+                    <label for="stcg">
+                        Short-Term Capital Gains (held &lt; 1 year)
+                        <small class="field-hint">Taxed as ordinary income</small>
+                    </label>
+                    <input type="number" id="stcg" name="stcg" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
+                </details>
+
+                <div class="total-income-display" id="us-total-income">
+                    <span class="total-income-display-label">Total Income:</span>
+                    <span id="us-total-income-value">$0.00</span>
+                </div>
+            </fieldset>
+
+            <button type="submit" id="calculate-btn">Calculate Taxes</button>
+        </form>
+
+        <!-- International Tax Form (Hidden Initially) -->
+        <form id="intl-form" hidden>
+            <!-- Tax Year -->
+            <fieldset>
+                <legend>Tax Year</legend>
+                <label for="intl-tax-year">Select Tax Year</label>
+                <select id="intl-tax-year" name="tax_year" required>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+            </fieldset>
+
+            <!-- Country Selection -->
+            <fieldset>
+                <legend>Country</legend>
+                <label for="intl-country">Select Country</label>
+                <select id="intl-country" name="country_code" required>
+                    <option value="">-- Select Country --</option>
+                    <option value="GB">United Kingdom (GBP)</option>
+                    <option value="DE">Germany (EUR)</option>
+                    <option value="FR">France (EUR)</option>
+                    <option value="SG">Singapore (SGD)</option>
+                    <option value="HK">Hong Kong (HKD)</option>
+                    <option value="AE">UAE - Dubai (AED)</option>
+                    <option value="JP">Japan (JPY)</option>
+                    <option value="AU">Australia (AUD)</option>
+                    <option value="CA">Canada (CAD)</option>
+                    <option value="IT">Italy (EUR)</option>
+                    <option value="ES">Spain (EUR)</option>
+                    <option value="PT">Portugal (EUR)</option>
+                </select>
+            </fieldset>
+
+            <!-- Income -->
+            <fieldset>
+                <legend>Income (in local currency)</legend>
+                <small id="currency-hint">Enter amounts in local currency</small>
+
+                <label for="intl-wages">Employment/Wages</label>
+                <input type="number" id="intl-wages" name="employment_wages" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
+
+                <details class="optional-income">
+                    <summary>Additional Income Types (optional)</summary>
+
+                    <label for="intl-ltcg">
+                        Long-Term Capital Gains
+                        <small class="field-hint">Held over 1 year - 0% tax in Singapore, Hong Kong, UAE</small>
+                    </label>
+                    <input type="number" id="intl-ltcg" name="capital_gains_long_term" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
+
+                    <label for="intl-stcg">
+                        Short-Term Capital Gains
+                        <small class="field-hint">Held under 1 year - usually taxed as ordinary income</small>
+                    </label>
+                    <input type="number" id="intl-stcg" name="capital_gains_short_term" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
+
+                    <label for="intl-qual-div">Qualified Dividends</label>
+                    <input type="number" id="intl-qual-div" name="dividends_qualified" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
+
+                    <label for="intl-ord-div">Ordinary Dividends</label>
+                    <input type="number" id="intl-ord-div" name="dividends_ordinary" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
+
+                    <label for="intl-interest">Interest Income</label>
+                    <input type="number" id="intl-interest" name="interest" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
+
+                    <label for="intl-self-emp">Self-Employment Income</label>
+                    <input type="number" id="intl-self-emp" name="self_employment" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
+
+                    <label for="intl-rental">Rental Income</label>
+                    <input type="number" id="intl-rental" name="rental" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
+                </details>
+
+                <div class="total-income-display" id="intl-total-income">
+                    <span class="total-income-display-label">Total Income:</span>
+                    <span id="intl-total-income-value">0.00</span>
+                </div>
+            </fieldset>
+
+            <button type="submit" id="intl-calculate-btn">Calculate Taxes</button>
+        </form>
+
+        <!-- Comparison Form (Hidden Initially) -->
+        <form id="compare-form" hidden>
+            <!-- Tax Year -->
+            <fieldset>
+                <legend>Tax Year</legend>
+                <label for="compare-tax-year">Select Tax Year</label>
+                <select id="compare-tax-year" name="tax_year" required>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+            </fieldset>
+
+            <!-- Base Currency and Income -->
+            <fieldset>
+                <legend>Income</legend>
+                <label for="compare-currency">Base Currency</label>
+                <select id="compare-currency" name="base_currency" required>
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="GBP">GBP - British Pound</option>
+                    <option value="EUR">EUR - Euro</option>
+                </select>
+
+                <label for="compare-wages">Employment/Wages</label>
+                <input type="number" id="compare-wages" name="employment_wages" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
+
+                <details class="optional-income">
+                    <summary>Additional Income Types (optional)</summary>
+
+                    <label for="compare-ltcg">
+                        Long-Term Capital Gains
+                        <small class="field-hint">Held over 1 year - 0% tax in Singapore, Hong Kong, UAE</small>
+                    </label>
+                    <input type="number" id="compare-ltcg" name="capital_gains_long_term" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
+
+                    <label for="compare-stcg">
+                        Short-Term Capital Gains
+                        <small class="field-hint">Held under 1 year - usually taxed as ordinary income</small>
+                    </label>
+                    <input type="number" id="compare-stcg" name="capital_gains_short_term" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
+
+                    <label for="compare-qual-div">Qualified Dividends</label>
+                    <input type="number" id="compare-qual-div" name="dividends_qualified" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
+
+                    <label for="compare-ord-div">Ordinary Dividends</label>
+                    <input type="number" id="compare-ord-div" name="dividends_ordinary" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
+
+                    <label for="compare-interest">Interest Income</label>
+                    <input type="number" id="compare-interest" name="interest" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
+
+                    <label for="compare-self-emp">Self-Employment Income</label>
+                    <input type="number" id="compare-self-emp" name="self_employment" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
+
+                    <label for="compare-rental">Rental Income</label>
+                    <input type="number" id="compare-rental" name="rental" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
+                </details>
+
+                <div class="total-income-display" id="compare-total-income">
+                    <span class="total-income-display-label">Total Income:</span>
+                    <span id="compare-total-income-value">0.00</span>
+                </div>
+            </fieldset>
+
+            <!-- Filing Status for US regions -->
+            <fieldset>
+                <legend>Filing Status (for US regions)</legend>
+                <label for="compare-filing-status">Select Filing Status</label>
+                <select id="compare-filing-status" name="filing_status">
+                    <option value="single">Single</option>
+                    <option value="mfj">Married Filing Jointly</option>
+                    <option value="mfs">Married Filing Separately</option>
+                    <option value="hoh">Head of Household</option>
+                    <option value="qss">Qualifying Surviving Spouse</option>
+                </select>
+            </fieldset>
+
+            <!-- Region Selection -->
+            <fieldset>
+                <legend>Select Regions to Compare (2-6)</legend>
+                <input type="search" id="region-search" class="region-search-input" placeholder="Search states, cities, or countries...">
+                <div id="selected-chips" class="chip-container"></div>
+                <p><span class="region-counter-badge" id="selection-count-badge"><span id="selection-count">0</span>/6 selected</span></p>
+
+                <details id="us-states-section" aria-expanded="false">
+                    <summary aria-controls="us-states-grid">US States <span class="region-count">(51)</span></summary>
+                    <p><small><em>No state income tax:</em> AK, FL, NV, SD, TN, TX, WA, WY</small></p>
+                    <div id="us-states-grid" class="checkbox-grid">
+                        <!-- Populated by JavaScript -->
+                        <span class="loading-text">Loading US states...</span>
+                    </div>
+                </details>
+
+                <details id="us-cities-section" aria-expanded="false">
+                    <summary aria-controls="us-cities-grid">US Cities (with local taxes) <span class="region-count"></span></summary>
+                    <div id="us-cities-grid" class="checkbox-grid">
+                        <!-- Populated by JavaScript -->
+                        <span class="loading-text">Loading US cities...</span>
+                    </div>
+                </details>
+
+                <details id="international-section" open aria-expanded="true">
+                    <summary aria-controls="international-grid">International <span class="region-count">(12)</span></summary>
+                    <p><small><em>Zero/low tax:</em> UAE, Singapore, Hong Kong</small></p>
+                    <div id="international-grid" class="checkbox-grid">
+                        <label><input type="checkbox" name="regions" value="GB"> United Kingdom</label>
+                        <label><input type="checkbox" name="regions" value="DE"> Germany</label>
+                        <label><input type="checkbox" name="regions" value="FR"> France</label>
+                        <label><input type="checkbox" name="regions" value="SG" checked> Singapore</label>
+                        <label><input type="checkbox" name="regions" value="HK"> Hong Kong</label>
+                        <label><input type="checkbox" name="regions" value="AE" checked> UAE</label>
+                        <label><input type="checkbox" name="regions" value="JP"> Japan</label>
+                        <label><input type="checkbox" name="regions" value="AU"> Australia</label>
+                        <label><input type="checkbox" name="regions" value="CA"> Canada</label>
+                        <label><input type="checkbox" name="regions" value="IT"> Italy</label>
+                        <label><input type="checkbox" name="regions" value="ES"> Spain</label>
+                        <label><input type="checkbox" name="regions" value="PT"> Portugal</label>
+                    </div>
+                </details>
+            </fieldset>
+
+            <button type="submit" id="compare-calculate-btn">Compare Taxes</button>
+        </form>
+
+        <!-- Loading indicator -->
+        <section id="loading" hidden>
+            <p>Calculating your taxes...</p>
+        </section>
+
+        <!-- Results Section (hidden initially) -->
+        <section id="results" hidden>
+            <h2>Your Tax Estimate</h2>
+
+            <!-- Summary Card -->
+            <div class="summary-card">
+                <div class="summary-card-badge" id="tax-status-badge"></div>
+                <div class="summary-card-amount" id="total-tax-display">$0</div>
+                <div class="summary-card-label">Total Tax Liability</div>
+                <div class="summary-card-rates">
+                    <div class="summary-rate">
+                        <div class="summary-rate-value" id="effective-rate-display">0%</div>
+                        <div class="summary-rate-label">Effective Rate</div>
+                    </div>
+                    <div class="summary-rate">
+                        <div class="summary-rate-value" id="marginal-rate-display">0%</div>
+                        <div class="summary-rate-label">Marginal Rate</div>
+                    </div>
+                    <div class="summary-rate">
+                        <div class="summary-rate-value" id="net-income-display">$0</div>
+                        <div class="summary-rate-label">Net Income</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Navigation -->
+            <nav class="results-nav">
+                <a href="#federal-breakdown-section">Federal</a>
+                <a href="#fica-breakdown-section">FICA</a>
+                <a href="#state-breakdown-section">State</a>
+                <a href="#bracket-breakdown">Brackets</a>
+            </nav>
+
+            <!-- Detailed Breakdowns Section -->
+            <div id="detailed-breakdowns">
+                <h3>Detailed Tax Breakdown</h3>
+
+                <!-- Federal Income Tax Breakdown -->
+                <details class="breakdown-section" id="federal-breakdown-section" aria-expanded="false">
+                    <summary aria-controls="federal-breakdown-content">
+                        <span>Federal Income Tax</span>
+                        <span>
+                            <span class="breakdown-section-amount" id="federal-total-amount">$0</span>
+                            <span class="breakdown-section-rate" id="federal-effective-pct">(0%)</span>
+                        </span>
+                    </summary>
+                    <div class="breakdown-section-content" id="federal-breakdown-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+
+                <!-- FICA Breakdown -->
+                <details class="breakdown-section" id="fica-breakdown-section" aria-expanded="false">
+                    <summary aria-controls="fica-breakdown-content">
+                        <span>FICA (Social Security + Medicare)</span>
+                        <span>
+                            <span class="breakdown-section-amount" id="fica-total-amount">$0</span>
+                            <span class="breakdown-section-rate" id="fica-effective-pct">(0%)</span>
+                        </span>
+                    </summary>
+                    <div class="breakdown-section-content" id="fica-breakdown-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+
+                <!-- State Tax Breakdown -->
+                <details class="breakdown-section" id="state-breakdown-section" aria-expanded="false">
+                    <summary aria-controls="state-breakdown-content">
+                        <span>State Tax (<span id="state-name-summary">--</span>)</span>
+                        <span>
+                            <span class="breakdown-section-amount" id="state-total-amount">$0</span>
+                            <span class="breakdown-section-rate" id="state-effective-pct">(0%)</span>
+                        </span>
+                    </summary>
+                    <div class="breakdown-section-content" id="state-breakdown-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+
+                <!-- Local Tax Breakdown (if applicable) -->
+                <details class="breakdown-section" id="local-breakdown-section" hidden aria-expanded="false">
+                    <summary aria-controls="local-breakdown-content">
+                        <span>Local Tax (<span id="local-name-summary">--</span>)</span>
+                        <span>
+                            <span class="breakdown-section-amount" id="local-total-amount">$0</span>
+                            <span class="breakdown-section-rate" id="local-effective-pct">(0%)</span>
+                        </span>
+                    </summary>
+                    <div class="breakdown-section-content" id="local-breakdown-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+
+                <!-- NIIT Breakdown (if applicable) -->
+                <details class="breakdown-section" id="niit-breakdown-section" hidden aria-expanded="false">
+                    <summary aria-controls="niit-breakdown-content">
+                        <span>Net Investment Income Tax (NIIT)</span>
+                        <span>
+                            <span class="breakdown-section-amount" id="niit-total-amount">$0</span>
+                            <span class="breakdown-section-rate">(3.8%)</span>
+                        </span>
+                    </summary>
+                    <div class="breakdown-section-content" id="niit-breakdown-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+
+                <!-- Tax by Income Type (if detailed income) -->
+                <details class="breakdown-section" id="income-type-breakdown-section" hidden aria-expanded="false">
+                    <summary aria-controls="income-type-breakdown-content">
+                        <span>Tax by Income Type</span>
+                        <span class="breakdown-section-amount">Detail</span>
+                    </summary>
+                    <div class="breakdown-section-content" id="income-type-breakdown-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+            </div>
+
+            <div id="state-results">
+                <!-- State results populated by JavaScript -->
+            </div>
+
+            <div id="bracket-breakdown">
+                <h3>Tax Bracket Breakdown</h3>
+                <table id="bracket-table">
+                    <thead>
+                        <tr>
+                            <th>Bracket</th>
+                            <th>Rate</th>
+                            <th>Income in Bracket</th>
+                            <th>Tax</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="disclaimers">
+                <h4>Disclaimers</h4>
+                <ul id="disclaimer-list">
+                    <!-- Populated by JavaScript -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- International Results Section (hidden initially) -->
+        <section id="intl-results" hidden>
+            <h2>International Tax Estimate</h2>
+
+            <!-- Summary Card -->
+            <div class="summary-card">
+                <div class="summary-card-amount" id="intl-total-tax-display">0</div>
+                <div class="summary-card-label" id="intl-tax-label">Total Tax Liability</div>
+                <div class="summary-card-rates">
+                    <div class="summary-rate">
+                        <div class="summary-rate-value" id="intl-effective-rate-display">0%</div>
+                        <div class="summary-rate-label">Effective Rate</div>
+                    </div>
+                    <div class="summary-rate">
+                        <div class="summary-rate-value" id="intl-marginal-rate-display">0%</div>
+                        <div class="summary-rate-label">Marginal Rate</div>
+                    </div>
+                    <div class="summary-rate">
+                        <div class="summary-rate-value" id="intl-net-income-display">0</div>
+                        <div class="summary-rate-label">Net Income</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="intl-summary">
+                <h3 id="intl-country-name">Country</h3>
+                <table id="intl-summary-table">
+                    <tbody>
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Detailed Breakdowns Section -->
+            <div id="intl-detailed-breakdowns">
+                <h3>Detailed Tax Breakdown</h3>
+
+                <!-- Income Tax Breakdown -->
+                <details class="breakdown-section" id="intl-income-tax-section" open aria-expanded="true">
+                    <summary aria-controls="intl-income-tax-content">
+                        <span>Income Tax</span>
+                        <span>
+                            <span class="breakdown-section-amount" id="intl-income-tax-amount">0</span>
+                            <span class="breakdown-section-rate" id="intl-income-tax-pct">(0%)</span>
+                        </span>
+                    </summary>
+                    <div class="breakdown-section-content" id="intl-income-tax-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+
+                <!-- Social Insurance Breakdown -->
+                <details class="breakdown-section" id="intl-social-insurance-section" aria-expanded="false">
+                    <summary aria-controls="intl-social-insurance-content">
+                        <span id="intl-social-insurance-label">Social Insurance</span>
+                        <span>
+                            <span class="breakdown-section-amount" id="intl-social-insurance-amount">0</span>
+                            <span class="breakdown-section-rate" id="intl-social-insurance-pct">(0%)</span>
+                        </span>
+                    </summary>
+                    <div class="breakdown-section-content" id="intl-social-insurance-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+
+                <!-- Other Taxes Breakdown (if applicable) -->
+                <details class="breakdown-section" id="intl-other-taxes-section" hidden aria-expanded="false">
+                    <summary aria-controls="intl-other-taxes-content">
+                        <span>Other Taxes</span>
+                        <span>
+                            <span class="breakdown-section-amount" id="intl-other-taxes-amount">0</span>
+                            <span class="breakdown-section-rate" id="intl-other-taxes-pct">(0%)</span>
+                        </span>
+                    </summary>
+                    <div class="breakdown-section-content" id="intl-other-taxes-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+
+                <!-- Tax by Income Type -->
+                <details class="breakdown-section" id="intl-income-type-section" hidden aria-expanded="false">
+                    <summary aria-controls="intl-income-type-content">
+                        <span>Tax by Income Type</span>
+                        <span class="breakdown-section-amount">Detail</span>
+                    </summary>
+                    <div class="breakdown-section-content" id="intl-income-type-content">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </details>
+            </div>
+
+            <div id="intl-income-type-breakdown" hidden>
+                <h3>Tax by Income Type</h3>
+                <table id="intl-income-type-table">
+                    <thead>
+                        <tr>
+                            <th>Income Type</th>
+                            <th>Gross</th>
+                            <th>Tax</th>
+                            <th>Rate</th>
+                            <th>Treatment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="intl-disclaimers">
+                <h4>Disclaimers</h4>
+                <ul id="intl-disclaimer-list">
+                    <!-- Populated by JavaScript -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- Comparison Results Section (hidden initially) -->
+        <section id="compare-results" hidden>
+            <h2>Tax Comparison</h2>
+
+            <div id="compare-summary">
+                <p id="compare-info">
+                    <!-- Populated by JavaScript -->
+                </p>
+            </div>
+
+            <p><small>Click any row to see detailed breakdown</small></p>
+            <table id="compare-table">
+                <thead>
+                    <tr>
+                        <th>Region</th>
+                        <th>Total Tax</th>
+                        <th>Net Income</th>
+                        <th>Effective Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <div id="compare-best">
+                <p><strong>Lowest Tax:</strong> <span id="lowest-tax-country"></span></p>
+                <p><strong>Highest Net Income:</strong> <span id="highest-net-country"></span></p>
+            </div>
+
+            <div id="compare-disclaimers">
+                <h4>Disclaimers</h4>
+                <ul id="compare-disclaimer-list">
+                    <!-- Populated by JavaScript -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- Breakdown Modal (for Compare screen) -->
+        <div class="modal-backdrop" id="breakdown-modal" role="dialog" aria-modal="true" aria-labelledby="modal-region-name">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-region-name">Region</h3>
+                    <span class="modal-total" id="modal-total-tax">$0</span>
+                    <button type="button" class="modal-close" id="modal-close-btn" aria-label="Close modal">&times;</button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    <p class="modal-loading" id="modal-loading">Loading breakdown...</p>
+                </div>
+                <div class="modal-footer">
+                    <small>All rates are PLACEHOLDER values for development purposes.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Section -->
+        <section id="error" hidden>
+            <h2>Error</h2>
+            <p id="error-message"></p>
+            <button type="button" id="error-dismiss">Dismiss</button>
+        </section>
+    </main>
+
+    <footer>
+        <p><strong>Disclaimer:</strong> This is an estimate only and does not constitute tax advice. All international tax rates are PLACEHOLDER values for development purposes. Consult a qualified tax professional for your specific situation.</p>
+        <p><small>TaxEstimate API v0.1.0</small></p>
+    </footer>
+
+    <script src="/static/js/app.js?v=20260215"></script>
+</body>
+</html>

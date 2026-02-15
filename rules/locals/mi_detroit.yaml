@@ -1,0 +1,70 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Detroit - City income tax (flat rate, different for residents/non-residents)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-MI-DET"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Detroit (PLACEHOLDER)"
+jurisdiction_abbreviation: "DET"
+parent_jurisdiction_id: "US-MI"
+parent_state: "MI"
+
+# Geographic identifiers
+fips_code: "2622000"
+zip_prefixes:
+  - "482"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "city_income_tax"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: All rates need verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "taxable_income"  # Similar to federal taxable income
+
+  flat_rates:
+    resident_rate: 0.024  # PLACEHOLDER - 2.4%
+    nonresident_rate: 0.012  # PLACEHOLDER - 1.2%
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 600  # PLACEHOLDER
+  form_name: "D-1040"
+  collection_agency: "City of Detroit Income Tax Division"
+
+# Local-specific configuration
+local_config:
+  withholding_required: true
+  employer_withholding: true
+  special_notes:
+    - "PLACEHOLDER: Detroit has city income tax for residents and workers"
+    - "PLACEHOLDER: Resident rate is double non-resident rate"
+    - "PLACEHOLDER: Tax base similar to federal taxable income"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Detroit city income tax - placeholder for development"

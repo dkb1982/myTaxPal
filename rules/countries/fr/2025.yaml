@@ -1,0 +1,110 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# This file contains PLACEHOLDER tax values for development and testing.
+# France uses the "quotient familial" (family quotient) system.
+#
+# French Tax Year: January 1 to December 31
+# =============================================================================
+
+# Identity
+jurisdiction_id: "FR"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "country"
+jurisdiction_name: "France (PLACEHOLDER)"
+jurisdiction_abbreviation: "FR"
+parent_jurisdiction_id: null
+
+# International extensions
+country_code: "FR"
+currency_code: "EUR"
+tax_year_format: "calendar"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "graduated"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - PLACEHOLDER
+# Note: France applies brackets per "part" (quotient familial)
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "FR-2025-0"
+      filing_status: "all"
+      income_from: 0
+      income_to: 11294
+      rate: 0.00
+      base_tax: 0
+    - bracket_id: "FR-2025-11"
+      filing_status: "all"
+      income_from: 11294
+      income_to: 28797
+      rate: 0.11
+      base_tax: 0
+    - bracket_id: "FR-2025-30"
+      filing_status: "all"
+      income_from: 28797
+      income_to: 82341
+      rate: 0.30
+      base_tax: 1925
+    - bracket_id: "FR-2025-41"
+      filing_status: "all"
+      income_from: 82341
+      income_to: 177106
+      rate: 0.41
+      base_tax: 17988
+    - bracket_id: "FR-2025-45"
+      filing_status: "all"
+      income_from: 177106
+      income_to: null
+      rate: 0.45
+      base_tax: 56842
+  surtaxes: []
+
+# Family Quotient - PLACEHOLDER
+family_quotient:
+  single_adult_parts: 1.0
+  married_couple_parts: 2.0
+  first_child_parts: 0.5
+  second_child_parts: 0.5
+  third_plus_child_parts: 1.0
+  single_parent_bonus: 0.5
+  cap_per_half_part: 1759
+
+# No traditional social insurance in rate schedule (CSG/CRDS handled separately)
+social_insurance: null
+
+# Deductions - PLACEHOLDER
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 0  # France uses 10% of salary up to cap
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "impots.gouv.fr"
+    url: "https://www.impots.gouv.fr"
+    retrieved_date: null
+    notes: "Verify all rates from official French tax authority"

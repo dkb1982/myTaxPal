@@ -1,0 +1,73 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Wilmington - City wage tax (flat rate)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-DE-WIL"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Wilmington (PLACEHOLDER)"
+jurisdiction_abbreviation: "WIL"
+parent_jurisdiction_id: "US-DE"
+parent_state: "DE"
+
+# Geographic identifiers
+fips_code: "1077580"
+zip_prefixes:
+  - "198"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "city_wage_tax"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Rate needs verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "earned_income"
+
+  flat_rates:
+    rate: 0.0125  # PLACEHOLDER - 1.25%
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "Wilmington Earned Income Tax Return"
+  collection_agency: "City of Wilmington"
+
+# Local-specific configuration
+local_config:
+  tax_base_includes:
+    - "Wages and salaries"
+    - "Net self-employment income"
+  tax_base_excludes:
+    - "Interest and dividends"
+    - "Capital gains"
+    - "Retirement income"
+  special_notes:
+    - "PLACEHOLDER: Wilmington wage tax is 1.25%"
+    - "PLACEHOLDER: Delaware's largest city with local tax"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Wilmington wage tax - placeholder for development"

@@ -1,0 +1,82 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# North Carolina - Flat tax state (4.75%)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-NC"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "North Carolina (PLACEHOLDER)"
+jurisdiction_abbreviation: "NC"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "flat"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: North Carolina flat 4.75% rate (declining per tax reform)
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0475  # PLACEHOLDER - 4.75%
+  brackets: []
+  surtaxes: []
+
+# Deductions - PLACEHOLDER VALUES
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 12750  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfj"
+        amount: 25500  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfs"
+        amount: 12750  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "hoh"
+        amount: 19125  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "qss"
+        amount: 25500  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "PLACEHOLDER: North Carolina flat 4.75% rate"
+    - "PLACEHOLDER: Rate is declining per tax reform schedule"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Flat tax state - placeholder for development"

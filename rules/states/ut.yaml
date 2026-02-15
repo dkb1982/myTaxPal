@@ -1,0 +1,74 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Utah - Flat tax state (4.65%)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-UT"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "Utah (PLACEHOLDER)"
+jurisdiction_abbreviation: "UT"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "flat"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Utah flat 4.65% rate
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0465  # PLACEHOLDER - 4.65%
+  brackets: []
+  surtaxes: []
+
+# Deductions - Utah uses taxpayer credit instead of deduction
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  taxpayer_credit:
+    available: true
+    base_credit: 792  # PLACEHOLDER per taxpayer
+    dependent_credit: 792  # PLACEHOLDER per dependent
+    phase_out_start: 15548  # PLACEHOLDER - MFJ
+    notes: "PLACEHOLDER - Utah provides a taxpayer credit that phases out at higher incomes"
+  special_notes:
+    - "PLACEHOLDER: Utah flat 4.65% rate"
+    - "PLACEHOLDER: Uses taxpayer credit system instead of deductions"
+    - "PLACEHOLDER: Credit amounts and phaseout thresholds need verification"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Flat tax state - placeholder for development"

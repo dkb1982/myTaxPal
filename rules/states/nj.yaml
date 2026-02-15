@@ -1,0 +1,182 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# New Jersey - Progressive tax state (7 brackets, up to 10.75%)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-NJ"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "New Jersey (PLACEHOLDER)"
+jurisdiction_abbreviation: "NJ"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "graduated"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - PROGRESSIVE TAX
+# PLACEHOLDER: All rates and thresholds need verification
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # Single filers - PLACEHOLDER VALUES
+    - bracket_id: "NJ-2025-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 10000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "NJ-2025-S-2"
+      filing_status: "single"
+      income_from: 10000
+      income_to: 50000
+      rate: 0.04
+      base_tax: 200
+    - bracket_id: "NJ-2025-S-3"
+      filing_status: "single"
+      income_from: 50000
+      income_to: null
+      rate: 0.1075
+      base_tax: 1800
+
+    # Married Filing Jointly - PLACEHOLDER VALUES
+    - bracket_id: "NJ-2025-MFJ-1"
+      filing_status: "mfj"
+      income_from: 0
+      income_to: 20000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "NJ-2025-MFJ-2"
+      filing_status: "mfj"
+      income_from: 20000
+      income_to: 100000
+      rate: 0.04
+      base_tax: 400
+    - bracket_id: "NJ-2025-MFJ-3"
+      filing_status: "mfj"
+      income_from: 100000
+      income_to: null
+      rate: 0.1075
+      base_tax: 3600
+
+    # Married Filing Separately - Same as single
+    - bracket_id: "NJ-2025-MFS-1"
+      filing_status: "mfs"
+      income_from: 0
+      income_to: 10000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "NJ-2025-MFS-2"
+      filing_status: "mfs"
+      income_from: 10000
+      income_to: 50000
+      rate: 0.04
+      base_tax: 200
+    - bracket_id: "NJ-2025-MFS-3"
+      filing_status: "mfs"
+      income_from: 50000
+      income_to: null
+      rate: 0.1075
+      base_tax: 1800
+
+    # Head of Household - PLACEHOLDER VALUES
+    - bracket_id: "NJ-2025-HOH-1"
+      filing_status: "hoh"
+      income_from: 0
+      income_to: 15000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "NJ-2025-HOH-2"
+      filing_status: "hoh"
+      income_from: 15000
+      income_to: 75000
+      rate: 0.04
+      base_tax: 300
+    - bracket_id: "NJ-2025-HOH-3"
+      filing_status: "hoh"
+      income_from: 75000
+      income_to: null
+      rate: 0.1075
+      base_tax: 2700
+
+    # QSS - Same as MFJ
+    - bracket_id: "NJ-2025-QSS-1"
+      filing_status: "qss"
+      income_from: 0
+      income_to: 20000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "NJ-2025-QSS-2"
+      filing_status: "qss"
+      income_from: 20000
+      income_to: 100000
+      rate: 0.04
+      base_tax: 400
+    - bracket_id: "NJ-2025-QSS-3"
+      filing_status: "qss"
+      income_from: 100000
+      income_to: null
+      rate: 0.1075
+      base_tax: 3600
+
+  surtaxes: []
+
+# Deductions - PLACEHOLDER VALUES
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 5000
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfj"
+        amount: 10000
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfs"
+        amount: 5000
+        dependent_claimed_elsewhere: null
+      - filing_status: "hoh"
+        amount: 7500
+        dependent_claimed_elsewhere: null
+      - filing_status: "qss"
+        amount: 10000
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  reciprocity_states:
+    - "PA"
+  special_notes:
+    - "PLACEHOLDER: New Jersey has 7 tax brackets"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Progressive tax state - placeholder for development"

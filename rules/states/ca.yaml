@@ -1,0 +1,409 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# California - Progressive tax state (10 brackets, up to 13.3%)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-CA"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "California (PLACEHOLDER)"
+jurisdiction_abbreviation: "CA"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "graduated"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - PROGRESSIVE TAX with 10 brackets
+# PLACEHOLDER: All rates and thresholds are placeholders
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # Single filers - PLACEHOLDER VALUES
+    - bracket_id: "CA-2025-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 10412
+      rate: 0.01
+      base_tax: 0
+    - bracket_id: "CA-2025-S-2"
+      filing_status: "single"
+      income_from: 10412
+      income_to: 24684
+      rate: 0.02
+      base_tax: 104.12
+    - bracket_id: "CA-2025-S-3"
+      filing_status: "single"
+      income_from: 24684
+      income_to: 38959
+      rate: 0.04
+      base_tax: 389.56
+    - bracket_id: "CA-2025-S-4"
+      filing_status: "single"
+      income_from: 38959
+      income_to: 54081
+      rate: 0.06
+      base_tax: 960.56
+    - bracket_id: "CA-2025-S-5"
+      filing_status: "single"
+      income_from: 54081
+      income_to: 68350
+      rate: 0.08
+      base_tax: 1867.88
+    - bracket_id: "CA-2025-S-6"
+      filing_status: "single"
+      income_from: 68350
+      income_to: 349137
+      rate: 0.093
+      base_tax: 3009.40
+    - bracket_id: "CA-2025-S-7"
+      filing_status: "single"
+      income_from: 349137
+      income_to: 418961
+      rate: 0.103
+      base_tax: 29122.59
+    - bracket_id: "CA-2025-S-8"
+      filing_status: "single"
+      income_from: 418961
+      income_to: 698271
+      rate: 0.113
+      base_tax: 36314.46
+    - bracket_id: "CA-2025-S-9"
+      filing_status: "single"
+      income_from: 698271
+      income_to: 1000000
+      rate: 0.123
+      base_tax: 67876.49
+    - bracket_id: "CA-2025-S-10"
+      filing_status: "single"
+      income_from: 1000000
+      income_to: null
+      rate: 0.133
+      base_tax: 104988.16
+
+    # Married Filing Jointly - PLACEHOLDER VALUES
+    - bracket_id: "CA-2025-MFJ-1"
+      filing_status: "mfj"
+      income_from: 0
+      income_to: 20824
+      rate: 0.01
+      base_tax: 0
+    - bracket_id: "CA-2025-MFJ-2"
+      filing_status: "mfj"
+      income_from: 20824
+      income_to: 49368
+      rate: 0.02
+      base_tax: 208.24
+    - bracket_id: "CA-2025-MFJ-3"
+      filing_status: "mfj"
+      income_from: 49368
+      income_to: 77918
+      rate: 0.04
+      base_tax: 779.12
+    - bracket_id: "CA-2025-MFJ-4"
+      filing_status: "mfj"
+      income_from: 77918
+      income_to: 108162
+      rate: 0.06
+      base_tax: 1921.12
+    - bracket_id: "CA-2025-MFJ-5"
+      filing_status: "mfj"
+      income_from: 108162
+      income_to: 136700
+      rate: 0.08
+      base_tax: 3735.76
+    - bracket_id: "CA-2025-MFJ-6"
+      filing_status: "mfj"
+      income_from: 136700
+      income_to: 698274
+      rate: 0.093
+      base_tax: 6018.80
+    - bracket_id: "CA-2025-MFJ-7"
+      filing_status: "mfj"
+      income_from: 698274
+      income_to: 837922
+      rate: 0.103
+      base_tax: 58245.18
+    - bracket_id: "CA-2025-MFJ-8"
+      filing_status: "mfj"
+      income_from: 837922
+      income_to: 1396542
+      rate: 0.113
+      base_tax: 72628.92
+    - bracket_id: "CA-2025-MFJ-9"
+      filing_status: "mfj"
+      income_from: 1396542
+      income_to: 2000000
+      rate: 0.123
+      base_tax: 135752.98
+    - bracket_id: "CA-2025-MFJ-10"
+      filing_status: "mfj"
+      income_from: 2000000
+      income_to: null
+      rate: 0.133
+      base_tax: 209978.32
+
+    # Married Filing Separately - Same as single
+    - bracket_id: "CA-2025-MFS-1"
+      filing_status: "mfs"
+      income_from: 0
+      income_to: 10412
+      rate: 0.01
+      base_tax: 0
+    - bracket_id: "CA-2025-MFS-2"
+      filing_status: "mfs"
+      income_from: 10412
+      income_to: 24684
+      rate: 0.02
+      base_tax: 104.12
+    - bracket_id: "CA-2025-MFS-3"
+      filing_status: "mfs"
+      income_from: 24684
+      income_to: 38959
+      rate: 0.04
+      base_tax: 389.56
+    - bracket_id: "CA-2025-MFS-4"
+      filing_status: "mfs"
+      income_from: 38959
+      income_to: 54081
+      rate: 0.06
+      base_tax: 960.56
+    - bracket_id: "CA-2025-MFS-5"
+      filing_status: "mfs"
+      income_from: 54081
+      income_to: 68350
+      rate: 0.08
+      base_tax: 1867.88
+    - bracket_id: "CA-2025-MFS-6"
+      filing_status: "mfs"
+      income_from: 68350
+      income_to: 349137
+      rate: 0.093
+      base_tax: 3009.40
+    - bracket_id: "CA-2025-MFS-7"
+      filing_status: "mfs"
+      income_from: 349137
+      income_to: 418961
+      rate: 0.103
+      base_tax: 29122.59
+    - bracket_id: "CA-2025-MFS-8"
+      filing_status: "mfs"
+      income_from: 418961
+      income_to: 698271
+      rate: 0.113
+      base_tax: 36314.46
+    - bracket_id: "CA-2025-MFS-9"
+      filing_status: "mfs"
+      income_from: 698271
+      income_to: 1000000
+      rate: 0.123
+      base_tax: 67876.49
+    - bracket_id: "CA-2025-MFS-10"
+      filing_status: "mfs"
+      income_from: 1000000
+      income_to: null
+      rate: 0.133
+      base_tax: 104988.16
+
+    # Head of Household - PLACEHOLDER VALUES
+    - bracket_id: "CA-2025-HOH-1"
+      filing_status: "hoh"
+      income_from: 0
+      income_to: 20839
+      rate: 0.01
+      base_tax: 0
+    - bracket_id: "CA-2025-HOH-2"
+      filing_status: "hoh"
+      income_from: 20839
+      income_to: 49371
+      rate: 0.02
+      base_tax: 208.39
+    - bracket_id: "CA-2025-HOH-3"
+      filing_status: "hoh"
+      income_from: 49371
+      income_to: 63644
+      rate: 0.04
+      base_tax: 779.03
+    - bracket_id: "CA-2025-HOH-4"
+      filing_status: "hoh"
+      income_from: 63644
+      income_to: 78765
+      rate: 0.06
+      base_tax: 1349.95
+    - bracket_id: "CA-2025-HOH-5"
+      filing_status: "hoh"
+      income_from: 78765
+      income_to: 93037
+      rate: 0.08
+      base_tax: 2257.21
+    - bracket_id: "CA-2025-HOH-6"
+      filing_status: "hoh"
+      income_from: 93037
+      income_to: 474824
+      rate: 0.093
+      base_tax: 3398.97
+    - bracket_id: "CA-2025-HOH-7"
+      filing_status: "hoh"
+      income_from: 474824
+      income_to: 569790
+      rate: 0.103
+      base_tax: 38905.16
+    - bracket_id: "CA-2025-HOH-8"
+      filing_status: "hoh"
+      income_from: 569790
+      income_to: 949649
+      rate: 0.113
+      base_tax: 48686.69
+    - bracket_id: "CA-2025-HOH-9"
+      filing_status: "hoh"
+      income_from: 949649
+      income_to: 1000000
+      rate: 0.123
+      base_tax: 91610.76
+    - bracket_id: "CA-2025-HOH-10"
+      filing_status: "hoh"
+      income_from: 1000000
+      income_to: null
+      rate: 0.133
+      base_tax: 97803.93
+
+    # QSS - Same as MFJ
+    - bracket_id: "CA-2025-QSS-1"
+      filing_status: "qss"
+      income_from: 0
+      income_to: 20824
+      rate: 0.01
+      base_tax: 0
+    - bracket_id: "CA-2025-QSS-2"
+      filing_status: "qss"
+      income_from: 20824
+      income_to: 49368
+      rate: 0.02
+      base_tax: 208.24
+    - bracket_id: "CA-2025-QSS-3"
+      filing_status: "qss"
+      income_from: 49368
+      income_to: 77918
+      rate: 0.04
+      base_tax: 779.12
+    - bracket_id: "CA-2025-QSS-4"
+      filing_status: "qss"
+      income_from: 77918
+      income_to: 108162
+      rate: 0.06
+      base_tax: 1921.12
+    - bracket_id: "CA-2025-QSS-5"
+      filing_status: "qss"
+      income_from: 108162
+      income_to: 136700
+      rate: 0.08
+      base_tax: 3735.76
+    - bracket_id: "CA-2025-QSS-6"
+      filing_status: "qss"
+      income_from: 136700
+      income_to: 698274
+      rate: 0.093
+      base_tax: 6018.80
+    - bracket_id: "CA-2025-QSS-7"
+      filing_status: "qss"
+      income_from: 698274
+      income_to: 837922
+      rate: 0.103
+      base_tax: 58245.18
+    - bracket_id: "CA-2025-QSS-8"
+      filing_status: "qss"
+      income_from: 837922
+      income_to: 1396542
+      rate: 0.113
+      base_tax: 72628.92
+    - bracket_id: "CA-2025-QSS-9"
+      filing_status: "qss"
+      income_from: 1396542
+      income_to: 2000000
+      rate: 0.123
+      base_tax: 135752.98
+    - bracket_id: "CA-2025-QSS-10"
+      filing_status: "qss"
+      income_from: 2000000
+      income_to: null
+      rate: 0.133
+      base_tax: 209978.32
+
+  surtaxes:
+    - surtax_id: "CA-MENTAL-HEALTH-2025"
+      name: "Mental Health Services Tax (Prop 63)"
+      threshold: 1000000  # PLACEHOLDER - $1M threshold
+      rate: 0.01  # PLACEHOLDER - 1% additional tax
+      filing_status: "all"
+      description: "PLACEHOLDER - 1% additional tax on income over $1 million"
+
+# Deductions - PLACEHOLDER VALUES
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 5540  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfj"
+        amount: 11080  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfs"
+        amount: 5540  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "hoh"
+        amount: 11080  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "qss"
+        amount: 11080  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+    additional_amounts:
+      - category: "age_65_plus"
+        filing_status: "single"
+        amount: 144  # PLACEHOLDER
+      - category: "blind"
+        filing_status: "single"
+        amount: 144  # PLACEHOLDER
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 144  # PLACEHOLDER - CA uses exemption credits
+    dependent_exemption_available: true
+    dependent_exemption_amount: 446  # PLACEHOLDER
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  federal_conformity: "static"
+  federal_conformity_date: "2015-01-01"
+  special_notes:
+    - "PLACEHOLDER: California has 10 tax brackets"
+    - "PLACEHOLDER: Top rate of 13.3% is highest in nation"
+    - "PLACEHOLDER: 1% Mental Health Services Tax on income over $1M"
+    - "PLACEHOLDER: Uses exemption credits rather than exemption deductions"
+    - "PLACEHOLDER: Conforms to IRC as of 1/1/2015 with modifications"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Progressive tax state - placeholder for development"

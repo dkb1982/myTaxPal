@@ -1,0 +1,74 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Michigan - Flat tax state (4.25%) - Plus city income taxes
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-MI"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "Michigan (PLACEHOLDER)"
+jurisdiction_abbreviation: "MI"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "flat"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX
+# PLACEHOLDER: Michigan flat 4.25% rate
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0425  # PLACEHOLDER - 4.25%
+  brackets: []
+  surtaxes: []
+
+# Deductions - PLACEHOLDER VALUES
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 5400  # PLACEHOLDER
+    dependent_exemption_available: true
+    dependent_exemption_amount: 5400  # PLACEHOLDER
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  reciprocity_states:
+    - "IL"   # Illinois
+    - "IN"   # Indiana
+    - "KY"   # Kentucky
+    - "MN"   # Minnesota
+    - "OH"   # Ohio
+    - "WI"   # Wisconsin
+  special_notes:
+    - "PLACEHOLDER: Michigan flat 4.25% rate"
+    - "PLACEHOLDER: Cities like Detroit have city income taxes"
+    - "PLACEHOLDER: Exemption amounts need verification"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Flat tax state with city taxes - placeholder for development"

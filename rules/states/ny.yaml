@@ -1,0 +1,367 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# New York - Progressive tax state (9 brackets, up to 10.9%)
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-NY"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "state"
+jurisdiction_name: "New York (PLACEHOLDER)"
+jurisdiction_abbreviation: "NY"
+parent_jurisdiction_id: "US"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "graduated"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - PROGRESSIVE TAX with 9 brackets
+# PLACEHOLDER: All rates and thresholds are placeholders
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # Single filers - PLACEHOLDER VALUES
+    - bracket_id: "NY-2025-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 8500
+      rate: 0.04
+      base_tax: 0
+    - bracket_id: "NY-2025-S-2"
+      filing_status: "single"
+      income_from: 8500
+      income_to: 11700
+      rate: 0.045
+      base_tax: 340
+    - bracket_id: "NY-2025-S-3"
+      filing_status: "single"
+      income_from: 11700
+      income_to: 13900
+      rate: 0.0525
+      base_tax: 484
+    - bracket_id: "NY-2025-S-4"
+      filing_status: "single"
+      income_from: 13900
+      income_to: 80650
+      rate: 0.055
+      base_tax: 600
+    - bracket_id: "NY-2025-S-5"
+      filing_status: "single"
+      income_from: 80650
+      income_to: 215400
+      rate: 0.06
+      base_tax: 4271
+    - bracket_id: "NY-2025-S-6"
+      filing_status: "single"
+      income_from: 215400
+      income_to: 1077550
+      rate: 0.0685
+      base_tax: 12356
+    - bracket_id: "NY-2025-S-7"
+      filing_status: "single"
+      income_from: 1077550
+      income_to: 5000000
+      rate: 0.0965
+      base_tax: 71413
+    - bracket_id: "NY-2025-S-8"
+      filing_status: "single"
+      income_from: 5000000
+      income_to: 25000000
+      rate: 0.103
+      base_tax: 449929
+    - bracket_id: "NY-2025-S-9"
+      filing_status: "single"
+      income_from: 25000000
+      income_to: null
+      rate: 0.109
+      base_tax: 2509929
+
+    # Married Filing Jointly - PLACEHOLDER VALUES
+    - bracket_id: "NY-2025-MFJ-1"
+      filing_status: "mfj"
+      income_from: 0
+      income_to: 17150
+      rate: 0.04
+      base_tax: 0
+    - bracket_id: "NY-2025-MFJ-2"
+      filing_status: "mfj"
+      income_from: 17150
+      income_to: 23600
+      rate: 0.045
+      base_tax: 686
+    - bracket_id: "NY-2025-MFJ-3"
+      filing_status: "mfj"
+      income_from: 23600
+      income_to: 27900
+      rate: 0.0525
+      base_tax: 976
+    - bracket_id: "NY-2025-MFJ-4"
+      filing_status: "mfj"
+      income_from: 27900
+      income_to: 161550
+      rate: 0.055
+      base_tax: 1202
+    - bracket_id: "NY-2025-MFJ-5"
+      filing_status: "mfj"
+      income_from: 161550
+      income_to: 323200
+      rate: 0.06
+      base_tax: 8553
+    - bracket_id: "NY-2025-MFJ-6"
+      filing_status: "mfj"
+      income_from: 323200
+      income_to: 2155350
+      rate: 0.0685
+      base_tax: 18252
+    - bracket_id: "NY-2025-MFJ-7"
+      filing_status: "mfj"
+      income_from: 2155350
+      income_to: 5000000
+      rate: 0.0965
+      base_tax: 143754
+    - bracket_id: "NY-2025-MFJ-8"
+      filing_status: "mfj"
+      income_from: 5000000
+      income_to: 25000000
+      rate: 0.103
+      base_tax: 418213
+    - bracket_id: "NY-2025-MFJ-9"
+      filing_status: "mfj"
+      income_from: 25000000
+      income_to: null
+      rate: 0.109
+      base_tax: 2478213
+
+    # Married Filing Separately - PLACEHOLDER VALUES
+    - bracket_id: "NY-2025-MFS-1"
+      filing_status: "mfs"
+      income_from: 0
+      income_to: 8500
+      rate: 0.04
+      base_tax: 0
+    - bracket_id: "NY-2025-MFS-2"
+      filing_status: "mfs"
+      income_from: 8500
+      income_to: 11700
+      rate: 0.045
+      base_tax: 340
+    - bracket_id: "NY-2025-MFS-3"
+      filing_status: "mfs"
+      income_from: 11700
+      income_to: 13900
+      rate: 0.0525
+      base_tax: 484
+    - bracket_id: "NY-2025-MFS-4"
+      filing_status: "mfs"
+      income_from: 13900
+      income_to: 80650
+      rate: 0.055
+      base_tax: 600
+    - bracket_id: "NY-2025-MFS-5"
+      filing_status: "mfs"
+      income_from: 80650
+      income_to: 215400
+      rate: 0.06
+      base_tax: 4271
+    - bracket_id: "NY-2025-MFS-6"
+      filing_status: "mfs"
+      income_from: 215400
+      income_to: 1077550
+      rate: 0.0685
+      base_tax: 12356
+    - bracket_id: "NY-2025-MFS-7"
+      filing_status: "mfs"
+      income_from: 1077550
+      income_to: 5000000
+      rate: 0.0965
+      base_tax: 71413
+    - bracket_id: "NY-2025-MFS-8"
+      filing_status: "mfs"
+      income_from: 5000000
+      income_to: 25000000
+      rate: 0.103
+      base_tax: 449929
+    - bracket_id: "NY-2025-MFS-9"
+      filing_status: "mfs"
+      income_from: 25000000
+      income_to: null
+      rate: 0.109
+      base_tax: 2509929
+
+    # Head of Household - PLACEHOLDER VALUES
+    - bracket_id: "NY-2025-HOH-1"
+      filing_status: "hoh"
+      income_from: 0
+      income_to: 12800
+      rate: 0.04
+      base_tax: 0
+    - bracket_id: "NY-2025-HOH-2"
+      filing_status: "hoh"
+      income_from: 12800
+      income_to: 17650
+      rate: 0.045
+      base_tax: 512
+    - bracket_id: "NY-2025-HOH-3"
+      filing_status: "hoh"
+      income_from: 17650
+      income_to: 20900
+      rate: 0.0525
+      base_tax: 730
+    - bracket_id: "NY-2025-HOH-4"
+      filing_status: "hoh"
+      income_from: 20900
+      income_to: 107650
+      rate: 0.055
+      base_tax: 901
+    - bracket_id: "NY-2025-HOH-5"
+      filing_status: "hoh"
+      income_from: 107650
+      income_to: 269300
+      rate: 0.06
+      base_tax: 5672
+    - bracket_id: "NY-2025-HOH-6"
+      filing_status: "hoh"
+      income_from: 269300
+      income_to: 1616450
+      rate: 0.0685
+      base_tax: 15371
+    - bracket_id: "NY-2025-HOH-7"
+      filing_status: "hoh"
+      income_from: 1616450
+      income_to: 5000000
+      rate: 0.0965
+      base_tax: 107611
+    - bracket_id: "NY-2025-HOH-8"
+      filing_status: "hoh"
+      income_from: 5000000
+      income_to: 25000000
+      rate: 0.103
+      base_tax: 434098
+    - bracket_id: "NY-2025-HOH-9"
+      filing_status: "hoh"
+      income_from: 25000000
+      income_to: null
+      rate: 0.109
+      base_tax: 2494098
+
+    # QSS - Same as MFJ
+    - bracket_id: "NY-2025-QSS-1"
+      filing_status: "qss"
+      income_from: 0
+      income_to: 17150
+      rate: 0.04
+      base_tax: 0
+    - bracket_id: "NY-2025-QSS-2"
+      filing_status: "qss"
+      income_from: 17150
+      income_to: 23600
+      rate: 0.045
+      base_tax: 686
+    - bracket_id: "NY-2025-QSS-3"
+      filing_status: "qss"
+      income_from: 23600
+      income_to: 27900
+      rate: 0.0525
+      base_tax: 976
+    - bracket_id: "NY-2025-QSS-4"
+      filing_status: "qss"
+      income_from: 27900
+      income_to: 161550
+      rate: 0.055
+      base_tax: 1202
+    - bracket_id: "NY-2025-QSS-5"
+      filing_status: "qss"
+      income_from: 161550
+      income_to: 323200
+      rate: 0.06
+      base_tax: 8553
+    - bracket_id: "NY-2025-QSS-6"
+      filing_status: "qss"
+      income_from: 323200
+      income_to: 2155350
+      rate: 0.0685
+      base_tax: 18252
+    - bracket_id: "NY-2025-QSS-7"
+      filing_status: "qss"
+      income_from: 2155350
+      income_to: 5000000
+      rate: 0.0965
+      base_tax: 143754
+    - bracket_id: "NY-2025-QSS-8"
+      filing_status: "qss"
+      income_from: 5000000
+      income_to: 25000000
+      rate: 0.103
+      base_tax: 418213
+    - bracket_id: "NY-2025-QSS-9"
+      filing_status: "qss"
+      income_from: 25000000
+      income_to: null
+      rate: 0.109
+      base_tax: 2478213
+
+  surtaxes: []
+
+# Deductions - PLACEHOLDER VALUES
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 8000  # PLACEHOLDER
+        dependent_claimed_elsewhere: 3100
+      - filing_status: "mfj"
+        amount: 16050  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "mfs"
+        amount: 8000  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "hoh"
+        amount: 11200  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+      - filing_status: "qss"
+        amount: 16050  # PLACEHOLDER
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 0  # Built into standard deduction
+    dependent_exemption_available: true
+    dependent_exemption_amount: 1000  # PLACEHOLDER
+
+# State-specific configuration
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  has_convenience_rule: true
+  convenience_rule_description: "NY taxes remote workers if their employer is in NY and they work from home for their own convenience (not employer necessity)"
+  reciprocity_states: []
+  special_notes:
+    - "PLACEHOLDER: New York has 9 tax brackets"
+    - "PLACEHOLDER: Top rate of 10.9% for income over $25M"
+    - "PLACEHOLDER: NYC and Yonkers have additional local income taxes"
+    - "PLACEHOLDER: NY convenience rule applies to remote workers"
+    - "PLACEHOLDER: MCTMT applies to self-employment in Metro Commuter Transportation District"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Progressive tax state - placeholder for development"

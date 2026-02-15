@@ -1,0 +1,128 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Japan Tax Year: January 1 to December 31
+# Uses quick deduction method for income tax
+# =============================================================================
+
+jurisdiction_id: "JP"
+tax_year: 2025
+jurisdiction_type: "country"
+jurisdiction_name: "Japan (PLACEHOLDER)"
+jurisdiction_abbreviation: "JP"
+parent_jurisdiction_id: null
+
+country_code: "JP"
+currency_code: "JPY"
+tax_year_format: "calendar"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Japan uses quick deduction method
+# Tax = (Taxable Income * Rate) - Quick Deduction
+quick_deduction_brackets:
+  - min: 0
+    max: 1950000
+    rate: 0.05
+    quick_deduction: 0
+  - min: 1950000
+    max: 3300000
+    rate: 0.10
+    quick_deduction: 97500
+  - min: 3300000
+    max: 6950000
+    rate: 0.20
+    quick_deduction: 427500
+  - min: 6950000
+    max: 9000000
+    rate: 0.23
+    quick_deduction: 636000
+  - min: 9000000
+    max: 18000000
+    rate: 0.33
+    quick_deduction: 1536000
+  - min: 18000000
+    max: 40000000
+    rate: 0.40
+    quick_deduction: 2796000
+  - min: 40000000
+    max: null
+    rate: 0.45
+    quick_deduction: 4796000
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets: []  # Using quick_deduction_brackets instead
+  surtaxes: []
+
+# Reconstruction Tax (until 2037)
+reconstruction_tax_rate: 0.021
+
+social_insurance:
+  components:
+    - component_id: "JP-HEALTH"
+      name: "Kenko Hoken (Health)"
+      type: "health"
+      employee_rate: 0.05
+      employer_rate: 0.05
+      ceiling: 16680000  # Monthly 1,390,000 * 12
+      floor: 0
+      notes: "Rate varies by health insurance association"
+    - component_id: "JP-PENSION"
+      name: "Kousei Nenkin (Pension)"
+      type: "pension"
+      employee_rate: 0.0915
+      employer_rate: 0.0915
+      ceiling: 7800000  # Monthly 650,000 * 12
+      floor: 1056000   # Monthly 88,000 * 12
+      notes: "Employees pension insurance"
+    - component_id: "JP-EMPLOYMENT"
+      name: "Koyou Hoken (Employment)"
+      type: "unemployment"
+      employee_rate: 0.006
+      employer_rate: 0.0095
+      ceiling: null
+      floor: 0
+      notes: "Employment insurance"
+    - component_id: "JP-CARE"
+      name: "Kaigo Hoken (Long-term Care)"
+      type: "long_term_care"
+      employee_rate: 0.009
+      employer_rate: 0.009
+      ceiling: 16680000
+      floor: 0
+      age_restrictions:
+        min_age: 40
+        max_age: 64
+      notes: "Long-term care (age 40-64 only)"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 480000  # Basic deduction
+    dependent_exemption_available: true
+    dependent_exemption_amount: 380000
+
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER - Verify with NTA Japan"
+
+references:
+  - source_name: "NTA (National Tax Agency)"
+    url: "https://www.nta.go.jp"
+    retrieved_date: null
+    notes: "Japan tax authority"

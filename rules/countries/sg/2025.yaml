@@ -1,0 +1,143 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Singapore Tax Year: January 1 to December 31
+# =============================================================================
+
+jurisdiction_id: "SG"
+tax_year: 2025
+jurisdiction_type: "country"
+jurisdiction_name: "Singapore (PLACEHOLDER)"
+jurisdiction_abbreviation: "SG"
+parent_jurisdiction_id: null
+
+country_code: "SG"
+currency_code: "SGD"
+tax_year_format: "calendar"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "SG-2025-0"
+      filing_status: "all"
+      income_from: 0
+      income_to: 20000
+      rate: 0.00
+      base_tax: 0
+    - bracket_id: "SG-2025-2"
+      filing_status: "all"
+      income_from: 20000
+      income_to: 30000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "SG-2025-3.5"
+      filing_status: "all"
+      income_from: 30000
+      income_to: 40000
+      rate: 0.035
+      base_tax: 200
+    - bracket_id: "SG-2025-7"
+      filing_status: "all"
+      income_from: 40000
+      income_to: 80000
+      rate: 0.07
+      base_tax: 550
+    - bracket_id: "SG-2025-11.5"
+      filing_status: "all"
+      income_from: 80000
+      income_to: 120000
+      rate: 0.115
+      base_tax: 3350
+    - bracket_id: "SG-2025-15"
+      filing_status: "all"
+      income_from: 120000
+      income_to: 160000
+      rate: 0.15
+      base_tax: 7950
+    - bracket_id: "SG-2025-18"
+      filing_status: "all"
+      income_from: 160000
+      income_to: 200000
+      rate: 0.18
+      base_tax: 13950
+    - bracket_id: "SG-2025-19"
+      filing_status: "all"
+      income_from: 200000
+      income_to: 240000
+      rate: 0.19
+      base_tax: 21150
+    - bracket_id: "SG-2025-19.5"
+      filing_status: "all"
+      income_from: 240000
+      income_to: 280000
+      rate: 0.195
+      base_tax: 28750
+    - bracket_id: "SG-2025-20"
+      filing_status: "all"
+      income_from: 280000
+      income_to: 320000
+      rate: 0.20
+      base_tax: 36550
+    - bracket_id: "SG-2025-22"
+      filing_status: "all"
+      income_from: 320000
+      income_to: 500000
+      rate: 0.22
+      base_tax: 44550
+    - bracket_id: "SG-2025-23"
+      filing_status: "all"
+      income_from: 500000
+      income_to: 1000000
+      rate: 0.23
+      base_tax: 84150
+    - bracket_id: "SG-2025-24"
+      filing_status: "all"
+      income_from: 1000000
+      income_to: null
+      rate: 0.24
+      base_tax: 199150
+  surtaxes: []
+
+social_insurance:
+  components:
+    - component_id: "SG-CPF"
+      name: "Central Provident Fund"
+      type: "pension"
+      employee_rate: 0.20
+      employer_rate: 0.17
+      ceiling: 81600  # Annual (6800 * 12)
+      floor: 0
+      notes: "CPF rates vary by age; this is standard under-55 rate"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER - Verify with IRAS"
+
+references:
+  - source_name: "IRAS"
+    url: "https://www.iras.gov.sg"
+    retrieved_date: null
+    notes: "Singapore tax authority"

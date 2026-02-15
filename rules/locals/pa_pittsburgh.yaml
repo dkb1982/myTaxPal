@@ -1,0 +1,91 @@
+# =============================================================================
+# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# =============================================================================
+# Pittsburgh - Earned income tax + Local Services Tax
+# This file contains PLACEHOLDER data for development and testing purposes only.
+# =============================================================================
+
+# Identity
+jurisdiction_id: "US-PA-PIT"
+tax_year: 2025
+
+# Metadata
+jurisdiction_type: "city"
+jurisdiction_name: "Pittsburgh (PLACEHOLDER)"
+jurisdiction_abbreviation: "PIT"
+parent_jurisdiction_id: "US-PA"
+parent_state: "PA"
+
+# Geographic identifiers
+fips_code: "4261000"
+zip_prefixes:
+  - "152"
+  - "151"
+
+# Tax characteristics
+has_income_tax: true
+tax_type: "earned_income_tax"
+applies_to: "both_residents_and_workers"
+
+# Effective dates
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
+
+# Rate Schedule - FLAT TAX (includes municipal + school district)
+# PLACEHOLDER: Rates need verification
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "earned_income"
+
+  flat_rates:
+    resident_rate: 0.03  # PLACEHOLDER - 3.0% total (1% municipal + 2% school)
+    nonresident_rate: 0.01  # PLACEHOLDER - 1.0% (municipal only)
+
+# Local Services Tax
+local_services_tax:
+  enabled: true
+  annual_amount: 52  # PLACEHOLDER - $52/year
+  low_income_exemption: 12000  # PLACEHOLDER - Exempt if income below this
+  notes: "PLACEHOLDER - $1/week Local Services Tax"
+
+# Filing requirements
+filing:
+  filing_required: true
+  filing_threshold: 0
+  form_name: "Local Earned Income Tax Return"
+  collection_agency: "Jordan Tax Service"
+
+# Local-specific configuration
+local_config:
+  tax_components:
+    - name: "Municipal EIT"
+      rate: 0.01  # PLACEHOLDER - 1%
+      applies_to: "both"
+    - name: "Pittsburgh School District EIT"
+      rate: 0.02  # PLACEHOLDER - 2%
+      applies_to: "residents_only"
+  tax_base_includes:
+    - "Wages and salaries"
+    - "Net self-employment income"
+  tax_base_excludes:
+    - "Interest and dividends"
+    - "Capital gains"
+    - "Retirement income"
+  special_notes:
+    - "PLACEHOLDER: Pittsburgh EIT has two components"
+    - "PLACEHOLDER: Municipal (1%) applies to workers and residents"
+    - "PLACEHOLDER: School District (2%) applies to residents only"
+    - "PLACEHOLDER: $52/year Local Services Tax applies to workers"
+
+# Verification
+verification:
+  status: "placeholder"
+  last_verified: null
+  verified_by: null
+  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+
+references:
+  - source_name: "Placeholder"
+    url: null
+    retrieved_date: null
+    notes: "Pittsburgh EIT - placeholder for development"
