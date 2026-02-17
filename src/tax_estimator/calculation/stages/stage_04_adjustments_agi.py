@@ -241,11 +241,10 @@ class AdjustmentsAGIStage(CalculationStage):
             ss_rate = Decimal(str(payroll_config.social_security_rate)) * 2  # Employee + employer
             medicare_rate = Decimal(str(payroll_config.medicare_rate)) * 2  # Employee + employer
         else:
-            # Fallback defaults if rules not loaded (should not happen in production)
-            ss_wage_base = Decimal(168600)
-            se_factor = Decimal("0.9235")
-            ss_rate = Decimal("0.124")  # 12.4% combined
-            medicare_rate = Decimal("0.029")  # 2.9% combined
+            raise ValueError(
+                "No payroll tax config found in federal rules. "
+                "Ensure rules/federal/2025.yaml has payroll_taxes section."
+            )
 
         # Taxable SE income = 92.35% of net SE income
         taxable_se = net_se_income * se_factor

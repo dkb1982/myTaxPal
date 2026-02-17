@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -208,12 +209,13 @@ class EnhancedComparisonEngine:
         exchange_rates: dict[str, Decimal] | None = None,
         rate_date: str | None = None,
         rate_source: str | None = None,
+        rules_dir: "Path | None" = None,
     ):
         """Initialize the enhanced comparison engine."""
         self._rates = exchange_rates or get_default_exchange_rates()
         self._rate_date = rate_date or DEFAULT_RATE_DATE
         self._rate_source = rate_source or "PLACEHOLDER - Use official rates"
-        self._us_calculator = USStateComparisonCalculator()
+        self._us_calculator = USStateComparisonCalculator(rules_dir=rules_dir)
 
     def convert_currency(
         self,
@@ -486,14 +488,13 @@ class EnhancedComparisonEngine:
         else:
             local_income = income
 
-        # Calculate using international calculator
-        # For now, use simplified calculation treating all as gross income
-        # Enhanced calculators will handle income types
+        # Calculate using international calculator with income type breakdown
         tax_input = InternationalTaxInput(
             country_code=country_code,
             tax_year=tax_year,
             currency_code=local_currency,
             gross_income=local_income.total,
+            income_breakdown=local_income,
         )
 
         result = calculate_international_tax(tax_input)

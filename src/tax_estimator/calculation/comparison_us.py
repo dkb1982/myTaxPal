@@ -3,15 +3,15 @@ US State/City comparison calculator.
 
 Calculates federal + state + local tax for US locations in comparison mode.
 
-IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
-These are NOT real tax rates and must be verified from official IRS
-and state/local government sources before production use.
+Federal tax data is loaded from YAML rules (single source of truth).
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tax_estimator.calculation.comparison_regions import (
@@ -29,75 +29,16 @@ from tax_estimator.models.income_breakdown import (
     IncomeTypeTaxResult,
     get_income_type_display_name,
 )
+from tax_estimator.rules.loader import get_rules_for_jurisdiction, get_default_rules_path
 
 if TYPE_CHECKING:
-    pass
+    from tax_estimator.rules.schema import JurisdictionRules
 
+logger = logging.getLogger(__name__)
 
-# =============================================================================
-# PLACEHOLDER Federal Tax Rates - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-
-# 2025 Federal Income Tax Brackets (PLACEHOLDER - verify with IRS)
-FEDERAL_BRACKETS = {
-    "single": [
-        (Decimal(0), Decimal(11600), Decimal("0.10")),
-        (Decimal(11600), Decimal(47150), Decimal("0.12")),
-        (Decimal(47150), Decimal(100525), Decimal("0.22")),
-        (Decimal(100525), Decimal(191950), Decimal("0.24")),
-        (Decimal(191950), Decimal(243725), Decimal("0.32")),
-        (Decimal(243725), Decimal(609350), Decimal("0.35")),
-        (Decimal(609350), None, Decimal("0.37")),
-    ],
-    "mfj": [
-        (Decimal(0), Decimal(23200), Decimal("0.10")),
-        (Decimal(23200), Decimal(94300), Decimal("0.12")),
-        (Decimal(94300), Decimal(201050), Decimal("0.22")),
-        (Decimal(201050), Decimal(383900), Decimal("0.24")),
-        (Decimal(383900), Decimal(487450), Decimal("0.32")),
-        (Decimal(487450), Decimal(731200), Decimal("0.35")),
-        (Decimal(731200), None, Decimal("0.37")),
-    ],
-    "mfs": [
-        (Decimal(0), Decimal(11600), Decimal("0.10")),
-        (Decimal(11600), Decimal(47150), Decimal("0.12")),
-        (Decimal(47150), Decimal(100525), Decimal("0.22")),
-        (Decimal(100525), Decimal(191950), Decimal("0.24")),
-        (Decimal(191950), Decimal(243725), Decimal("0.32")),
-        (Decimal(243725), Decimal(365600), Decimal("0.35")),
-        (Decimal(365600), None, Decimal("0.37")),
-    ],
-    "hoh": [
-        (Decimal(0), Decimal(16550), Decimal("0.10")),
-        (Decimal(16550), Decimal(63100), Decimal("0.12")),
-        (Decimal(63100), Decimal(100500), Decimal("0.22")),
-        (Decimal(100500), Decimal(191950), Decimal("0.24")),
-        (Decimal(191950), Decimal(243700), Decimal("0.32")),
-        (Decimal(243700), Decimal(609350), Decimal("0.35")),
-        (Decimal(609350), None, Decimal("0.37")),
-    ],
-}
-
-# Standard deductions (PLACEHOLDER - verify with IRS)
-STANDARD_DEDUCTIONS = {
-    "single": Decimal(14600),
-    "mfj": Decimal(29200),
-    "mfs": Decimal(14600),
-    "hoh": Decimal(21900),
-    "qss": Decimal(29200),
-}
-
-# Long-term capital gains/qualified dividend thresholds (PLACEHOLDER)
-LTCG_THRESHOLDS = {
-    "single": {"zero": Decimal(47025), "fifteen": Decimal(518900)},
-    "mfj": {"zero": Decimal(94050), "fifteen": Decimal(583750)},
-    "mfs": {"zero": Decimal(47025), "fifteen": Decimal(291850)},
-    "hoh": {"zero": Decimal(63000), "fifteen": Decimal(551350)},
-    "qss": {"zero": Decimal(94050), "fifteen": Decimal(583750)},
-}
-
-# Net Investment Income Tax (NIIT) - PLACEHOLDER
-# Note: NIIT thresholds are NOT inflation-adjusted and have been stable since 2013
+# Net Investment Income Tax (NIIT)
+# Note: NIIT thresholds are NOT inflation-adjusted and have been stable since 2013.
+# Not yet in the YAML schema — separate task to add.
 NIIT_THRESHOLD = {
     "single": Decimal(200000),
     "mfj": Decimal(250000),
@@ -255,14 +196,21 @@ class USStateComparisonCalculator:
     Calculates federal + state + local tax for a given income and filing status.
     Supports income type breakdown for more accurate comparisons.
 
-    IMPORTANT: All calculations use PLACEHOLDER rates for development.
+    Federal tax data is loaded from YAML rules (single source of truth).
     """
 
-    def __init__(self):
-        """Initialize the calculator."""
+    def __init__(self, rules_dir: Path | None = None):
+        """Initialize the calculator.
+
+        Args:
+            rules_dir: Path to rules directory. Defaults to project rules/ dir.
+        """
+        self._rules_dir = rules_dir or get_default_rules_path()
         # Lazy load state/local calculators to avoid circular imports
         self._state_calculator = None
         self._local_calculator = None
+        # Cache federal rules (loaded once per calculator instance)
+        self._federal_rules: JurisdictionRules | None = None
 
     @property
     def state_calculator(self):
@@ -279,6 +227,71 @@ class USStateComparisonCalculator:
             from tax_estimator.calculation.locals.calculator import LocalCalculator
             self._local_calculator = LocalCalculator()
         return self._local_calculator
+
+    def _get_federal_rules(self, tax_year: int = 2025) -> "JurisdictionRules":
+        """Load and cache federal rules from YAML (keyed by tax_year)."""
+        if self._federal_rules is None or self._federal_rules.tax_year != tax_year:
+            self._federal_rules = get_rules_for_jurisdiction(
+                "US", tax_year, self._rules_dir
+            )
+        return self._federal_rules
+
+    def _get_brackets_for_status(
+        self, filing_status: str, tax_year: int = 2025
+    ) -> list[tuple[Decimal, Decimal | None, Decimal]]:
+        """Get federal brackets for a filing status as (min, max, rate) tuples."""
+        rules = self._get_federal_rules(tax_year)
+        brackets = sorted(
+            [b for b in rules.rate_schedule.brackets if b.filing_status == filing_status],
+            key=lambda b: b.income_from,
+        )
+        if not brackets:
+            raise ValueError(
+                f"No federal brackets found for filing status '{filing_status}' "
+                f"in tax year {tax_year}"
+            )
+        return [
+            (
+                Decimal(str(b.income_from)),
+                Decimal(str(b.income_to)) if b.income_to is not None else None,
+                Decimal(str(b.rate)),
+            )
+            for b in brackets
+        ]
+
+    def _get_standard_deduction(
+        self, filing_status: str, tax_year: int = 2025
+    ) -> Decimal:
+        """Get standard deduction for a filing status from YAML."""
+        rules = self._get_federal_rules(tax_year)
+        for amt in rules.deductions.standard_deduction.amounts:
+            if amt.filing_status.value == filing_status:
+                return Decimal(str(amt.amount))
+        # Fallback to single if status not found
+        for amt in rules.deductions.standard_deduction.amounts:
+            if amt.filing_status.value == "single":
+                return Decimal(str(amt.amount))
+        raise ValueError(f"No standard deduction found for '{filing_status}'")
+
+    def _get_ltcg_thresholds(
+        self, filing_status: str, tax_year: int = 2025
+    ) -> dict[str, Decimal]:
+        """Get LTCG thresholds for a filing status from YAML."""
+        rules = self._get_federal_rules(tax_year)
+        for t in rules.rate_schedule.preferential_thresholds:
+            if t.filing_status == filing_status:
+                return {
+                    "zero": Decimal(str(t.zero_rate_limit)),
+                    "fifteen": Decimal(str(t.fifteen_rate_limit)),
+                }
+        # Fallback to single
+        for t in rules.rate_schedule.preferential_thresholds:
+            if t.filing_status == "single":
+                return {
+                    "zero": Decimal(str(t.zero_rate_limit)),
+                    "fifteen": Decimal(str(t.fifteen_rate_limit)),
+                }
+        raise ValueError(f"No LTCG thresholds found for '{filing_status}'")
 
     def calculate(
         self,
@@ -418,7 +431,7 @@ class USStateComparisonCalculator:
         gross_income = income.total
 
         # Standard deduction (simplified - no itemized in comparison mode)
-        standard_deduction = STANDARD_DEDUCTIONS.get(filing_status, STANDARD_DEDUCTIONS["single"])
+        standard_deduction = self._get_standard_deduction(filing_status, tax_year)
 
         # Taxable income
         taxable_income = max(Decimal(0), gross_income - standard_deduction)
@@ -429,8 +442,8 @@ class USStateComparisonCalculator:
         preferential_income = min(income.preferential_income, taxable_income)
         ordinary_taxable = max(Decimal(0), taxable_income - preferential_income)
 
-        # Calculate tax on ordinary income using brackets
-        brackets = FEDERAL_BRACKETS.get(filing_status, FEDERAL_BRACKETS["single"])
+        # Calculate tax on ordinary income using brackets from YAML
+        brackets = self._get_brackets_for_status(filing_status, tax_year)
         ordinary_tax, marginal_rate = self._apply_brackets(ordinary_taxable, brackets)
 
         # Calculate tax on preferential income (LTCG + qualified dividends)
@@ -539,7 +552,7 @@ class USStateComparisonCalculator:
                 effective_rate=Decimal(0),
             )
 
-        thresholds = LTCG_THRESHOLDS.get(filing_status, LTCG_THRESHOLDS["single"])
+        thresholds = self._get_ltcg_thresholds(filing_status)
 
         tax = Decimal(0)
         remaining = preferential_income
@@ -876,11 +889,12 @@ def calculate_us_comparison(
     income: IncomeBreakdown | Decimal,
     filing_status: str = "single",
     tax_year: int = 2025,
+    rules_dir: Path | None = None,
 ) -> USComparisonResult:
     """
     Calculate US tax for comparison.
 
     Convenience function for quick calculations.
     """
-    calculator = USStateComparisonCalculator()
+    calculator = USStateComparisonCalculator(rules_dir=rules_dir)
     return calculator.calculate(region_id, income, filing_status, tax_year)

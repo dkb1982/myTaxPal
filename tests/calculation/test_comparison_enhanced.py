@@ -38,13 +38,10 @@ from tax_estimator.calculation.comparison_regions import (
     parse_region,
 )
 from tax_estimator.calculation.comparison_us import (
-    FEDERAL_BRACKETS,
     FederalLTCGResult,
-    LTCG_THRESHOLDS,
     NIIT_RATE,
     NIIT_THRESHOLD,
     NIITResult,
-    STANDARD_DEDUCTIONS,
     USComparisonResult,
     USJurisdictionBreakdown,
     USStateComparisonCalculator,
@@ -1183,7 +1180,7 @@ class TestLTCGRates:
 
     def test_ltcg_at_zero_percent_rate_low_income(self, calculator):
         """Test LTCG taxed at 0% for low income single filer."""
-        # Single filer with only LTCG - below 0% threshold ($47,025 for 2025)
+        # Single filer with only LTCG - below 0% threshold ($48,350 for 2025)
         income = IncomeBreakdown(
             capital_gains_long_term=Decimal("30000"),
         )
@@ -1192,10 +1189,10 @@ class TestLTCGRates:
             income=income,
             filing_status="single",
         )
-        # After standard deduction ($14,600), taxable LTCG is $15,400
-        # $15,400 is well within 0% threshold ($47,025), so all at 0%
-        assert result.breakdown.federal_taxable_income == Decimal("15400")
-        assert result.breakdown.ltcg_at_zero_percent == Decimal("15400")
+        # After standard deduction ($15,000), taxable LTCG is $15,000
+        # $15,000 is well within 0% threshold ($48,350), so all at 0%
+        assert result.breakdown.federal_taxable_income == Decimal("15000")
+        assert result.breakdown.ltcg_at_zero_percent == Decimal("15000")
         assert result.breakdown.ltcg_at_fifteen_percent == Decimal(0)
         assert result.breakdown.ltcg_at_twenty_percent == Decimal(0)
         assert result.breakdown.federal_ltcg_tax == Decimal(0)
@@ -1296,7 +1293,7 @@ class TestLTCGRates:
 
     def test_standard_deduction_spills_over_to_ltcg(self, calculator):
         """Test excess standard deduction reduces LTCG when no ordinary income."""
-        # $10K LTCG only — standard deduction ($14,600) exceeds ordinary income ($0)
+        # $10K LTCG only — standard deduction ($15,000) exceeds ordinary income ($0)
         # so excess deduction reduces LTCG to $0 taxable
         income = IncomeBreakdown(
             capital_gains_long_term=Decimal("10000"),
@@ -1313,8 +1310,8 @@ class TestLTCGRates:
     def test_standard_deduction_partial_spillover(self, calculator):
         """Test partial deduction spillover with small wages + LTCG."""
         # $5K wages + $20K LTCG, single
-        # Deduction $14,600: absorbs $5K wages, excess $9,600 reduces LTCG
-        # Taxable: $0 ordinary + ($20K - $9,600) = $10,400 LTCG
+        # Deduction $15,000: absorbs $5K wages, excess $10,000 reduces LTCG
+        # Taxable: $0 ordinary + ($20K - $10,000) = $10,000 LTCG
         income = IncomeBreakdown(
             employment_wages=Decimal("5000"),
             capital_gains_long_term=Decimal("20000"),
@@ -1324,16 +1321,16 @@ class TestLTCGRates:
             income=income,
             filing_status="single",
         )
-        assert result.breakdown.federal_taxable_income == Decimal("10400")
+        assert result.breakdown.federal_taxable_income == Decimal("10000")
         assert result.breakdown.federal_ordinary_tax == Decimal(0)
-        # $10,400 is within 0% LTCG bracket
-        assert result.breakdown.ltcg_at_zero_percent == Decimal("10400")
+        # $10,000 is within 0% LTCG bracket
+        assert result.breakdown.ltcg_at_zero_percent == Decimal("10000")
         assert result.breakdown.federal_ltcg_tax == Decimal(0)
 
     def test_deduction_fully_absorbed_by_wages(self, calculator):
         """Test no spillover when wages exceed deduction."""
         # $50K wages + $30K LTCG, single
-        # Deduction fully absorbed by wages: $50K - $14,600 = $35,400 ordinary
+        # Deduction fully absorbed by wages: $50K - $15,000 = $35,000 ordinary
         # LTCG stays at full $30K
         income = IncomeBreakdown(
             employment_wages=Decimal("50000"),
@@ -1344,7 +1341,7 @@ class TestLTCGRates:
             income=income,
             filing_status="single",
         )
-        assert result.breakdown.federal_taxable_income == Decimal("65400")
+        assert result.breakdown.federal_taxable_income == Decimal("65000")
         # LTCG should be the full $30K (no spillover needed)
         total_ltcg = (
             result.breakdown.ltcg_at_zero_percent +

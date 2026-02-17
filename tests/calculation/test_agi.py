@@ -21,6 +21,7 @@ from tax_estimator.models.tax_input import (
     TaxInput,
     WageIncome,
 )
+from tax_estimator.rules.schema import JurisdictionRules
 
 
 class TestBasicAGI:
@@ -260,7 +261,7 @@ class TestStudentLoanInterest:
 class TestSelfEmploymentTaxDeduction:
     """Tests for self-employment tax deduction (half of SE tax)."""
 
-    def test_se_tax_deduction(self) -> None:
+    def test_se_tax_deduction(self, federal_rules: JurisdictionRules) -> None:
         """Test that half of SE tax is deducted from AGI."""
         tax_input = TaxInput(
             tax_year=2025,
@@ -281,6 +282,7 @@ class TestSelfEmploymentTaxDeduction:
             tax_year=2025,
             trace=trace,
         )
+        context.jurisdiction_rules["US"] = federal_rules
 
         IncomeAggregationStage().execute(context)
         AdjustmentsAGIStage().execute(context)

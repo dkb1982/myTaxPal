@@ -11,7 +11,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from tax_estimator.calculation.stages.base import CalculationStage, StageResult
-from tax_estimator.models.tax_result import BracketBreakdown
+from tax_estimator.models.tax_result import BracketBreakdown, PreferentialRateBreakdown
 
 if TYPE_CHECKING:
     from tax_estimator.calculation.context import CalculationContext
@@ -107,15 +107,14 @@ class TaxComputationStage(CalculationStage):
         )
 
         # Calculate tax on preferential income at preferential rates
-        preferential_tax = Decimal(0)
-        if preferential_income > 0:
-            preferential_tax = self._calculate_preferential_rate_tax(
-                context,
-                taxable_income,
-                preferential_income,
-                filing_status,
-                trace,
-            )
+        preferential_tax, preferential_rate_breakdown = self._calculate_preferential_rate_tax(
+            context,
+            taxable_income,
+            preferential_income,
+            filing_status,
+            trace,
+            rate_schedule,
+        )
 
         total_tax = ordinary_tax + preferential_tax
 
@@ -125,11 +124,13 @@ class TaxComputationStage(CalculationStage):
         )
         total_tax += surtax
 
-        # Calculate rates
-        marginal_rate = self._find_marginal_rate(brackets, taxable_income)
+        # Calculate rates — marginal rate based on ordinary income, not total
+        marginal_rate = self._find_marginal_rate(brackets, ordinary_income)
+        # Effective rate based on AGI for user-facing display
+        agi = context.get_decimal_result("agi", taxable_income)
         effective_rate = (
-            (total_tax / taxable_income).quantize(Decimal("0.0001"))
-            if taxable_income > 0
+            (total_tax / agi).quantize(Decimal("0.0001"))
+            if agi > 0
             else Decimal(0)
         )
 
@@ -152,6 +153,7 @@ class TaxComputationStage(CalculationStage):
         context.set_result("tax_before_credits", total_tax)
         context.set_result("ordinary_tax", ordinary_tax)
         context.set_result("preferential_tax", preferential_tax)
+        context.set_result("preferential_rate_breakdown", preferential_rate_breakdown)
         context.set_result("surtax", surtax)
         context.set_result("bracket_breakdown", breakdown)
         context.set_result("marginal_rate", marginal_rate)
@@ -256,25 +258,43 @@ class TaxComputationStage(CalculationStage):
         preferential_income: Decimal,
         filing_status: str,
         trace: "CalculationTrace",
-    ) -> Decimal:
+        rate_schedule=None,
+    ) -> tuple[Decimal, list[PreferentialRateBreakdown]]:
         """
         Calculate tax on qualified dividends and long-term capital gains.
 
         These are taxed at preferential rates of 0%, 15%, or 20%
         depending on the taxpayer's total taxable income.
-        """
-        if preferential_income <= 0:
-            return Decimal(0)
 
-        # Thresholds for preferential rates (2025 PLACEHOLDER - verify with IRS)
-        # These are the thresholds where each rate applies
-        thresholds = {
-            "single": {"zero": Decimal(47025), "fifteen": Decimal(518900)},
-            "mfj": {"zero": Decimal(94050), "fifteen": Decimal(583750)},
-            "mfs": {"zero": Decimal(47025), "fifteen": Decimal(291850)},
-            "hoh": {"zero": Decimal(63000), "fifteen": Decimal(551350)},
-            "qss": {"zero": Decimal(94050), "fifteen": Decimal(583750)},
-        }
+        Returns:
+            Tuple of (total_tax, rate_breakdown) where rate_breakdown always
+            contains exactly 3 entries (0%, 15%, 20%).
+        """
+        _zero_breakdown = [
+            PreferentialRateBreakdown(rate=Decimal("0.00"), income_in_bracket=Decimal(0), tax_in_bracket=Decimal("0.00")),
+            PreferentialRateBreakdown(rate=Decimal("0.15"), income_in_bracket=Decimal(0), tax_in_bracket=Decimal("0.00")),
+            PreferentialRateBreakdown(rate=Decimal("0.20"), income_in_bracket=Decimal(0), tax_in_bracket=Decimal("0.00")),
+        ]
+
+        if preferential_income <= 0:
+            return Decimal(0), _zero_breakdown
+
+        # Load thresholds from rules YAML
+        thresholds = None
+        if rate_schedule and hasattr(rate_schedule, "preferential_thresholds") and rate_schedule.preferential_thresholds:
+            thresholds = {
+                t.filing_status: {
+                    "zero": Decimal(str(t.zero_rate_limit)),
+                    "fifteen": Decimal(str(t.fifteen_rate_limit)),
+                }
+                for t in rate_schedule.preferential_thresholds
+            }
+
+        if not thresholds:
+            raise ValueError(
+                "No preferential rate thresholds found in federal rules. "
+                "Ensure rules/federal/2025.yaml has rate_schedule.preferential_thresholds."
+            )
 
         threshold = thresholds.get(filing_status, thresholds["single"])
         ordinary_income = total_taxable_income - preferential_income
@@ -313,7 +333,26 @@ class TaxComputationStage(CalculationStage):
             jurisdiction="US",
         )
 
-        return tax
+        # Build rate breakdown — always 3 entries for predictable API shape
+        rate_breakdown = [
+            PreferentialRateBreakdown(
+                rate=Decimal("0.00"),
+                income_in_bracket=at_zero_rate,
+                tax_in_bracket=Decimal("0.00"),
+            ),
+            PreferentialRateBreakdown(
+                rate=Decimal("0.15"),
+                income_in_bracket=at_fifteen_rate,
+                tax_in_bracket=at_fifteen_rate * Decimal("0.15"),
+            ),
+            PreferentialRateBreakdown(
+                rate=Decimal("0.20"),
+                income_in_bracket=at_twenty_rate,
+                tax_in_bracket=at_twenty_rate * Decimal("0.20"),
+            ),
+        ]
+
+        return tax, rate_breakdown
 
     def _apply_surtaxes(
         self,

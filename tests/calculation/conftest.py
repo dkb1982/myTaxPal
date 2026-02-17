@@ -95,6 +95,13 @@ def test_federal_rules_yaml() -> dict:
                 {"bracket_id": "QSS4", "filing_status": "qss", "income_from": 200000, "income_to": None, "rate": 0.40, "base_tax": 48000},
             ],
             "surtaxes": [],
+            "preferential_thresholds": [
+                {"filing_status": "single", "zero_rate_limit": 47025, "fifteen_rate_limit": 518900},
+                {"filing_status": "mfj", "zero_rate_limit": 94050, "fifteen_rate_limit": 583750},
+                {"filing_status": "mfs", "zero_rate_limit": 47025, "fifteen_rate_limit": 291850},
+                {"filing_status": "hoh", "zero_rate_limit": 63000, "fifteen_rate_limit": 551350},
+                {"filing_status": "qss", "zero_rate_limit": 94050, "fifteen_rate_limit": 583750},
+            ],
         },
         "deductions": {
             "standard_deduction": {
