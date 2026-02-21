@@ -18,6 +18,11 @@ from fastapi.testclient import TestClient
 from tax_estimator.main import app
 
 
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line("markers", "golden: mark test as golden fixture comparison test")
+
+
 # =============================================================================
 # Path Fixtures
 # =============================================================================

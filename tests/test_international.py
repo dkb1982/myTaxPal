@@ -12,6 +12,7 @@ Tests cover:
 from decimal import Decimal
 import pytest
 
+from tax_estimator.models.income_breakdown import IncomeBreakdown
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
@@ -19,6 +20,10 @@ from tax_estimator.models.international import (
     ComparisonResult,
     CountryTaxSummary,
     ExchangeRateInfo,
+    UKTaxInput,
+    UKTaxRegion,
+    UKNICategory,
+    UKStudentLoanPlanType,
     get_currency_for_country,
     COUNTRY_CURRENCY_MAP,
 )
@@ -303,6 +308,534 @@ class TestUKCalculator:
         result = calculate_international_tax(tax_input)
 
         assert len(result.disclaimers) > 0
+
+
+class TestUKCalculatorIncomeTypes:
+    """Tests for UK tax calculator with income type breakdown."""
+
+    def test_mixed_income_separates_cgt(self):
+        """Test that capital gains are taxed via CGT, not income tax.
+
+        £300k employment + £25k capital gains + £100 interest.
+        Capital gains should be subject to CGT (with £3k exempt amount for 2024-25),
+        NOT lumped into income tax brackets.
+        """
+        breakdown = IncomeBreakdown(
+            employment_wages=Decimal("300000"),
+            capital_gains_long_term=Decimal("25000"),
+            interest=Decimal("100"),
+        )
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("325100"),
+            income_breakdown=breakdown,
+        )
+        result = calculate_international_tax(tax_input)
+
+        assert result.country_code == "GB"
+        assert result.total_tax > 0
+
+        # Check CGT components are present
+        component_ids = [c.component_id for c in result.breakdown]
+        has_cgt = any("CGT" in cid for cid in component_ids)
+        assert has_cgt, f"Expected CGT components, got: {component_ids}"
+
+        # NI should only be on employment (£300k), not on capital gains
+        ni_components = [c for c in result.breakdown if "NI" in c.component_id]
+        total_ni_base = sum(c.base for c in ni_components if c.base)
+        # NI base should not exceed employment income
+        assert total_ni_base <= Decimal("300000")
+
+    def test_cgt_annual_exempt_amount(self):
+        """Test that CGT annual exempt amount is applied.
+
+        £2k capital gains should be fully exempt (within £3k AEA for 2024-25).
+        """
+        breakdown = IncomeBreakdown(
+            employment_wages=Decimal("50000"),
+            capital_gains_long_term=Decimal("2000"),
+        )
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("52000"),
+            income_breakdown=breakdown,
+        )
+        result = calculate_international_tax(tax_input)
+
+        # CGT should be £0 (gains within exempt amount of £3,000)
+        cgt_components = [c for c in result.breakdown if "CGT" in c.component_id]
+        total_cgt = sum(c.amount for c in cgt_components)
+        assert total_cgt == Decimal(0)
+
+    def test_cgt_higher_rate(self):
+        """Test CGT at higher rate for higher-rate taxpayer.
+
+        £300k employment puts taxpayer well into higher rate band.
+        £25k capital gains - £3k AEA = £22k all at 24% (2024-25 rates).
+        """
+        breakdown = IncomeBreakdown(
+            employment_wages=Decimal("300000"),
+            capital_gains_long_term=Decimal("25000"),
+        )
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("325000"),
+            income_breakdown=breakdown,
+        )
+        result = calculate_international_tax(tax_input)
+
+        cgt_components = [c for c in result.breakdown if "CGT" in c.component_id]
+        total_cgt = sum(c.amount for c in cgt_components)
+        # (£25,000 - £3,000) × 24% = £5,280
+        assert total_cgt == Decimal("5280.00")
+
+    def test_backward_compat_no_breakdown(self):
+        """Test that calculator still works without income breakdown."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("50000"),
+        )
+        result = calculate_international_tax(tax_input)
+
+        assert result.total_tax > 0
+        assert result.net_income < result.gross_income
+
+    def test_effective_rate_lower_with_breakdown(self):
+        """Test that effective rate differs when income types are properly split.
+
+        Without breakdown: £325k all taxed as employment → higher income tax + NI on all.
+        With breakdown: £300k employment + £25k CGT → CGT at lower rate, no NI on gains.
+        """
+        # Without breakdown (all as employment)
+        tax_input_lumped = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("325000"),
+        )
+        result_lumped = calculate_international_tax(tax_input_lumped)
+
+        # With breakdown
+        breakdown = IncomeBreakdown(
+            employment_wages=Decimal("300000"),
+            capital_gains_long_term=Decimal("25000"),
+        )
+        tax_input_split = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("325000"),
+            income_breakdown=breakdown,
+        )
+        result_split = calculate_international_tax(tax_input_split)
+
+        # With proper income type handling, tax should be different
+        # (NI not charged on cap gains, CGT rates differ from income tax)
+        assert result_split.total_tax != result_lumped.total_tax
+
+
+class TestUKScottishRates:
+    """Tests for Scottish income tax rates."""
+
+    def _calc_scottish(self, gross: str) -> InternationalTaxResult:
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal(gross),
+            uk=UKTaxInput(
+                tax_region=UKTaxRegion.SCOTLAND,
+                employment_income=Decimal(gross),
+            ),
+        )
+        return calculate_international_tax(tax_input)
+
+    def _calc_england(self, gross: str) -> InternationalTaxResult:
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal(gross),
+        )
+        return calculate_international_tax(tax_input)
+
+    def test_scottish_notes_mention_scotland(self):
+        """Scottish rates should be noted in the result."""
+        result = self._calc_scottish("50000")
+        notes_text = " ".join(result.calculation_notes)
+        assert "Scottish" in notes_text or "scottish" in notes_text
+
+    def test_scottish_low_income_starter_rate(self):
+        """At £15k, Scottish starter rate (19%) is slightly cheaper than England basic (20%)."""
+        scot = self._calc_scottish("15000")
+        eng = self._calc_england("15000")
+        # Scottish 19% on £12,570-£14,876 portion vs England 20%
+        assert scot.income_tax <= eng.income_tax
+
+    def test_scottish_mid_income_higher_than_england(self):
+        """At £50k, Scottish rates should produce higher income tax than England.
+
+        Scotland has 42% kicking in at £43,662 vs England 40% at £50,270.
+        """
+        scot = self._calc_scottish("50000")
+        eng = self._calc_england("50000")
+        assert scot.income_tax > eng.income_tax
+
+    def test_scottish_high_income_top_rate(self):
+        """At £200k, Scottish top rate (48%) vs England additional (45%)."""
+        scot = self._calc_scottish("200000")
+        eng = self._calc_england("200000")
+        assert scot.income_tax > eng.income_tax
+
+    def test_scottish_same_ni(self):
+        """NI should be the same regardless of tax region."""
+        scot = self._calc_scottish("50000")
+        eng = self._calc_england("50000")
+        assert scot.social_insurance == eng.social_insurance
+
+    def test_scottish_structural_invariants(self):
+        """Tax + net = gross and rate bounds for Scottish calculation."""
+        for gross in ["20000", "50000", "100000", "300000"]:
+            result = self._calc_scottish(gross)
+            assert result.total_tax + result.net_income == result.gross_income
+            assert Decimal("0") <= result.effective_rate <= Decimal("1")
+
+
+class TestUKStudentLoans:
+    """Tests for UK student loan repayments."""
+
+    def _calc_with_loan(self, gross: str, plan: UKStudentLoanPlanType) -> InternationalTaxResult:
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal(gross),
+            uk=UKTaxInput(
+                employment_income=Decimal(gross),
+                student_loan_plan=plan,
+            ),
+        )
+        return calculate_international_tax(tax_input)
+
+    def test_plan_1_threshold(self):
+        """Plan 1: 9% on income above £26,065 (2025-26)."""
+        result = self._calc_with_loan("50000", UKStudentLoanPlanType.PLAN_1)
+        sl_components = [c for c in result.breakdown if "Student Loan" in c.name]
+        assert len(sl_components) == 1
+        expected = ((Decimal("50000") - Decimal("26065")) * Decimal("0.09")).quantize(Decimal("0.01"))
+        assert sl_components[0].amount == expected
+
+    def test_plan_2_threshold(self):
+        """Plan 2: 9% on income above £28,470 (2025-26)."""
+        result = self._calc_with_loan("50000", UKStudentLoanPlanType.PLAN_2)
+        sl_components = [c for c in result.breakdown if "Student Loan" in c.name]
+        expected = ((Decimal("50000") - Decimal("28470")) * Decimal("0.09")).quantize(Decimal("0.01"))
+        assert sl_components[0].amount == expected
+
+    def test_plan_4_threshold(self):
+        """Plan 4: 9% on income above £32,745 (2025-26)."""
+        result = self._calc_with_loan("50000", UKStudentLoanPlanType.PLAN_4)
+        sl_components = [c for c in result.breakdown if "Student Loan" in c.name]
+        expected = ((Decimal("50000") - Decimal("32745")) * Decimal("0.09")).quantize(Decimal("0.01"))
+        assert sl_components[0].amount == expected
+
+    def test_plan_5_threshold(self):
+        """Plan 5: 9% on income above £25,000 (2025-26)."""
+        result = self._calc_with_loan("50000", UKStudentLoanPlanType.PLAN_5)
+        sl_components = [c for c in result.breakdown if "Student Loan" in c.name]
+        expected = ((Decimal("50000") - Decimal("25000")) * Decimal("0.09")).quantize(Decimal("0.01"))
+        assert sl_components[0].amount == expected
+
+    def test_postgrad_rate(self):
+        """Postgrad: 6% (not 9%) on income above £21,000."""
+        result = self._calc_with_loan("50000", UKStudentLoanPlanType.POSTGRAD)
+        sl_components = [c for c in result.breakdown if "Student Loan" in c.name]
+        expected = ((Decimal("50000") - Decimal("21000")) * Decimal("0.06")).quantize(Decimal("0.01"))
+        assert sl_components[0].amount == expected
+
+    def test_no_loan_below_threshold(self):
+        """Income below all thresholds should produce zero repayment."""
+        result = self._calc_with_loan("20000", UKStudentLoanPlanType.PLAN_1)
+        sl_components = [c for c in result.breakdown if "Student Loan" in c.name]
+        assert len(sl_components) == 0
+
+    def test_student_loan_in_other_taxes(self):
+        """Student loan repayment should appear in other_taxes field."""
+        result = self._calc_with_loan("50000", UKStudentLoanPlanType.PLAN_2)
+        assert result.other_taxes > 0
+
+    def test_student_loan_affects_total_tax(self):
+        """Total tax with student loan > total tax without."""
+        with_loan = self._calc_with_loan("50000", UKStudentLoanPlanType.PLAN_2)
+        without_loan = self._calc_with_loan("50000", UKStudentLoanPlanType.NONE)
+        assert with_loan.total_tax > without_loan.total_tax
+
+
+class TestUKNICategories:
+    """Tests for UK National Insurance categories."""
+
+    def test_category_c_no_ni(self):
+        """Category C (over pension age) should have zero NI."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("50000"),
+            uk=UKTaxInput(
+                employment_income=Decimal("50000"),
+                ni_category=UKNICategory.C,
+            ),
+        )
+        result = calculate_international_tax(tax_input)
+        assert result.social_insurance == Decimal("0")
+        notes_text = " ".join(result.calculation_notes)
+        assert "pension age" in notes_text.lower() or "Category C" in notes_text
+
+    def test_category_c_still_pays_income_tax(self):
+        """Category C should still pay income tax even with no NI."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("50000"),
+            uk=UKTaxInput(
+                employment_income=Decimal("50000"),
+                ni_category=UKNICategory.C,
+            ),
+        )
+        result = calculate_international_tax(tax_input)
+        assert result.income_tax > 0
+        assert result.total_tax > 0
+        assert result.total_tax + result.net_income == result.gross_income
+
+    def test_category_a_default(self):
+        """Default Category A should have NI."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("50000"),
+            uk=UKTaxInput(
+                employment_income=Decimal("50000"),
+                ni_category=UKNICategory.A,
+            ),
+        )
+        result = calculate_international_tax(tax_input)
+        assert result.social_insurance > 0
+
+
+class TestUKPensionContributions:
+    """Tests for UK pension contribution tax relief."""
+
+    def test_pension_relief_reduces_tax(self):
+        """Pension contributions should reduce taxable income (basic rate relief)."""
+        base_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("50000"),
+            uk=UKTaxInput(
+                employment_income=Decimal("50000"),
+                pension_contributions=Decimal("0"),
+            ),
+        )
+        pension_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("50000"),
+            uk=UKTaxInput(
+                employment_income=Decimal("50000"),
+                pension_contributions=Decimal("10000"),
+            ),
+        )
+        result_base = calculate_international_tax(base_input)
+        result_pension = calculate_international_tax(pension_input)
+
+        # Pension relief should reduce income tax
+        assert result_pension.income_tax < result_base.income_tax
+
+    def test_pension_relief_component_in_breakdown(self):
+        """Pension relief should appear as a deduction in breakdown."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("50000"),
+            uk=UKTaxInput(
+                employment_income=Decimal("50000"),
+                pension_contributions=Decimal("5000"),
+            ),
+        )
+        result = calculate_international_tax(tax_input)
+        pension_components = [c for c in result.breakdown if "Pension" in c.name]
+        assert len(pension_components) > 0
+
+    def test_pension_relief_amount(self):
+        """Basic rate relief = 25% of contribution amount."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("50000"),
+            uk=UKTaxInput(
+                employment_income=Decimal("50000"),
+                pension_contributions=Decimal("8000"),
+            ),
+        )
+        result = calculate_international_tax(tax_input)
+        relief_components = [c for c in result.breakdown if "Pension" in c.name and c.is_deductible]
+        assert len(relief_components) == 1
+        # 25% of £8,000 = £2,000 relief (shown as negative)
+        assert relief_components[0].amount == Decimal("-2000")
+
+
+class TestUKPersonalAllowanceTaper:
+    """Tests for UK personal allowance taper at £100k+."""
+
+    def test_full_allowance_at_100k(self):
+        """At exactly £100k, full personal allowance should apply."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("100000"),
+        )
+        result = calculate_international_tax(tax_input)
+        pa_components = [c for c in result.breakdown if "Personal Allowance" in c.name]
+        assert len(pa_components) == 1
+        assert pa_components[0].amount == Decimal("-12570")
+
+    def test_partial_taper_at_110k(self):
+        """At £110k, PA should be reduced by £5,000 (£10k excess / 2)."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("110000"),
+        )
+        result = calculate_international_tax(tax_input)
+        pa_components = [c for c in result.breakdown if "Personal Allowance" in c.name]
+        # £12,570 - £5,000 = £7,570
+        assert pa_components[0].amount == Decimal("-7570")
+
+    def test_zero_allowance_at_125140(self):
+        """At £125,140, PA should be completely tapered away."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("125140"),
+        )
+        result = calculate_international_tax(tax_input)
+        pa_components = [c for c in result.breakdown if "Personal Allowance" in c.name]
+        assert pa_components[0].amount == Decimal("0")
+
+    def test_zero_allowance_above_125140(self):
+        """Above £125,140, PA should remain zero."""
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            currency_code="GBP",
+            gross_income=Decimal("200000"),
+        )
+        result = calculate_international_tax(tax_input)
+        pa_components = [c for c in result.breakdown if "Personal Allowance" in c.name]
+        assert pa_components[0].amount == Decimal("0")
+
+    def test_taper_creates_60_percent_marginal_zone(self):
+        """Between £100k-£125,140, marginal rate is ~60% (40% + 20% from taper).
+
+        For every £2 earned, PA drops by £1, so the £1 of lost PA is taxed at 20%,
+        plus the £2 earned is taxed at 40%, giving effective 60% on the £2.
+        Tax on £105k should be meaningfully more than tax on £100k.
+        """
+        result_100k = calculate_international_tax(InternationalTaxInput(
+            country_code="GB", tax_year=2025, gross_income=Decimal("100000"),
+        ))
+        result_105k = calculate_international_tax(InternationalTaxInput(
+            country_code="GB", tax_year=2025, gross_income=Decimal("105000"),
+        ))
+        extra_tax = result_105k.total_tax - result_100k.total_tax
+        # £5k extra income in the 60% marginal zone → ~£3k extra tax
+        # (40% income tax + 20% from PA taper, plus 2% NI)
+        assert extra_tax > Decimal("2500")  # Well above 50% on £5k
+
+
+class TestUKCGTEdgeCases:
+    """Tests for CGT boundary conditions."""
+
+    def test_cgt_exactly_at_aea(self):
+        """Gains exactly at AEA (£3,000) should produce zero CGT."""
+        breakdown = IncomeBreakdown(
+            employment_wages=Decimal("50000"),
+            capital_gains_long_term=Decimal("3000"),
+        )
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("53000"),
+            income_breakdown=breakdown,
+        )
+        result = calculate_international_tax(tax_input)
+        cgt_components = [c for c in result.breakdown if "CGT" in c.component_id]
+        total_cgt = sum(c.amount for c in cgt_components)
+        assert total_cgt == Decimal("0")
+
+    def test_cgt_basic_rate_taxpayer(self):
+        """Low-income taxpayer: gains should be taxed at 18% (basic rate).
+
+        £30k employment (basic rate taxpayer).
+        Remaining basic rate band = £37,700 - (£30,000 - £12,570) = £20,270.
+        £10k gains - £3k AEA = £7k taxable, all within remaining basic rate band → 18%.
+        """
+        breakdown = IncomeBreakdown(
+            employment_wages=Decimal("30000"),
+            capital_gains_long_term=Decimal("10000"),
+        )
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("40000"),
+            income_breakdown=breakdown,
+        )
+        result = calculate_international_tax(tax_input)
+        cgt_components = [c for c in result.breakdown if "CGT" in c.component_id and c.amount > 0]
+        # All gains should be at basic rate (18%)
+        assert len(cgt_components) == 1
+        assert "Basic" in cgt_components[0].name
+        # £7,000 × 18% = £1,260
+        assert cgt_components[0].amount == Decimal("1260.00")
+
+    def test_cgt_split_basic_and_higher(self):
+        """Gains spanning basic/higher rate boundary.
+
+        £45k employment → taxable income = £45,000 - £12,570 = £32,430.
+        Remaining basic rate band = £37,700 - £32,430 = £5,270.
+        £20k gains - £3k AEA = £17k taxable.
+        £5,270 at 18% + £11,730 at 24%.
+        """
+        breakdown = IncomeBreakdown(
+            employment_wages=Decimal("45000"),
+            capital_gains_long_term=Decimal("20000"),
+        )
+        tax_input = InternationalTaxInput(
+            country_code="GB",
+            tax_year=2025,
+            gross_income=Decimal("65000"),
+            income_breakdown=breakdown,
+        )
+        result = calculate_international_tax(tax_input)
+        cgt_basic = [c for c in result.breakdown if c.component_id == "GB-CGT-BASIC"]
+        cgt_higher = [c for c in result.breakdown if c.component_id == "GB-CGT-HIGHER"]
+        assert len(cgt_basic) == 1
+        assert len(cgt_higher) == 1
+        expected_basic = (Decimal("5270") * Decimal("0.18")).quantize(Decimal("0.01"))
+        expected_higher = (Decimal("11730") * Decimal("0.24")).quantize(Decimal("0.01"))
+        assert cgt_basic[0].amount == expected_basic
+        assert cgt_higher[0].amount == expected_higher
 
 
 class TestGermanyCalculator:

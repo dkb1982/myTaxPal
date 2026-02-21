@@ -345,7 +345,7 @@ class TestEstimateEdgeCases:
         assert total_income >= 100000  # 50k + 30k + 20k
 
     def test_estimate_with_capital_gains(self, client: TestClient):
-        """Test estimate with capital gains."""
+        """Test estimate with capital gains includes income split and tax amounts."""
         request = {
             "tax_year": 2025,
             "filer": {"filing_status": "single"},
@@ -371,6 +371,66 @@ class TestEstimateEdgeCases:
         summary = data["summary"]
         total_income = float(summary["total_income"])
         assert total_income >= 125000  # 100k + 20k + 5k
+
+        # Verify income type split is in the response
+        federal = data["federal"]
+        assert "ordinary_income" in federal
+        assert "preferential_income" in federal
+        assert "ordinary_tax" in federal
+        assert "preferential_tax" in federal
+
+        # LTCG should be preferential, STCG should be ordinary
+        pref_income = float(federal["preferential_income"])
+        assert pref_income == 20000.0  # Only LTCG
+
+        # Tax amounts should be non-negative
+        assert float(federal["ordinary_tax"]) > 0
+        assert float(federal["preferential_tax"]) >= 0
+
+        # Total tax before credits = ordinary + preferential (+ surtaxes)
+        assert float(federal["tax_before_credits"]) >= (
+            float(federal["ordinary_tax"]) + float(federal["preferential_tax"])
+        )
+
+    def test_mixed_income_effective_rate_is_blended(self, client: TestClient):
+        """Test that effective rate with mixed income is properly blended."""
+        request = {
+            "tax_year": 2025,
+            "filer": {"filing_status": "single"},
+            "residency": {"residence_state": "CA"},
+            "income": {
+                "wages": [
+                    {
+                        "employer_name": "Test",
+                        "employer_state": "CA",
+                        "gross_wages": 80000,
+                    }
+                ],
+                "capital_gains": {
+                    "long_term_gain": 30000,
+                },
+            },
+        }
+        response = client.post("/v1/estimates", json=request)
+
+        assert response.status_code == 201
+        data = response.json()
+        federal = data["federal"]
+
+        # Effective rate should be a blend between ordinary rates and preferential rates
+        effective_rate = float(data["summary"]["effective_rate"])
+        assert effective_rate > 0
+        # Should be less than the top ordinary bracket rate
+        assert effective_rate < 0.40
+
+        # Preferential rate breakdown should be present if preferential income > 0
+        pref_income = float(federal["preferential_income"])
+        if pref_income > 0:
+            assert len(federal["preferential_rate_breakdown"]) > 0
+            for entry in federal["preferential_rate_breakdown"]:
+                assert "rate" in entry
+                assert "income_in_bracket" in entry
+                assert "tax_in_bracket" in entry
 
     def test_estimate_with_interest_dividends(self, client: TestClient):
         """Test estimate with interest and dividend income."""

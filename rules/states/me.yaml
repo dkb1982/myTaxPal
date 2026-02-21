@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# Maine - Progressive tax state (3 brackets, up to 7.15%)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Maine - Progressive tax state (3 brackets)
+# 2025 tax brackets verified
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Maine (PLACEHOLDER)"
+jurisdiction_name: "Maine"
 jurisdiction_abbreviation: "ME"
 parent_jurisdiction_id: "US"
 
@@ -23,140 +21,139 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Rate Schedule - PROGRESSIVE TAX
-# PLACEHOLDER: All rates and thresholds need verification
+# Rate Schedule - PROGRESSIVE TAX (3 brackets)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers - PLACEHOLDER VALUES
+    # Single filers - 2025 ME brackets
     - bracket_id: "ME-2025-S-1"
       filing_status: "single"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 26800
+      rate: 0.058
       base_tax: 0
     - bracket_id: "ME-2025-S-2"
       filing_status: "single"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
+      income_from: 26800
+      income_to: 63450
+      rate: 0.0675
+      base_tax: 1554.40
     - bracket_id: "ME-2025-S-3"
       filing_status: "single"
-      income_from: 50000
+      income_from: 63450
       income_to: null
       rate: 0.0715
-      base_tax: 1800
+      base_tax: 4028.08
 
-    # Married Filing Jointly - PLACEHOLDER VALUES
+    # Married Filing Jointly
     - bracket_id: "ME-2025-MFJ-1"
       filing_status: "mfj"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 53600
+      rate: 0.058
       base_tax: 0
     - bracket_id: "ME-2025-MFJ-2"
       filing_status: "mfj"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
+      income_from: 53600
+      income_to: 126900
+      rate: 0.0675
+      base_tax: 3108.80
     - bracket_id: "ME-2025-MFJ-3"
       filing_status: "mfj"
-      income_from: 100000
+      income_from: 126900
       income_to: null
       rate: 0.0715
-      base_tax: 3600
+      base_tax: 8056.18
 
-    # Married Filing Separately - Same as single
+    # Married Filing Separately
     - bracket_id: "ME-2025-MFS-1"
       filing_status: "mfs"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 26800
+      rate: 0.058
       base_tax: 0
     - bracket_id: "ME-2025-MFS-2"
       filing_status: "mfs"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
+      income_from: 26800
+      income_to: 63450
+      rate: 0.0675
+      base_tax: 1554.40
     - bracket_id: "ME-2025-MFS-3"
       filing_status: "mfs"
-      income_from: 50000
+      income_from: 63450
       income_to: null
       rate: 0.0715
-      base_tax: 1800
+      base_tax: 4028.08
 
-    # Head of Household - PLACEHOLDER VALUES
+    # Head of Household
     - bracket_id: "ME-2025-HOH-1"
       filing_status: "hoh"
       income_from: 0
-      income_to: 15000
-      rate: 0.02
+      income_to: 40200
+      rate: 0.058
       base_tax: 0
     - bracket_id: "ME-2025-HOH-2"
       filing_status: "hoh"
-      income_from: 15000
-      income_to: 75000
-      rate: 0.04
-      base_tax: 300
+      income_from: 40200
+      income_to: 95150
+      rate: 0.0675
+      base_tax: 2331.60
     - bracket_id: "ME-2025-HOH-3"
       filing_status: "hoh"
-      income_from: 75000
+      income_from: 95150
       income_to: null
       rate: 0.0715
-      base_tax: 2700
+      base_tax: 6040.88
 
     # QSS - Same as MFJ
     - bracket_id: "ME-2025-QSS-1"
       filing_status: "qss"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 53600
+      rate: 0.058
       base_tax: 0
     - bracket_id: "ME-2025-QSS-2"
       filing_status: "qss"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
+      income_from: 53600
+      income_to: 126900
+      rate: 0.0675
+      base_tax: 3108.80
     - bracket_id: "ME-2025-QSS-3"
       filing_status: "qss"
-      income_from: 100000
+      income_from: 126900
       income_to: null
       rate: 0.0715
-      base_tax: 3600
+      base_tax: 8056.18
 
   surtaxes: []
 
-# Deductions - PLACEHOLDER VALUES
+# Deductions - 2025 values
 deductions:
   standard_deduction:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 5000
+        amount: 15000
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
-        amount: 10000
+        amount: 30000
         dependent_claimed_elsewhere: null
       - filing_status: "mfs"
-        amount: 5000
+        amount: 15000
         dependent_claimed_elsewhere: null
       - filing_status: "hoh"
-        amount: 7500
+        amount: 22500
         dependent_claimed_elsewhere: null
       - filing_status: "qss"
-        amount: 10000
+        amount: 30000
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
-    dependent_exemption_available: false
-    dependent_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 5150
+    dependent_exemption_available: true
+    dependent_exemption_amount: 1000
 
 # State-specific configuration
 state_config:
@@ -165,17 +162,17 @@ state_config:
   local_tax_mandatory: false
   reciprocity_states: []
   special_notes:
-    - "PLACEHOLDER: Maine has 3 tax brackets"
+    - "Maine has 3 brackets: 5.8%, 6.75%, 7.15%"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Maine 3 brackets"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Progressive tax state - placeholder for development"
+  - source_name: "Maine Revenue Services"
+    url: "https://www.maine.gov/revenue/"
+    retrieved_date: "2025-02-20"
+    notes: "Maine 3 brackets"

@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
 # Florida has no state income tax.
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Constitutionally prohibited - verified 2025
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Florida (PLACEHOLDER)"
+jurisdiction_name: "Florida"
 jurisdiction_abbreviation: "FL"
 parent_jurisdiction_id: "US"
 
@@ -54,13 +52,13 @@ state_config:
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Florida has no state income tax - constitutionally prohibited"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "No income tax state - placeholder for development"
+  - source_name: "Florida Department of Revenue"
+    url: "https://floridarevenue.com/taxes/income_tax/"
+    retrieved_date: "2025-02-20"
+    notes: "Florida does not have a state income tax"

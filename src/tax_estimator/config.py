@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
+    # Logging
+    log_level: str = "INFO"
+
     # Rules Settings
     rules_dir: Path | None = None  # None = use default
 
@@ -43,6 +46,14 @@ class Settings(BaseSettings):
     cors_allow_credentials: bool = False  # Disabled by default for security
     cors_allow_methods: list[str] = ["GET", "POST", "OPTIONS"]
     cors_allow_headers: list[str] = ["Content-Type", "Authorization", "X-Request-Id"]
+
+    # Security Headers
+    security_headers_enabled: bool = True
+    csp_policy: str | None = None  # None = use default policy
+    hsts_max_age: int = 31536000  # 1 year
+
+    # Request Size Limit
+    max_request_body_bytes: int = 1_048_576  # 1 MB
 
     # Rate Limiting Settings
     rate_limit_enabled: bool = True

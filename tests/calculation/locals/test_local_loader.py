@@ -211,7 +211,7 @@ class TestBaltimoreRules:
         """Test Baltimore piggyback rate is percentage of state taxable income."""
         rules = loader.load_local_rules("md_baltimore")
         assert rules.flat_rates is not None
-        assert rules.flat_rates.rate == Decimal("0.032")
+        assert rules.flat_rates.rate == Decimal("0.033")
 
 
 class TestYonkersRules:

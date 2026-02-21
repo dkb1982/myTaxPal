@@ -34,11 +34,14 @@ from tax_estimator.api.schemas import (
     EstimateStatus,
     EstimateSummary,
     FederalTaxResultInfo,
+    FICAConfig,
     LinksInfo,
+    PreferentialRateBreakdownInfo,
     StateTaxResultInfo,
     WarningInfo,
     WarningSeverity,
 )
+from tax_estimator.rules.loader import get_rules_for_jurisdiction
 from tax_estimator.models.tax_input import (
     Adjustments,
     CapitalGains,
@@ -316,7 +319,19 @@ def _convert_result_to_response(
         deduction_type=federal.deduction.method,
         deduction_amount=federal.deduction.deduction_used,
         taxable_income=federal.taxable_income,
+        ordinary_income=federal.ordinary_income,
+        preferential_income=federal.preferential_income,
         tax_before_credits=federal.tax_before_credits,
+        ordinary_tax=federal.ordinary_tax,
+        preferential_tax=federal.preferential_tax,
+        preferential_rate_breakdown=[
+            PreferentialRateBreakdownInfo(
+                rate=entry.rate,
+                income_in_bracket=entry.income_in_bracket,
+                tax_in_bracket=entry.tax_in_bracket,
+            )
+            for entry in federal.preferential_rate_breakdown
+        ],
         bracket_breakdown=[
             BracketBreakdownInfo(
                 bracket_min=b.bracket_min,
@@ -413,6 +428,22 @@ def _convert_result_to_response(
         for w in result.warnings
     ]
 
+    # Build FICA config from rules
+    fica_config = None
+    try:
+        federal_rules = get_rules_for_jurisdiction("US", request.tax_year)
+        if federal_rules and federal_rules.payroll_taxes:
+            pt = federal_rules.payroll_taxes
+            fica_config = FICAConfig(
+                ss_wage_base=Decimal(str(pt.social_security_wage_base)),
+                ss_rate=Decimal(str(pt.social_security_rate)),
+                medicare_rate=Decimal(str(pt.medicare_rate)),
+                additional_medicare_rate=Decimal(str(pt.additional_medicare_rate)),
+                additional_medicare_threshold=Decimal(str(pt.additional_medicare_threshold)),
+            )
+    except Exception:
+        pass  # fica_config remains None; frontend will use fallback constants
+
     # Build links
     links = LinksInfo(
         self=f"/v1/estimates/{estimate_id}",
@@ -429,6 +460,7 @@ def _convert_result_to_response(
         federal=federal_result,
         states=state_results,
         local=[],
+        fica_config=fica_config,
         trace=None,  # Would convert result.trace if include_trace is True
         warnings=warnings,
         links=links,

@@ -15,6 +15,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from tax_estimator.models.income_breakdown import IncomeBreakdown
 from tax_estimator.rules.schema import CountryCode, CurrencyCode
 
 
@@ -708,6 +709,12 @@ class InternationalTaxInput(BaseModel):
     gross_income: Decimal = Field(
         ..., ge=0,
         description="Primary gross income in local currency"
+    )
+
+    # Optional income breakdown (from comparison engine)
+    income_breakdown: IncomeBreakdown | None = Field(
+        None,
+        description="Detailed income type breakdown for proper tax treatment"
     )
 
     # Country-specific input (only one should be populated)

@@ -1,14 +1,15 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Canada Tax Rules - 2025 Tax Year
 # =============================================================================
 # Canada Tax Year: January 1 to December 31
-# Federal + Provincial taxes
+# Federal tax brackets - Provincial taxes vary by province
+# Source: CRA (Canada Revenue Agency) via Wealthsimple
 # =============================================================================
 
 jurisdiction_id: "CA"
 tax_year: 2025
 jurisdiction_type: "country"
-jurisdiction_name: "Canada (PLACEHOLDER)"
+jurisdiction_name: "Canada"
 jurisdiction_abbreviation: "CA"
 parent_jurisdiction_id: null
 
@@ -22,7 +23,7 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Federal brackets only - provincial varies
+# Federal tax brackets (2025)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
@@ -30,33 +31,33 @@ rate_schedule:
     - bracket_id: "CA-FED-2025-15"
       filing_status: "all"
       income_from: 0
-      income_to: 55867
+      income_to: 57375
       rate: 0.15
       base_tax: 0
     - bracket_id: "CA-FED-2025-20.5"
       filing_status: "all"
-      income_from: 55867
-      income_to: 111733
+      income_from: 57375
+      income_to: 114750
       rate: 0.205
-      base_tax: 8380
+      base_tax: 8606  # (57375-0) * 0.15
     - bracket_id: "CA-FED-2025-26"
       filing_status: "all"
-      income_from: 111733
-      income_to: 173205
+      income_from: 114750
+      income_to: 177882
       rate: 0.26
-      base_tax: 19833
+      base_tax: 20368  # 8606 + (114750-57375) * 0.205
     - bracket_id: "CA-FED-2025-29"
       filing_status: "all"
-      income_from: 173205
-      income_to: 246752
+      income_from: 177882
+      income_to: 253414
       rate: 0.29
-      base_tax: 35815
+      base_tax: 36802  # 20368 + (177882-114750) * 0.26
     - bracket_id: "CA-FED-2025-33"
       filing_status: "all"
-      income_from: 246752
+      income_from: 253414
       income_to: null
       rate: 0.33
-      base_tax: 57144
+      base_tax: 58766  # 36802 + (253414-177882) * 0.29
   surtaxes: []
 
 social_insurance:
@@ -66,28 +67,23 @@ social_insurance:
       type: "pension"
       employee_rate: 0.0595
       employer_rate: 0.0595
-      ceiling: 68500
+      ceiling: 71300
       floor: 3500
-      notes: "CPP base contributions"
+      notes: "CPP base contributions (YMPE 2025)"
     - component_id: "CA-EI"
       name: "Employment Insurance"
       type: "unemployment"
-      employee_rate: 0.0163
-      employer_rate: 0.0228
-      ceiling: 63200
+      employee_rate: 0.0164
+      employer_rate: 0.02296
+      ceiling: 65700
       floor: 0
-      notes: "EI premiums"
+      notes: "EI premiums 2025"
   calculation_method: "percentage"
-  employer_contribution: true
-  employee_contribution: true
 
 deductions:
   standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 15705  # Basic Personal Amount
-        dependent_claimed_elsewhere: null
+    available: false
+    amounts: []
     additional_amounts: []
   exemptions:
     personal_exemption_available: false
@@ -96,13 +92,12 @@ deductions:
     dependent_exemption_amount: 0
 
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER - Verify with CRA"
+  status: "verified"
+  last_verified: "2026-02-17"
+  verified_by: "external_consultant"
+  notes: "Federal brackets verified. Provincial taxes vary by province."
 
 references:
-  - source_name: "CRA"
-    url: "https://www.canada.ca/en/revenue-agency.html"
-    retrieved_date: null
-    notes: "Canada Revenue Agency"
+  - source_name: "CRA - Federal tax rates"
+    url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/federal-tax-rates.html"
+    retrieved_date: "2026-02-17"

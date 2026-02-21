@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# Oklahoma - Progressive tax state (6 brackets, up to 4.75%)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Oklahoma - Progressive tax state (6 brackets)
+# 2025 tax brackets verified
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Oklahoma (PLACEHOLDER)"
+jurisdiction_name: "Oklahoma"
 jurisdiction_abbreviation: "OK"
 parent_jurisdiction_id: "US"
 
@@ -23,133 +21,222 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Rate Schedule - PROGRESSIVE TAX
-# PLACEHOLDER: All rates and thresholds need verification
+# Rate Schedule - PROGRESSIVE TAX (6 brackets)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers - PLACEHOLDER VALUES
+    # Single filers - 2025 OK brackets
     - bracket_id: "OK-2025-S-1"
       filing_status: "single"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 1000
+      rate: 0.0025
       base_tax: 0
     - bracket_id: "OK-2025-S-2"
       filing_status: "single"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
+      income_from: 1000
+      income_to: 2500
+      rate: 0.0075
+      base_tax: 2.50
     - bracket_id: "OK-2025-S-3"
       filing_status: "single"
-      income_from: 50000
+      income_from: 2500
+      income_to: 3750
+      rate: 0.0175
+      base_tax: 14
+    - bracket_id: "OK-2025-S-4"
+      filing_status: "single"
+      income_from: 3750
+      income_to: 4900
+      rate: 0.0275
+      base_tax: 35.88
+    - bracket_id: "OK-2025-S-5"
+      filing_status: "single"
+      income_from: 4900
+      income_to: 7200
+      rate: 0.0375
+      base_tax: 67.50
+    - bracket_id: "OK-2025-S-6"
+      filing_status: "single"
+      income_from: 7200
       income_to: null
       rate: 0.0475
-      base_tax: 1800
+      base_tax: 153.75
 
-    # Married Filing Jointly - PLACEHOLDER VALUES
+    # Married Filing Jointly
     - bracket_id: "OK-2025-MFJ-1"
       filing_status: "mfj"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 2000
+      rate: 0.0025
       base_tax: 0
     - bracket_id: "OK-2025-MFJ-2"
       filing_status: "mfj"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
+      income_from: 2000
+      income_to: 5000
+      rate: 0.0075
+      base_tax: 5
     - bracket_id: "OK-2025-MFJ-3"
       filing_status: "mfj"
-      income_from: 100000
+      income_from: 5000
+      income_to: 7500
+      rate: 0.0175
+      base_tax: 27.50
+    - bracket_id: "OK-2025-MFJ-4"
+      filing_status: "mfj"
+      income_from: 7500
+      income_to: 9800
+      rate: 0.0275
+      base_tax: 71.25
+    - bracket_id: "OK-2025-MFJ-5"
+      filing_status: "mfj"
+      income_from: 9800
+      income_to: 14400
+      rate: 0.0375
+      base_tax: 134.38
+    - bracket_id: "OK-2025-MFJ-6"
+      filing_status: "mfj"
+      income_from: 14400
       income_to: null
       rate: 0.0475
-      base_tax: 3600
+      base_tax: 306.75
 
     # Married Filing Separately - Same as single
     - bracket_id: "OK-2025-MFS-1"
       filing_status: "mfs"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 1000
+      rate: 0.0025
       base_tax: 0
     - bracket_id: "OK-2025-MFS-2"
       filing_status: "mfs"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
+      income_from: 1000
+      income_to: 2500
+      rate: 0.0075
+      base_tax: 2.50
     - bracket_id: "OK-2025-MFS-3"
       filing_status: "mfs"
-      income_from: 50000
+      income_from: 2500
+      income_to: 3750
+      rate: 0.0175
+      base_tax: 14
+    - bracket_id: "OK-2025-MFS-4"
+      filing_status: "mfs"
+      income_from: 3750
+      income_to: 4900
+      rate: 0.0275
+      base_tax: 35.88
+    - bracket_id: "OK-2025-MFS-5"
+      filing_status: "mfs"
+      income_from: 4900
+      income_to: 7200
+      rate: 0.0375
+      base_tax: 67.50
+    - bracket_id: "OK-2025-MFS-6"
+      filing_status: "mfs"
+      income_from: 7200
       income_to: null
       rate: 0.0475
-      base_tax: 1800
+      base_tax: 153.75
 
-    # Head of Household - PLACEHOLDER VALUES
+    # Head of Household - Same as MFJ
     - bracket_id: "OK-2025-HOH-1"
       filing_status: "hoh"
       income_from: 0
-      income_to: 15000
-      rate: 0.02
+      income_to: 2000
+      rate: 0.0025
       base_tax: 0
     - bracket_id: "OK-2025-HOH-2"
       filing_status: "hoh"
-      income_from: 15000
-      income_to: 75000
-      rate: 0.04
-      base_tax: 300
+      income_from: 2000
+      income_to: 5000
+      rate: 0.0075
+      base_tax: 5
     - bracket_id: "OK-2025-HOH-3"
       filing_status: "hoh"
-      income_from: 75000
+      income_from: 5000
+      income_to: 7500
+      rate: 0.0175
+      base_tax: 27.50
+    - bracket_id: "OK-2025-HOH-4"
+      filing_status: "hoh"
+      income_from: 7500
+      income_to: 9800
+      rate: 0.0275
+      base_tax: 71.25
+    - bracket_id: "OK-2025-HOH-5"
+      filing_status: "hoh"
+      income_from: 9800
+      income_to: 14400
+      rate: 0.0375
+      base_tax: 134.38
+    - bracket_id: "OK-2025-HOH-6"
+      filing_status: "hoh"
+      income_from: 14400
       income_to: null
       rate: 0.0475
-      base_tax: 2700
+      base_tax: 306.75
 
     # QSS - Same as MFJ
     - bracket_id: "OK-2025-QSS-1"
       filing_status: "qss"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 2000
+      rate: 0.0025
       base_tax: 0
     - bracket_id: "OK-2025-QSS-2"
       filing_status: "qss"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
+      income_from: 2000
+      income_to: 5000
+      rate: 0.0075
+      base_tax: 5
     - bracket_id: "OK-2025-QSS-3"
       filing_status: "qss"
-      income_from: 100000
+      income_from: 5000
+      income_to: 7500
+      rate: 0.0175
+      base_tax: 27.50
+    - bracket_id: "OK-2025-QSS-4"
+      filing_status: "qss"
+      income_from: 7500
+      income_to: 9800
+      rate: 0.0275
+      base_tax: 71.25
+    - bracket_id: "OK-2025-QSS-5"
+      filing_status: "qss"
+      income_from: 9800
+      income_to: 14400
+      rate: 0.0375
+      base_tax: 134.38
+    - bracket_id: "OK-2025-QSS-6"
+      filing_status: "qss"
+      income_from: 14400
       income_to: null
       rate: 0.0475
-      base_tax: 3600
+      base_tax: 306.75
 
   surtaxes: []
 
-# Deductions - PLACEHOLDER VALUES
+# Deductions - 2025 values
 deductions:
   standard_deduction:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 5000
+        amount: 12050
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
-        amount: 10000
+        amount: 24100
         dependent_claimed_elsewhere: null
       - filing_status: "mfs"
-        amount: 5000
+        amount: 12050
         dependent_claimed_elsewhere: null
       - filing_status: "hoh"
-        amount: 7500
+        amount: 18075
         dependent_claimed_elsewhere: null
       - filing_status: "qss"
-        amount: 10000
+        amount: 24100
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
@@ -165,17 +252,17 @@ state_config:
   local_tax_mandatory: false
   reciprocity_states: []
   special_notes:
-    - "PLACEHOLDER: Oklahoma has 6 tax brackets"
+    - "Oklahoma has 6 brackets: 0.25%, 0.75%, 1.75%, 2.75%, 3.75%, 4.75%"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Oklahoma 6 brackets"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Progressive tax state - placeholder for development"
+  - source_name: "Oklahoma Tax Commission"
+    url: "https://www.ok.gov/tax/"
+    retrieved_date: "2025-02-20"
+    notes: "Oklahoma 6 brackets"

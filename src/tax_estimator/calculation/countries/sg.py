@@ -5,6 +5,7 @@ Calculates Singapore income tax and CPF (Central Provident Fund) contributions.
 
 IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
 These are NOT real tax rates and must be verified from IRAS.
+Rates below target Year of Assessment (YA) 2025.
 
 Tax year in Singapore runs January 1 to December 31.
 """
@@ -26,7 +27,7 @@ from tax_estimator.models.international import (
 # PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
 # =============================================================================
 
-# Singapore Income Tax Brackets (Residents) (PLACEHOLDER)
+# Singapore Income Tax Brackets (Residents) (PLACEHOLDER - YA 2025 rates)
 SG_INCOME_TAX_BRACKETS = [
     (Decimal(0), Decimal(20000), Decimal("0.00")),
     (Decimal(20000), Decimal(30000), Decimal("0.02")),
@@ -46,7 +47,8 @@ SG_INCOME_TAX_BRACKETS = [
 # Non-resident flat rate (PLACEHOLDER)
 NON_RESIDENT_RATE = Decimal("0.22")
 
-# CPF rates by age (employee portion) (PLACEHOLDER)
+# CPF rates by age (employee portion) (PLACEHOLDER - YA 2025 rates)
+# Note: Monthly ceiling increases to SGD 8,000 in 2026.
 CPF_RATES_BY_AGE = {
     "under_55": (Decimal("0.20"), Decimal(6800)),      # 20%, cap 6800/month
     "55_to_60": (Decimal("0.15"), Decimal(6800)),

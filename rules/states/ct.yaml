@@ -1,8 +1,5 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
 # Connecticut - Progressive tax state (7 brackets, up to 6.99%)
-# This file contains PLACEHOLDER data for development and testing purposes only.
 # =============================================================================
 
 # Identity
@@ -11,7 +8,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Connecticut (PLACEHOLDER)"
+jurisdiction_name: "Connecticut"
 jurisdiction_abbreviation: "CT"
 parent_jurisdiction_id: "US"
 
@@ -24,12 +21,11 @@ effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
 # Rate Schedule - PROGRESSIVE TAX
-# PLACEHOLDER: All rates and thresholds need verification
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers - PLACEHOLDER VALUES
+    # Single filers - 2025 brackets
     - bracket_id: "CT-2025-S-1"
       filing_status: "single"
       income_from: 0
@@ -40,16 +36,40 @@ rate_schedule:
       filing_status: "single"
       income_from: 10000
       income_to: 50000
-      rate: 0.04
+      rate: 0.045
       base_tax: 200
     - bracket_id: "CT-2025-S-3"
       filing_status: "single"
       income_from: 50000
+      income_to: 100000
+      rate: 0.055
+      base_tax: 2000
+    - bracket_id: "CT-2025-S-4"
+      filing_status: "single"
+      income_from: 100000
+      income_to: 200000
+      rate: 0.06
+      base_tax: 4750
+    - bracket_id: "CT-2025-S-5"
+      filing_status: "single"
+      income_from: 200000
+      income_to: 250000
+      rate: 0.065
+      base_tax: 10750
+    - bracket_id: "CT-2025-S-6"
+      filing_status: "single"
+      income_from: 250000
+      income_to: 500000
+      rate: 0.069
+      base_tax: 14000
+    - bracket_id: "CT-2025-S-7"
+      filing_status: "single"
+      income_from: 500000
       income_to: null
       rate: 0.0699
-      base_tax: 1800
+      base_tax: 31250
 
-    # Married Filing Jointly - PLACEHOLDER VALUES
+    # Married Filing Jointly - 2025 brackets
     - bracket_id: "CT-2025-MFJ-1"
       filing_status: "mfj"
       income_from: 0
@@ -60,16 +80,40 @@ rate_schedule:
       filing_status: "mfj"
       income_from: 20000
       income_to: 100000
-      rate: 0.04
+      rate: 0.045
       base_tax: 400
     - bracket_id: "CT-2025-MFJ-3"
       filing_status: "mfj"
       income_from: 100000
+      income_to: 200000
+      rate: 0.055
+      base_tax: 4000
+    - bracket_id: "CT-2025-MFJ-4"
+      filing_status: "mfj"
+      income_from: 200000
+      income_to: 400000
+      rate: 0.06
+      base_tax: 9500
+    - bracket_id: "CT-2025-MFJ-5"
+      filing_status: "mfj"
+      income_from: 400000
+      income_to: 500000
+      rate: 0.065
+      base_tax: 21500
+    - bracket_id: "CT-2025-MFJ-6"
+      filing_status: "mfj"
+      income_from: 500000
+      income_to: 800000
+      rate: 0.069
+      base_tax: 28000
+    - bracket_id: "CT-2025-MFJ-7"
+      filing_status: "mfj"
+      income_from: 800000
       income_to: null
       rate: 0.0699
-      base_tax: 3600
+      base_tax: 48700
 
-    # Married Filing Separately - Same as single
+    # Married Filing Separately - 2025 brackets
     - bracket_id: "CT-2025-MFS-1"
       filing_status: "mfs"
       income_from: 0
@@ -80,34 +124,82 @@ rate_schedule:
       filing_status: "mfs"
       income_from: 10000
       income_to: 50000
-      rate: 0.04
+      rate: 0.045
       base_tax: 200
     - bracket_id: "CT-2025-MFS-3"
       filing_status: "mfs"
       income_from: 50000
+      income_to: 100000
+      rate: 0.055
+      base_tax: 2000
+    - bracket_id: "CT-2025-MFS-4"
+      filing_status: "mfs"
+      income_from: 100000
+      income_to: 200000
+      rate: 0.06
+      base_tax: 4750
+    - bracket_id: "CT-2025-MFS-5"
+      filing_status: "mfs"
+      income_from: 200000
+      income_to: 250000
+      rate: 0.065
+      base_tax: 10750
+    - bracket_id: "CT-2025-MFS-6"
+      filing_status: "mfs"
+      income_from: 250000
+      income_to: 500000
+      rate: 0.069
+      base_tax: 14000
+    - bracket_id: "CT-2025-MFS-7"
+      filing_status: "mfs"
+      income_from: 500000
       income_to: null
       rate: 0.0699
-      base_tax: 1800
+      base_tax: 31250
 
-    # Head of Household - PLACEHOLDER VALUES
+    # Head of Household - 2025 brackets
     - bracket_id: "CT-2025-HOH-1"
       filing_status: "hoh"
       income_from: 0
-      income_to: 15000
+      income_to: 16000
       rate: 0.02
       base_tax: 0
     - bracket_id: "CT-2025-HOH-2"
       filing_status: "hoh"
-      income_from: 15000
-      income_to: 75000
-      rate: 0.04
-      base_tax: 300
+      income_from: 16000
+      income_to: 80000
+      rate: 0.045
+      base_tax: 320
     - bracket_id: "CT-2025-HOH-3"
       filing_status: "hoh"
-      income_from: 75000
+      income_from: 80000
+      income_to: 160000
+      rate: 0.055
+      base_tax: 3200
+    - bracket_id: "CT-2025-HOH-4"
+      filing_status: "hoh"
+      income_from: 160000
+      income_to: 320000
+      rate: 0.06
+      base_tax: 7600
+    - bracket_id: "CT-2025-HOH-5"
+      filing_status: "hoh"
+      income_from: 320000
+      income_to: 400000
+      rate: 0.065
+      base_tax: 17200
+    - bracket_id: "CT-2025-HOH-6"
+      filing_status: "hoh"
+      income_from: 400000
+      income_to: 800000
+      rate: 0.069
+      base_tax: 22400
+    - bracket_id: "CT-2025-HOH-7"
+      filing_status: "hoh"
+      income_from: 800000
       income_to: null
       rate: 0.0699
-      base_tax: 2700
+      base_tax: 50000
 
     # QSS - Same as MFJ
     - bracket_id: "CT-2025-QSS-1"
@@ -120,14 +212,38 @@ rate_schedule:
       filing_status: "qss"
       income_from: 20000
       income_to: 100000
-      rate: 0.04
+      rate: 0.045
       base_tax: 400
     - bracket_id: "CT-2025-QSS-3"
       filing_status: "qss"
       income_from: 100000
+      income_to: 200000
+      rate: 0.055
+      base_tax: 4000
+    - bracket_id: "CT-2025-QSS-4"
+      filing_status: "qss"
+      income_from: 200000
+      income_to: 400000
+      rate: 0.06
+      base_tax: 9500
+    - bracket_id: "CT-2025-QSS-5"
+      filing_status: "qss"
+      income_from: 400000
+      income_to: 500000
+      rate: 0.065
+      base_tax: 21500
+    - bracket_id: "CT-2025-QSS-6"
+      filing_status: "qss"
+      income_from: 500000
+      income_to: 800000
+      rate: 0.069
+      base_tax: 28000
+    - bracket_id: "CT-2025-QSS-7"
+      filing_status: "qss"
+      income_from: 800000
       income_to: null
       rate: 0.0699
-      base_tax: 3600
+      base_tax: 48700
 
   surtaxes: []
 
@@ -164,18 +280,17 @@ state_config:
   has_local_income_tax: false
   local_tax_mandatory: false
   reciprocity_states: []
-  special_notes:
-    - "PLACEHOLDER: Connecticut has 7 tax brackets"
+  special_notes: []
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Verified 2025 tax brackets from Tax Foundation and state DRS"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Progressive tax state - placeholder for development"
+  - source_name: "Tax Foundation"
+    url: "https://taxfoundation.org/data/all/state/state-income-tax-rates/"
+    retrieved_date: "2025-02-20"
+    notes: "2025 state individual income tax rates and brackets"

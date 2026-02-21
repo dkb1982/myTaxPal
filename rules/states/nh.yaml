@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# New Hampshire taxes interest and dividends only (phasing out by 2027).
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# New Hampshire - NO income tax as of Jan 1 2025
+# Interest/dividend tax repealed for 2025
 # =============================================================================
 
 # Identity
@@ -11,46 +9,30 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "New Hampshire (PLACEHOLDER)"
+jurisdiction_name: "New Hampshire"
 jurisdiction_abbreviation: "NH"
 parent_jurisdiction_id: "US"
 
-# Tax characteristics - INTEREST/DIVIDENDS ONLY
-has_income_tax: true
-income_tax_type: "interest_dividends_only"
+# Tax characteristics - NO INCOME TAX (repealed Jan 1 2025)
+has_income_tax: false
+income_tax_type: "none"
 
 # Effective dates
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Rate Schedule - Interest/Dividends tax only
-# PLACEHOLDER: Rate is being phased out - was 5%, reducing to 0% by 2027
+# Rate Schedule - NO TAX
 rate_schedule:
-  rate_type: "flat"
-  flat_rate: 0.03  # PLACEHOLDER - 3% for 2025 (phasing out)
+  rate_type: "none"
+  flat_rate: null
   brackets: []
   surtaxes: []
 
-# Deductions
+# Deductions - Not applicable
 deductions:
   standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 2400  # PLACEHOLDER - exemption for I&D tax
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfj"
-        amount: 4800  # PLACEHOLDER
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfs"
-        amount: 2400  # PLACEHOLDER
-        dependent_claimed_elsewhere: null
-      - filing_status: "hoh"
-        amount: 2400  # PLACEHOLDER
-        dependent_claimed_elsewhere: null
-      - filing_status: "qss"
-        amount: 4800  # PLACEHOLDER
-        dependent_claimed_elsewhere: null
+    available: false
+    amounts: []
     additional_amounts: []
   exemptions:
     personal_exemption_available: false
@@ -60,33 +42,24 @@ deductions:
 
 # State-specific configuration
 state_config:
-  starting_point: "federal_agi"
-  taxable_income_types:
-    - "interest"
-    - "dividends"
-  excluded_income_types:
-    - "wages"
-    - "self_employment"
-    - "capital_gains"
-    - "retirement"
+  starting_point: "not_applicable"
   has_local_income_tax: false
   local_tax_mandatory: false
   reciprocity_states: []
   special_notes:
-    - "PLACEHOLDER: New Hampshire only taxes interest and dividends"
-    - "PLACEHOLDER: Tax is being phased out - 0% by 2027"
-    - "PLACEHOLDER: Rate for 2025 needs verification"
-    - "Wages, salaries, and other income are NOT taxed"
+    - "New Hampshire repealed the interest and dividend tax effective January 1, 2025"
+    - "No longer has any personal income tax"
+    - "Previously taxed interest and dividends only (not wages)"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS. Interest/dividend tax phaseout schedule needs verification."
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "NH income tax repealed as of Jan 1, 2025"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Interest/dividend tax only state - placeholder for development"
+  - source_name: "New Hampshire Department of Revenue"
+    url: "https://www.revenue.nh.gov/"
+    retrieved_date: "2025-02-20"
+    notes: "NH income tax repealed for 2025"

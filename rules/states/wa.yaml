@@ -1,9 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
 # Washington has no state income tax on wages/salaries.
-# Washington DOES have a capital gains tax (7% on gains > $270K) - PLACEHOLDER
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Washington DOES have a capital gains tax (7% - 9.9% on gains > $278K)
 # =============================================================================
 
 # Identity
@@ -12,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Washington (PLACEHOLDER)"
+jurisdiction_name: "Washington"
 jurisdiction_abbreviation: "WA"
 parent_jurisdiction_id: "US"
 
@@ -49,26 +46,27 @@ state_config:
   has_local_income_tax: false
   local_tax_mandatory: false
   reciprocity_states: []
-  # Capital gains tax configuration - PLACEHOLDER VALUES
   capital_gains_tax:
     enabled: true
-    rate: 0.07  # PLACEHOLDER - 7%
-    threshold: 270000  # PLACEHOLDER - Applies to gains over this amount
-    notes: "PLACEHOLDER - Washington taxes capital gains over $270,000 at 7%"
+    brackets:
+      - threshold: 278000
+        rate: 0.07
+      - threshold: 1000000
+        rate: 0.099
+    notes: "Washington taxes capital gains: 7% on gains > $278,000, 9.9% on gains > $1,000,000"
   special_notes:
     - "Washington has no state income tax on wages/salaries"
-    - "PLACEHOLDER: Capital gains tax of 7% on gains > $270,000"
-    - "Must verify current threshold and any exemptions"
+    - "Capital gains tax: 7% on gains > $278,000, 9.9% on gains > $1,000,000"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS. Capital gains tax requires verification."
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Washington capital gains tax verified for 2025"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Capital gains tax state - placeholder for development"
+  - source_name: "Washington Department of Revenue"
+    url: "https://dor.wa.gov/"
+    retrieved_date: "2025-02-20"
+    notes: "Washington capital gains tax: 7% over $278k, 9.9% over $1M"

@@ -1,17 +1,21 @@
 """
 Tests specifically for flat tax states.
 
-Flat tax states (with PLACEHOLDER rates):
+Flat tax states (2025 rates):
 - AZ: 2.5%
 - CO: 4.4%
 - IL: 4.95%
-- IN: 3.05%
+- IN: 3.00%
 - KY: 4.0%
-- MA: 5.0% (+ 4% surtax over $1M)
+- MA: 5.0% (+ 9% surtax over $1,083,150)
 - MI: 4.25%
-- NC: 4.75%
+- NC: 4.25%
 - PA: 3.07%
-- UT: 4.65%
+- UT: 4.55%
+- GA: 5.39% (2024+)
+- IA: 3.80% (2025+)
+- LA: 3.00% (2025+)
+- MS: 4.40% over $10k (2023+)
 """
 
 import pytest
@@ -28,13 +32,13 @@ class TestFlatTaxStates:
         "AZ": Decimal("0.025"),
         "CO": Decimal("0.044"),
         "IL": Decimal("0.0495"),
-        "IN": Decimal("0.0305"),
+        "IN": Decimal("0.0300"),
         "KY": Decimal("0.04"),
         "MA": Decimal("0.05"),
         "MI": Decimal("0.0425"),
-        "NC": Decimal("0.0475"),
+        "NC": Decimal("0.0425"),
         "PA": Decimal("0.0307"),
-        "UT": Decimal("0.0465"),
+        "UT": Decimal("0.0455"),
     }
 
     @pytest.fixture
@@ -226,7 +230,7 @@ class TestMassachusettsTax:
         assert result.surtax == Decimal(0)
 
     def test_surtax_above_1m(self, calculator: StateCalculator) -> None:
-        """Test 4% surtax for income above $1M."""
+        """Test 9% surtax for income above $1,083,150."""
         result = calculator.calculate_for_state(
             state_code="MA",
             tax_year=2025,
@@ -234,18 +238,18 @@ class TestMassachusettsTax:
             federal_agi=Decimal("2000000"),
         )
         assert result.surtax > Decimal(0)
-        # Surtax on $1M over threshold = $40,000 (before any deductions)
-        assert result.surtax <= Decimal("40000")
+        # Surtax on ~$917k over threshold = ~$82,530 (before any deductions)
+        assert result.surtax <= Decimal("90000")
 
     def test_surtax_at_threshold_boundary(
         self, calculator: StateCalculator
     ) -> None:
-        """Test surtax at exactly $1M threshold."""
+        """Test surtax at exactly $1,083,150 threshold."""
         result = calculator.calculate_for_state(
             state_code="MA",
             tax_year=2025,
             filing_status="single",
-            federal_agi=Decimal("1000000"),
+            federal_agi=Decimal("1083150"),
         )
         # At exactly threshold, may or may not have surtax depending on deductions
         assert result.surtax >= Decimal(0)

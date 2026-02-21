@@ -5,6 +5,7 @@ Calculates Hong Kong Salaries Tax and MPF (Mandatory Provident Fund) contributio
 
 IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
 These are NOT real tax rates and must be verified from IRD Hong Kong.
+Rates below target the 2024-25 year of assessment.
 
 Tax year in Hong Kong runs April 1 to March 31.
 """
@@ -25,7 +26,7 @@ from tax_estimator.models.international import (
 # PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
 # =============================================================================
 
-# Hong Kong Progressive Tax Brackets (PLACEHOLDER)
+# Hong Kong Progressive Tax Brackets (PLACEHOLDER - 2024-25 rates)
 HK_PROGRESSIVE_BRACKETS = [
     (Decimal(0), Decimal(50000), Decimal("0.02")),
     (Decimal(50000), Decimal(100000), Decimal("0.06")),
@@ -34,8 +35,15 @@ HK_PROGRESSIVE_BRACKETS = [
     (Decimal(200000), None, Decimal("0.17")),
 ]
 
-# Standard rate (PLACEHOLDER)
+# Standard rate (PLACEHOLDER - 2024-25 rates)
+# Note: From 2024-25 onwards, a two-tier standard rate applies:
+#   - 15% on the first HKD 5,000,000 of net income
+#   - 16% on net income exceeding HKD 5,000,000
+# The code below uses the 15% single-tier rate, which is correct for the
+# vast majority of taxpayers. See _apply_standard_rate() for the two-tier logic.
 STANDARD_RATE = Decimal("0.15")
+STANDARD_RATE_TIER2 = Decimal("0.16")
+STANDARD_RATE_TIER1_THRESHOLD = Decimal(5000000)
 
 # Allowances (PLACEHOLDER)
 BASIC_ALLOWANCE = Decimal(132000)
@@ -125,7 +133,7 @@ class HKCalculator(BaseCountryCalculator):
         progressive_tax, marginal_rate, _ = self._apply_brackets(
             net_chargeable_income, HK_PROGRESSIVE_BRACKETS, "HK-PROG"
         )
-        standard_tax = (net_income_for_standard * STANDARD_RATE).quantize(Decimal("0.01"))
+        standard_tax = self._apply_standard_rate(net_income_for_standard)
 
         # Use lower of the two
         if progressive_tax <= standard_tax:
@@ -144,15 +152,20 @@ class HKCalculator(BaseCountryCalculator):
         else:
             income_tax = standard_tax
             tax_method = "Standard rate"
-            marginal_rate = STANDARD_RATE
+            if net_income_for_standard > STANDARD_RATE_TIER1_THRESHOLD:
+                marginal_rate = STANDARD_RATE_TIER2
+                rate_note = "Two-tier standard rate: 15% up to HKD 5M, 16% above"
+            else:
+                marginal_rate = STANDARD_RATE
+                rate_note = "Standard rate 15% (lower than progressive)"
             breakdown.append(
                 TaxComponent(
                     component_id="HK-TAX",
                     name="Salaries Tax (Standard Rate)",
                     amount=income_tax,
-                    rate=STANDARD_RATE,
+                    rate=marginal_rate,
                     base=net_income_for_standard,
-                    notes="Standard rate 15% (lower than progressive)",
+                    notes=rate_note,
                 )
             )
 
@@ -169,6 +182,18 @@ class HKCalculator(BaseCountryCalculator):
             total_withheld=mpf_deducted,
             notes=notes,
         )
+
+    def _apply_standard_rate(self, net_income: Decimal) -> Decimal:
+        """Apply two-tier standard rate (2024-25 onwards).
+
+        15% on the first HKD 5,000,000, 16% on the remainder.
+        """
+        if net_income <= STANDARD_RATE_TIER1_THRESHOLD:
+            return (net_income * STANDARD_RATE).quantize(Decimal("0.01"))
+
+        tier1_tax = STANDARD_RATE_TIER1_THRESHOLD * STANDARD_RATE
+        tier2_tax = (net_income - STANDARD_RATE_TIER1_THRESHOLD) * STANDARD_RATE_TIER2
+        return (tier1_tax + tier2_tax).quantize(Decimal("0.01"))
 
     def _calculate_allowances(
         self,

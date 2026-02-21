@@ -547,6 +547,14 @@ class BracketBreakdownInfo(BaseModel):
     tax_in_bracket: Decimal = Field(..., description="Tax for this bracket")
 
 
+class PreferentialRateBreakdownInfo(BaseModel):
+    """Breakdown of preferential rate (0%/15%/20%) applied to LTCG/qualified dividends."""
+
+    rate: Decimal = Field(..., description="Tax rate (0.00, 0.15, or 0.20)")
+    income_in_bracket: Decimal = Field(..., description="Income taxed at this rate")
+    tax_in_bracket: Decimal = Field(..., description="Tax at this rate")
+
+
 class CreditBreakdownInfo(BaseModel):
     """Credit breakdown in response."""
 
@@ -564,6 +572,16 @@ class AdjustmentItemInfo(BaseModel):
     code: str = Field(..., description="Adjustment code")
     description: str = Field(..., description="Description")
     amount: Decimal = Field(..., description="Amount")
+
+
+class FICAConfig(BaseModel):
+    """FICA tax configuration for the frontend to use instead of hardcoded values."""
+
+    ss_wage_base: Decimal = Field(..., description="Social Security wage base")
+    ss_rate: Decimal = Field(default=Decimal("0.062"), description="Social Security rate (employee)")
+    medicare_rate: Decimal = Field(default=Decimal("0.0145"), description="Medicare rate (employee)")
+    additional_medicare_rate: Decimal = Field(default=Decimal("0.009"), description="Additional Medicare rate")
+    additional_medicare_threshold: Decimal = Field(default=Decimal("200000"), description="Additional Medicare threshold")
 
 
 class EstimateSummary(BaseModel):
@@ -604,8 +622,15 @@ class FederalTaxResultInfo(BaseModel):
     qualified_business_income_deduction: Decimal | None = Field(None, description="QBI deduction")
 
     taxable_income: Decimal = Field(..., description="Taxable income")
+    ordinary_income: Decimal = Field(default=Decimal(0), description="Ordinary portion of taxable income")
+    preferential_income: Decimal = Field(default=Decimal(0), description="LTCG + qualified dividends portion")
 
     tax_before_credits: Decimal = Field(..., description="Tax before credits")
+    ordinary_tax: Decimal = Field(default=Decimal(0), description="Tax on ordinary income")
+    preferential_tax: Decimal = Field(default=Decimal(0), description="Tax on preferential income")
+    preferential_rate_breakdown: list[PreferentialRateBreakdownInfo] = Field(
+        default_factory=list, description="Breakdown of 0%/15%/20% preferential rates"
+    )
     bracket_breakdown: list[BracketBreakdownInfo] = Field(default_factory=list)
 
     nonrefundable_credits: list[CreditBreakdownInfo] = Field(default_factory=list)
@@ -740,6 +765,8 @@ class EstimateResponse(BaseModel):
     federal: FederalTaxResultInfo = Field(..., description="Federal tax result")
     states: list[StateTaxResultInfo] = Field(default_factory=list, description="State results")
     local: list[LocalTaxResultInfo] = Field(default_factory=list, description="Local results")
+
+    fica_config: FICAConfig | None = Field(None, description="FICA tax configuration")
 
     trace: CalculationTraceInfo | None = Field(None, description="Calculation trace")
 

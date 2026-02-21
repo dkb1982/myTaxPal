@@ -118,12 +118,12 @@ class TestFlatTaxStateCalculations:
         ("AZ", Decimal("0.025")),
         ("CO", Decimal("0.044")),
         ("IL", Decimal("0.0495")),
-        ("IN", Decimal("0.0305")),
+        ("IN", Decimal("0.0300")),
         ("KY", Decimal("0.04")),
         ("MI", Decimal("0.0425")),
-        ("NC", Decimal("0.0475")),
+        ("NC", Decimal("0.0425")),
         ("PA", Decimal("0.0307")),
-        ("UT", Decimal("0.0465")),
+        ("UT", Decimal("0.0455")),
     ])
     def test_flat_tax_rate_correct(
         self,
@@ -264,7 +264,7 @@ class TestMassachusettsSurtax:
         assert result.surtax == Decimal(0)
 
     def test_above_threshold_has_surtax(self, calculator: StateCalculator) -> None:
-        """Test income above $1M has surtax."""
+        """Test income above $1,083,150 has surtax."""
         result = calculator.calculate_for_state(
             state_code="MA",
             tax_year=2025,
@@ -272,21 +272,21 @@ class TestMassachusettsSurtax:
             federal_agi=Decimal("2000000"),
         )
         assert result.surtax > Decimal(0)
-        # Surtax should be 4% of income over $1M
-        expected_surtax = (Decimal("2000000") - Decimal("1000000")) * Decimal("0.04")
+        # Surtax should be 9% of income over $1,083,150
+        expected_surtax = (Decimal("2000000") - Decimal("1083150")) * Decimal("0.09")
         # Allow for deductions reducing taxable income
         assert result.surtax <= expected_surtax
 
 
-class TestNewHampshireInterestDividendsTax:
-    """Test New Hampshire interest/dividends tax."""
+class TestNewHampshireNoTax:
+    """Test New Hampshire has no income tax as of 2025."""
 
     @pytest.fixture
     def calculator(self) -> StateCalculator:
         return StateCalculator()
 
     def test_no_tax_on_wages(self, calculator: StateCalculator) -> None:
-        """Test NH does not tax wages."""
+        """Test NH has no tax on any income as of 2025."""
         tax_input = StateTaxInput(
             state_code="NH",
             tax_year=2025,
@@ -298,13 +298,13 @@ class TestNewHampshireInterestDividendsTax:
             dividends=Decimal("0"),
         )
         result = calculator.calculate(tax_input)
-        assert result.tax_type == StateTaxType.INTEREST_DIVIDENDS_ONLY
+        assert result.tax_type == StateTaxType.NONE
         assert result.total_tax == Decimal(0)
 
-    def test_taxes_interest_and_dividends(
+    def test_no_tax_on_interest_and_dividends(
         self, calculator: StateCalculator
     ) -> None:
-        """Test NH taxes interest and dividends."""
+        """Test NH has no tax on interest and dividends as of 2025."""
         tax_input = StateTaxInput(
             state_code="NH",
             tax_year=2025,
@@ -316,8 +316,7 @@ class TestNewHampshireInterestDividendsTax:
             dividends=Decimal("5000"),
         )
         result = calculator.calculate(tax_input)
-        assert result.total_tax > Decimal(0)
-        assert result.taxable_income <= Decimal("10000")  # Only I&D
+        assert result.total_tax == Decimal(0)  # No tax as of 2025
 
 
 class TestDeductionsAndExemptions:

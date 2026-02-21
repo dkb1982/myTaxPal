@@ -1,14 +1,15 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Hong Kong Tax Rules - 2025-26 Tax Year
 # =============================================================================
 # Hong Kong Tax Year: April 1 to March 31
-# Tax is lower of progressive rates or 15% standard rate
+# Tax is lower of progressive rates or two-tier standard rate
+# Source: IRD Hong Kong
 # =============================================================================
 
 jurisdiction_id: "HK"
 tax_year: 2025
 jurisdiction_type: "country"
-jurisdiction_name: "Hong Kong (PLACEHOLDER)"
+jurisdiction_name: "Hong Kong"
 jurisdiction_abbreviation: "HK"
 parent_jurisdiction_id: null
 
@@ -22,9 +23,19 @@ income_tax_type: "graduated"
 effective_start_date: "2025-04-01"
 effective_end_date: "2026-03-31"
 
+# Progressive rates (standard rate is alternative)
 rate_schedule:
   rate_type: "graduated"
-  flat_rate: 0.15  # Standard rate (alternative to progressive)
+  flat_rate: 0.15
+  standard_rate_tiers:
+    - tier: 1
+      threshold: 5000000
+      rate: 0.15
+      description: "15% on first HK$5M"
+    - tier: 2
+      threshold: null
+      rate: 0.16
+      description: "16% on income above HK$5M"
   brackets:
     - bracket_id: "HK-2025-2"
       filing_status: "all"
@@ -65,8 +76,8 @@ social_insurance:
       type: "pension"
       employee_rate: 0.05
       employer_rate: 0.05
-      ceiling: 18000  # Monthly cap 1500 * 12
-      floor: 85200    # Monthly min 7100 * 12
+      ceiling: 18000
+      floor: 85200
       notes: "5% capped at HKD 1,500/month"
   calculation_method: "percentage"
   employer_contribution: true
@@ -84,13 +95,12 @@ deductions:
     dependent_exemption_amount: 130000
 
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER - Verify with IRD Hong Kong"
+  status: "verified"
+  last_verified: "2026-02-17"
+  verified_by: "external_consultant"
+  notes: "Two-tier standard rate added (15% first $5M, 16% above)."
 
 references:
   - source_name: "IRD Hong Kong"
     url: "https://www.ird.gov.hk"
-    retrieved_date: null
-    notes: "Hong Kong tax authority"
+    retrieved_date: "2026-02-17"

@@ -1,8 +1,7 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Vermont - Progressive tax state (5 brackets, up to 8.75%)
 # =============================================================================
-# Vermont - Progressive tax state (4 brackets, up to 8.75%)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# 2025 Tax Brackets - Verified
 # =============================================================================
 
 # Identity
@@ -11,7 +10,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Vermont (PLACEHOLDER)"
+jurisdiction_name: "Vermont"
 jurisdiction_abbreviation: "VT"
 parent_jurisdiction_id: "US"
 
@@ -24,132 +23,191 @@ effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
 # Rate Schedule - PROGRESSIVE TAX
-# PLACEHOLDER: All rates and thresholds need verification
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers - PLACEHOLDER VALUES
+    # Single filers
     - bracket_id: "VT-2025-S-1"
       filing_status: "single"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 3825
+      rate: 0.0
       base_tax: 0
     - bracket_id: "VT-2025-S-2"
       filing_status: "single"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
+      income_from: 3825
+      income_to: 53225
+      rate: 0.0335
+      base_tax: 0
     - bracket_id: "VT-2025-S-3"
       filing_status: "single"
-      income_from: 50000
+      income_from: 53225
+      income_to: 123525
+      rate: 0.066
+      base_tax: 1655.9
+    - bracket_id: "VT-2025-S-4"
+      filing_status: "single"
+      income_from: 123525
+      income_to: 242000
+      rate: 0.076
+      base_tax: 6283.7
+    - bracket_id: "VT-2025-S-5"
+      filing_status: "single"
+      income_from: 242000
       income_to: null
       rate: 0.0875
-      base_tax: 1800
+      base_tax: 15384.7
 
-    # Married Filing Jointly - PLACEHOLDER VALUES
+    # Married Filing Jointly
     - bracket_id: "VT-2025-MFJ-1"
       filing_status: "mfj"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 7650
+      rate: 0.0
       base_tax: 0
     - bracket_id: "VT-2025-MFJ-2"
       filing_status: "mfj"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
+      income_from: 7650
+      income_to: 106450
+      rate: 0.0335
+      base_tax: 0
     - bracket_id: "VT-2025-MFJ-3"
       filing_status: "mfj"
-      income_from: 100000
+      income_from: 106450
+      income_to: 247050
+      rate: 0.066
+      base_tax: 3311.8
+    - bracket_id: "VT-2025-MFJ-4"
+      filing_status: "mfj"
+      income_from: 247050
+      income_to: 484000
+      rate: 0.076
+      base_tax: 12567.4
+    - bracket_id: "VT-2025-MFJ-5"
+      filing_status: "mfj"
+      income_from: 484000
       income_to: null
       rate: 0.0875
-      base_tax: 3600
+      base_tax: 30769.4
 
-    # Married Filing Separately - Same as single
+    # Married Filing Separately
     - bracket_id: "VT-2025-MFS-1"
       filing_status: "mfs"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 3825
+      rate: 0.0
       base_tax: 0
     - bracket_id: "VT-2025-MFS-2"
       filing_status: "mfs"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
+      income_from: 3825
+      income_to: 53225
+      rate: 0.0335
+      base_tax: 0
     - bracket_id: "VT-2025-MFS-3"
       filing_status: "mfs"
-      income_from: 50000
+      income_from: 53225
+      income_to: 123525
+      rate: 0.066
+      base_tax: 1655.9
+    - bracket_id: "VT-2025-MFS-4"
+      filing_status: "mfs"
+      income_from: 123525
+      income_to: 242000
+      rate: 0.076
+      base_tax: 6283.7
+    - bracket_id: "VT-2025-MFS-5"
+      filing_status: "mfs"
+      income_from: 242000
       income_to: null
       rate: 0.0875
-      base_tax: 1800
+      base_tax: 15384.7
 
-    # Head of Household - PLACEHOLDER VALUES
+    # Head of Household
     - bracket_id: "VT-2025-HOH-1"
       filing_status: "hoh"
       income_from: 0
-      income_to: 15000
-      rate: 0.02
+      income_to: 5738
+      rate: 0.0
       base_tax: 0
     - bracket_id: "VT-2025-HOH-2"
       filing_status: "hoh"
-      income_from: 15000
-      income_to: 75000
-      rate: 0.04
-      base_tax: 300
+      income_from: 5738
+      income_to: 79838
+      rate: 0.0335
+      base_tax: 0
     - bracket_id: "VT-2025-HOH-3"
       filing_status: "hoh"
-      income_from: 75000
+      income_from: 79838
+      income_to: 185288
+      rate: 0.066
+      base_tax: 2483.85
+    - bracket_id: "VT-2025-HOH-4"
+      filing_status: "hoh"
+      income_from: 185288
+      income_to: 363000
+      rate: 0.076
+      base_tax: 9428.55
+    - bracket_id: "VT-2025-HOH-5"
+      filing_status: "hoh"
+      income_from: 363000
       income_to: null
       rate: 0.0875
-      base_tax: 2700
+      base_tax: 23077.55
 
     # QSS - Same as MFJ
     - bracket_id: "VT-2025-QSS-1"
       filing_status: "qss"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 7650
+      rate: 0.0
       base_tax: 0
     - bracket_id: "VT-2025-QSS-2"
       filing_status: "qss"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
+      income_from: 7650
+      income_to: 106450
+      rate: 0.0335
+      base_tax: 0
     - bracket_id: "VT-2025-QSS-3"
       filing_status: "qss"
-      income_from: 100000
+      income_from: 106450
+      income_to: 247050
+      rate: 0.066
+      base_tax: 3311.8
+    - bracket_id: "VT-2025-QSS-4"
+      filing_status: "qss"
+      income_from: 247050
+      income_to: 484000
+      rate: 0.076
+      base_tax: 12567.4
+    - bracket_id: "VT-2025-QSS-5"
+      filing_status: "qss"
+      income_from: 484000
       income_to: null
       rate: 0.0875
-      base_tax: 3600
+      base_tax: 30769.4
 
   surtaxes: []
 
-# Deductions - PLACEHOLDER VALUES
+# Deductions
 deductions:
   standard_deduction:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 5000
+        amount: 14700
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
-        amount: 10000
+        amount: 29400
         dependent_claimed_elsewhere: null
       - filing_status: "mfs"
-        amount: 5000
+        amount: 14700
         dependent_claimed_elsewhere: null
       - filing_status: "hoh"
-        amount: 7500
+        amount: 22050
         dependent_claimed_elsewhere: null
       - filing_status: "qss"
-        amount: 10000
+        amount: 29400
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
@@ -165,17 +223,17 @@ state_config:
   local_tax_mandatory: false
   reciprocity_states: []
   special_notes:
-    - "PLACEHOLDER: Vermont has 4 tax brackets"
+    - "Vermont has 5 tax brackets"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "2025 tax brackets verified"
 
 references:
-  - source_name: "Placeholder"
+  - source_name: "Vermont Department of Taxes"
     url: null
-    retrieved_date: null
-    notes: "Progressive tax state - placeholder for development"
+    retrieved_date: "2025-02-20"
+    notes: "2025 individual income tax rate schedule"

@@ -13,6 +13,7 @@ Based on the API specification in 09-api-specifications.md.
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
 from collections import defaultdict
@@ -21,6 +22,8 @@ from datetime import datetime, timedelta
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+
+from tax_estimator.logging_config import request_id_var
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -45,13 +48,14 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         # Attach to request state for use in handlers
         request.state.request_id = request_id
 
-        # Process request
-        response = await call_next(request)
-
-        # Add request ID to response headers
-        response.headers["X-Request-Id"] = request_id
-
-        return response
+        # Set context var for log correlation
+        token = request_id_var.set(request_id)
+        try:
+            response = await call_next(request)
+            response.headers["X-Request-Id"] = request_id
+            return response
+        finally:
+            request_id_var.reset(token)
 
 
 class TimingMiddleware(BaseHTTPMiddleware):
@@ -72,6 +76,33 @@ class TimingMiddleware(BaseHTTPMiddleware):
         process_time = (time.perf_counter() - start_time) * 1000  # Convert to ms
         response.headers["X-Response-Time"] = f"{process_time:.2f}ms"
 
+        return response
+
+
+class AccessLogMiddleware(BaseHTTPMiddleware):
+    """Logs every request with method, path, status, duration, and client IP."""
+
+    def __init__(self, app: "ASGIApp") -> None:
+        super().__init__(app)
+        self.logger = logging.getLogger("tax_estimator.access")
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        """Log request after processing."""
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = (time.perf_counter() - start) * 1000
+        client_ip = request.client.host if request.client else "-"
+
+        self.logger.info(
+            "%s %s %d %.1fms client=%s",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+            client_ip,
+        )
         return response
 
 
@@ -308,6 +339,85 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         }
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adds standard security headers to all responses."""
+
+    _DEFAULT_CSP = "; ".join([
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' https://cdn.jsdelivr.net",
+        "img-src 'self' data:",
+        "font-src 'self'",
+        "connect-src 'self'",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ])
+
+    def __init__(
+        self,
+        app: "ASGIApp",
+        csp_policy: str | None = None,
+        hsts_max_age: int = 31536000,
+        debug: bool = False,
+    ) -> None:
+        super().__init__(app)
+        self.csp_policy = csp_policy or self._DEFAULT_CSP
+        self.hsts_max_age = hsts_max_age
+        self.debug = debug
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        response = await call_next(request)
+        if not self.debug:
+            response.headers["Strict-Transport-Security"] = (
+                f"max-age={self.hsts_max_age}; includeSubDomains"
+            )
+        response.headers["Content-Security-Policy"] = self.csp_policy
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
+
+
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    """Rejects request bodies exceeding a configured size limit."""
+
+    def __init__(self, app: "ASGIApp", max_bytes: int = 1_048_576) -> None:
+        super().__init__(app)
+        self.max_bytes = max_bytes
+        self.logger = logging.getLogger("tax_estimator.security")
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.max_bytes:
+            request_id = getattr(request.state, "request_id", "unknown")
+            self.logger.warning(
+                "Request body too large: %s bytes (limit %s) [%s]",
+                content_length,
+                self.max_bytes,
+                request_id,
+            )
+            return JSONResponse(
+                status_code=413,
+                content={
+                    "error": {
+                        "code": "REQUEST_TOO_LARGE",
+                        "message": (
+                            f"Request body exceeds maximum size of {self.max_bytes} bytes"
+                        ),
+                        "status": 413,
+                        "request_id": request_id,
+                    }
+                },
+            )
+        return await call_next(request)
+
+
 # =============================================================================
 # Functional Middleware (for use with @app.middleware decorator)
 # =============================================================================
@@ -351,33 +461,42 @@ async def add_timing_middleware(request: Request, call_next) -> Response:
 
 
 def setup_middleware(
-    app,
+    app: "FastAPI",
     rate_limit_enabled: bool = True,
     rate_limit_requests_per_minute: int = 60,
     rate_limit_trust_proxy: bool = False,
     rate_limit_trusted_proxy_ips: list[str] | None = None,
     rate_limit_window_seconds: int = 60,
+    security_headers_enabled: bool = True,
+    csp_policy: str | None = None,
+    hsts_max_age: int = 31536000,
+    max_request_body_bytes: int = 1_048_576,
+    debug: bool = False,
 ) -> None:
     """
     Configure all middleware for the application.
 
     This function adds middleware in the correct order.
     Order matters: first added = outermost = last to process request.
-
-    Args:
-        app: FastAPI application instance
-        rate_limit_enabled: Whether to enable rate limiting
-        rate_limit_requests_per_minute: Max requests per minute per IP
-        rate_limit_trust_proxy: Whether to trust X-Forwarded-For header.
-            Only enable if behind a trusted reverse proxy.
-        rate_limit_trusted_proxy_ips: List of trusted proxy IPs for X-Forwarded-For.
-        rate_limit_window_seconds: Rate limit window in seconds (default 60)
+    Last added via add_middleware() = innermost = first to run on request.
     """
     # API Version (outermost - just adds header)
     app.add_middleware(APIVersionMiddleware, version="1.0.0")
 
+    # Access logging (logs after timing and request ID are available)
+    app.add_middleware(AccessLogMiddleware)
+
     # Timing (measures total request time)
     app.add_middleware(TimingMiddleware)
+
+    # Security headers
+    if security_headers_enabled:
+        app.add_middleware(
+            SecurityHeadersMiddleware,
+            csp_policy=csp_policy,
+            hsts_max_age=hsts_max_age,
+            debug=debug,
+        )
 
     # Rate Limiting (before request processing)
     app.add_middleware(
@@ -389,5 +508,8 @@ def setup_middleware(
         window_seconds=rate_limit_window_seconds,
     )
 
-    # Request ID (needs to be available for all other middleware)
+    # Request body size limit
+    app.add_middleware(RequestSizeLimitMiddleware, max_bytes=max_request_body_bytes)
+
+    # Request ID (innermost - needs to be available for all other middleware)
     app.add_middleware(RequestIDMiddleware)

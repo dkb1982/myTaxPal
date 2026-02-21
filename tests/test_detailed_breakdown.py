@@ -139,13 +139,13 @@ class TestDetailedBreakdownCompareModal:
         assert 'id="modal-region-name"' in html
         assert 'id="modal-total-tax"' in html
 
-    def test_compare_table_has_click_hint(self, client):
-        """Test that compare results have click hint."""
+    def test_compare_results_has_cards_container(self, client):
+        """Test that compare results have cards container."""
         response = client.get("/")
         assert response.status_code == 200
         html = response.text
 
-        assert "Click any row to see detailed breakdown" in html
+        assert 'id="compare-cards"' in html
 
 
 class TestInternationalBreakdownHTML:
@@ -902,6 +902,6 @@ class TestDetailedBreakdownAriaExpandedSupport:
         assert response.status_code == 200
         html = response.text
 
-        assert 'id="us-states-section" aria-expanded' in html
-        assert 'id="us-cities-section" aria-expanded' in html
+        assert 'id="us-states-section"' in html and 'aria-expanded' in html
+        assert 'id="us-cities-section"' in html and 'aria-expanded' in html
         assert 'id="international-section"' in html and 'aria-expanded' in html

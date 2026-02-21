@@ -6,6 +6,7 @@ and social contributions.
 
 IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
 These are NOT real tax rates and must be verified from Agenzia delle Entrate.
+Rates below target the 2025 tax year.
 
 Tax year in Italy runs January 1 to December 31.
 """
@@ -26,10 +27,10 @@ from tax_estimator.models.international import (
 # PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
 # =============================================================================
 
-# Italian IRPEF Brackets (PLACEHOLDER)
+# Italian IRPEF Brackets (PLACEHOLDER - 2025 rates)
 IT_IRPEF_BRACKETS = [
     (Decimal(0), Decimal(28000), Decimal("0.23")),
-    (Decimal(28000), Decimal(50000), Decimal("0.35")),
+    (Decimal(28000), Decimal(50000), Decimal("0.33")),
     (Decimal(50000), None, Decimal("0.43")),
 ]
 

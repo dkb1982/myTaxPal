@@ -6,6 +6,7 @@ CSG/CRDS social contributions, and other deductions.
 
 IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
 These are NOT real tax rates and must be verified from official French sources.
+Rates below target 2025 income (filed in 2026).
 
 Tax year in France runs January 1 to December 31.
 """
@@ -43,18 +44,18 @@ PARTS_SECOND_CHILD = Decimal("0.5")
 PARTS_THIRD_PLUS_CHILD = Decimal("1.0")
 PARTS_SINGLE_PARENT_BONUS = Decimal("0.5")
 
-# Cap on benefit per half-part (PLACEHOLDER)
-CAP_PER_HALF_PART = Decimal(1759)
+# Cap on benefit per half-part (PLACEHOLDER - 2025 value)
+CAP_PER_HALF_PART = Decimal(1791)
 
 # CSG and CRDS rates (PLACEHOLDER)
 CSG_RATE = Decimal("0.092")  # 9.2% on employment income
 CRDS_RATE = Decimal("0.005")  # 0.5%
 CSG_DEDUCTIBLE_PORTION = Decimal("0.068")  # 6.8% is deductible from taxable income
 
-# Standard employment deduction (PLACEHOLDER)
+# Standard employment deduction (PLACEHOLDER - 2025 values)
 STANDARD_DEDUCTION_RATE = Decimal("0.10")  # 10% of salary
-STANDARD_DEDUCTION_MIN = Decimal(495)
-STANDARD_DEDUCTION_MAX = Decimal(14171)
+STANDARD_DEDUCTION_MIN = Decimal(504)
+STANDARD_DEDUCTION_MAX = Decimal(14426)
 
 
 class FRCalculator(BaseCountryCalculator):

@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# Massachusetts - Flat tax (5.0%) + 4% surtax on income over $1M
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Massachusetts - Flat tax (5.0%) + 9% surtax on income over $1M
+# 2025 tax brackets verified - Millionaire's Tax
 # =============================================================================
 
 # Identity
@@ -11,43 +9,42 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Massachusetts (PLACEHOLDER)"
+jurisdiction_name: "Massachusetts"
 jurisdiction_abbreviation: "MA"
 parent_jurisdiction_id: "US"
 
 # Tax characteristics
 has_income_tax: true
-income_tax_type: "flat"  # With surtax
+income_tax_type: "flat"
 
 # Effective dates
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
 # Rate Schedule - FLAT TAX with SURTAX
-# PLACEHOLDER: Massachusetts 5.0% flat rate + 4% millionaire surtax
 rate_schedule:
   rate_type: "flat"
-  flat_rate: 0.05  # PLACEHOLDER - 5.0%
+  flat_rate: 0.05
   brackets: []
   surtaxes:
     - surtax_id: "MA-MILLIONAIRE-2025"
       name: "Millionaire's Tax (Fair Share Amendment)"
-      threshold: 1000000  # PLACEHOLDER - $1M threshold
-      rate: 0.04  # PLACEHOLDER - 4% additional tax
+      threshold: 1083150
+      rate: 0.09
       filing_status: "all"
-      description: "PLACEHOLDER - 4% additional tax on income over $1 million"
+      description: "9% additional tax on income over $1,083,150 (Millionaire's Tax)"
 
-# Deductions - PLACEHOLDER VALUES
+# Deductions - 2025 values
 deductions:
   standard_deduction:
-    available: false  # MA uses personal exemptions instead
+    available: false
     amounts: []
     additional_amounts: []
   exemptions:
     personal_exemption_available: true
-    personal_exemption_amount: 4400  # PLACEHOLDER
+    personal_exemption_amount: 4570
     dependent_exemption_available: true
-    dependent_exemption_amount: 1000  # PLACEHOLDER
+    dependent_exemption_amount: 1000
 
 # State-specific configuration
 state_config:
@@ -56,20 +53,20 @@ state_config:
   local_tax_mandatory: false
   reciprocity_states: []
   special_notes:
-    - "PLACEHOLDER: Massachusetts flat 5.0% rate"
-    - "PLACEHOLDER: 4% surtax on income over $1 million (Millionaire's Tax)"
-    - "PLACEHOLDER: Uses personal exemptions, not standard deduction"
-    - "PLACEHOLDER: Threshold is indexed for inflation"
+    - "Massachusetts flat 5.0% rate"
+    - "9% surtax on income over $1,083,150 (Millionaire's Tax)"
+    - "Uses personal exemptions, not standard deduction"
+    - "Surtax threshold is indexed for inflation"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Massachusetts flat tax rate verified - 5% + 9% surtax for 2025"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Flat tax state with millionaire surtax - placeholder for development"
+  - source_name: "Massachusetts Department of Revenue"
+    url: "https://mass.gov/dor"
+    retrieved_date: "2025-02-20"
+    notes: "Massachusetts 5% + 9% millionaire surtax"

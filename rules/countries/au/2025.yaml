@@ -1,13 +1,14 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# 2024-25 TAX RATES (ATO)
 # =============================================================================
 # Australia Tax Year: July 1 to June 30
+# This file covers the 2024-25 income year (1 July 2024 - 30 June 2025)
 # =============================================================================
 
 jurisdiction_id: "AU"
 tax_year: 2025
 jurisdiction_type: "country"
-jurisdiction_name: "Australia (PLACEHOLDER)"
+jurisdiction_name: "Australia"
 jurisdiction_abbreviation: "AU"
 parent_jurisdiction_id: null
 
@@ -18,8 +19,8 @@ tax_year_format: "aus_fiscal"
 has_income_tax: true
 income_tax_type: "graduated"
 
-effective_start_date: "2025-07-01"
-effective_end_date: "2026-06-30"
+effective_start_date: "2024-07-01"
+effective_end_date: "2025-06-30"
 
 rate_schedule:
   rate_type: "graduated"
@@ -31,30 +32,30 @@ rate_schedule:
       income_to: 18200
       rate: 0.00
       base_tax: 0
-    - bracket_id: "AU-2025-19"
+    - bracket_id: "AU-2025-16"
       filing_status: "all"
       income_from: 18200
       income_to: 45000
-      rate: 0.19
+      rate: 0.16
       base_tax: 0
-    - bracket_id: "AU-2025-32.5"
+    - bracket_id: "AU-2025-30"
       filing_status: "all"
       income_from: 45000
-      income_to: 120000
-      rate: 0.325
-      base_tax: 5092
+      income_to: 135000
+      rate: 0.30
+      base_tax: 4288
     - bracket_id: "AU-2025-37"
       filing_status: "all"
-      income_from: 120000
-      income_to: 180000
+      income_from: 135000
+      income_to: 190000
       rate: 0.37
-      base_tax: 29467
+      base_tax: 31288
     - bracket_id: "AU-2025-45"
       filing_status: "all"
-      income_from: 180000
+      income_from: 190000
       income_to: null
       rate: 0.45
-      base_tax: 51667
+      base_tax: 51638
   surtaxes: []
 
 # No mandatory employee social insurance (employer pays superannuation)
@@ -72,10 +73,10 @@ deductions:
     dependent_exemption_amount: 0
 
 verification:
-  status: "placeholder"
-  last_verified: null
+  status: "updated"
+  last_verified: "2026-02-16"
   verified_by: null
-  notes: "PLACEHOLDER - Verify with ATO"
+  notes: "Updated to 2024-25 rates from ATO"
 
 references:
   - source_name: "ATO"

@@ -24,6 +24,14 @@ class BracketBreakdown(BaseModel):
     tax_in_bracket: Decimal = Field(..., description="Tax computed for this bracket")
 
 
+class PreferentialRateBreakdown(BaseModel):
+    """Breakdown of tax at a preferential rate (0%/15%/20%)."""
+
+    rate: Decimal = Field(..., description="Tax rate (0.00, 0.15, or 0.20)")
+    income_in_bracket: Decimal = Field(..., description="Income taxed at this rate")
+    tax_in_bracket: Decimal = Field(..., description="Tax at this rate")
+
+
 class DeductionResult(BaseModel):
     """Result of deduction calculation."""
 
@@ -75,9 +83,16 @@ class FederalTaxResult(BaseModel):
 
     # Taxable income
     taxable_income: Decimal = Field(..., description="AGI minus deductions")
+    ordinary_income: Decimal = Field(default=Decimal(0), description="Ordinary portion of taxable income")
+    preferential_income: Decimal = Field(default=Decimal(0), description="LTCG + qualified dividends portion")
 
     # Tax computation
     tax_before_credits: Decimal = Field(..., description="Tax from brackets")
+    ordinary_tax: Decimal = Field(default=Decimal(0), description="Tax on ordinary income")
+    preferential_tax: Decimal = Field(default=Decimal(0), description="Tax on preferential income")
+    preferential_rate_breakdown: list[PreferentialRateBreakdown] = Field(
+        default_factory=list, description="Breakdown of 0%/15%/20% preferential rates"
+    )
     bracket_breakdown: list[BracketBreakdown] = Field(
         default_factory=list, description="Tax by bracket"
     )
@@ -101,21 +116,8 @@ class FederalTaxResult(BaseModel):
         """Amount owed (positive) or refund (negative)."""
         return self.total_tax - self.total_withholding - self.total_payments
 
-    @computed_field
-    @property
-    def effective_rate(self) -> Decimal:
-        """Effective tax rate."""
-        if self.adjusted_gross_income <= 0:
-            return Decimal(0)
-        return (self.total_tax / self.adjusted_gross_income).quantize(Decimal("0.0001"))
-
-    @computed_field
-    @property
-    def marginal_rate(self) -> Decimal:
-        """Marginal tax rate (highest bracket rate)."""
-        if not self.bracket_breakdown:
-            return Decimal(0)
-        return max(b.rate for b in self.bracket_breakdown)
+    effective_rate: Decimal = Field(default=Decimal(0), description="Effective tax rate")
+    marginal_rate: Decimal = Field(default=Decimal(0), description="Marginal tax rate")
 
 
 class StateTaxResult(BaseModel):

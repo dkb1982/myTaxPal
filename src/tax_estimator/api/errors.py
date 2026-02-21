@@ -9,12 +9,15 @@ All error responses follow the format defined in 09-api-specifications.md.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger("tax_estimator.errors")
 
 
 # =============================================================================
@@ -204,6 +207,11 @@ async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
     """Handle APIError exceptions and return structured JSON response."""
     request_id = _get_request_id(request)
 
+    if exc.status_code >= 500:
+        logger.error("API error [%s]: %s %s", request_id, exc.code, exc.message)
+    else:
+        logger.warning("API error [%s]: %s %s", request_id, exc.code, exc.message)
+
     error_response = ErrorResponse(
         error=ErrorDetail(
             code=exc.code,
@@ -279,6 +287,7 @@ async def validation_error_handler(
 async def generic_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unexpected exceptions with a generic error response."""
     request_id = _get_request_id(request)
+    logger.error("Unhandled exception [%s]: %s", request_id, exc, exc_info=True)
 
     error_response = ErrorResponse(
         error=ErrorDetail(

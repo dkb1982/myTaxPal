@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaxEstimate - Tax Calculator</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-normalize@3/modern-normalize.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-normalize@3/modern-normalize.min.css" integrity="sha384-uo/9/s/Ns8DTg4kjkjex8GezUcgMlKD99gTqxvMkIsaG4lSUbeJ0dVELljipv94t" crossorigin="anonymous">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -14,8 +14,46 @@
     </header>
 
     <main>
-        <!-- Mode Toggle -->
-        <div class="mode-toggle-wrapper">
+        <!-- Landing Section - Mode Selection -->
+        <section id="landing" class="landing-section">
+            <h2>What would you like to do?</h2>
+            <p class="landing-subtitle">Choose a calculator to get started</p>
+
+            <div class="mode-cards">
+                <button type="button" class="mode-card" data-mode="us">
+                    <div class="mode-card-icon">🇺🇸</div>
+                    <h3>Calculate US Taxes</h3>
+                    <p>Estimate your federal, state, and FICA taxes</p>
+                    <span class="mode-card-cta">Get Started &rarr;</span>
+                </button>
+
+                <button type="button" class="mode-card" data-mode="intl">
+                    <div class="mode-card-icon">🌍</div>
+                    <h3>International Taxes</h3>
+                    <p>Estimate taxes in 12+ countries worldwide</p>
+                    <span class="mode-card-cta">Get Started &rarr;</span>
+                </button>
+
+                <button type="button" class="mode-card" data-mode="compare">
+                    <div class="mode-card-icon">⚖️</div>
+                    <h3>Compare Locations</h3>
+                    <p>See how your taxes compare across states & countries</p>
+                    <span class="mode-card-cta">Compare &rarr;</span>
+                </button>
+            </div>
+
+            <div class="landing-example">
+                <p><strong>Example:</strong> A single filer earning $75,000 in California pays approximately <strong>$12,400</strong> in federal taxes and <strong>$3,800</strong> in state taxes.</p>
+            </div>
+        </section>
+
+        <!-- Back to Landing Link (hidden initially) -->
+        <div id="back-to-landing" class="back-link" hidden>
+            <button type="button" class="back-btn">&larr; Choose a different calculator</button>
+        </div>
+
+        <!-- Mode Toggle (shown after selection) -->
+        <div class="mode-toggle-wrapper" hidden>
             <div class="mode-toggle">
                 <button type="button" id="mode-us" class="mode-btn active">US Tax</button>
                 <button type="button" id="mode-intl" class="mode-btn">International</button>
@@ -307,7 +345,8 @@
 
         <!-- Loading indicator -->
         <section id="loading" hidden>
-            <p>Calculating your taxes...</p>
+            <div class="loading-spinner"></div>
+            <p class="loading-pulse">Calculating your taxes...</p>
         </section>
 
         <!-- Results Section (hidden initially) -->
@@ -585,20 +624,9 @@
                 </p>
             </div>
 
-            <p><small>Click any row to see detailed breakdown</small></p>
-            <table id="compare-table">
-                <thead>
-                    <tr>
-                        <th>Region</th>
-                        <th>Total Tax</th>
-                        <th>Net Income</th>
-                        <th>Effective Rate</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Populated by JavaScript -->
-                </tbody>
-            </table>
+            <div id="compare-cards" class="compare-cards">
+                <!-- Populated by JavaScript -->
+            </div>
 
             <div id="compare-best">
                 <p><strong>Lowest Tax:</strong> <span id="lowest-tax-country"></span></p>

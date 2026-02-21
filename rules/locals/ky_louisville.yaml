@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# Louisville - Occupational tax (flat rate)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Louisville - Occupational tax (different rates for residents/non-residents)
+# 2025 rates verified
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "city"
-jurisdiction_name: "Louisville (PLACEHOLDER)"
+jurisdiction_name: "Louisville"
 jurisdiction_abbreviation: "LOU"
 parent_jurisdiction_id: "US-KY"
 parent_state: "KY"
@@ -32,14 +30,14 @@ applies_to: "both_residents_and_workers"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Rate Schedule - FLAT TAX
-# PLACEHOLDER: Rate needs verification
+# Rate Schedule - FLAT TAX (different rates for residents/non-residents)
 rate_schedule:
   rate_type: "flat"
   tax_base: "earned_income"
 
   flat_rates:
-    rate: 0.0225  # PLACEHOLDER - 2.25%
+    resident_rate: 0.022
+    nonresident_rate: 0.0145
 
 # Filing requirements
 filing:
@@ -58,18 +56,18 @@ local_config:
     - "Capital gains"
     - "Retirement income"
   special_notes:
-    - "PLACEHOLDER: Louisville occupational tax is 2.25%"
-    - "PLACEHOLDER: Called 'occupational license fee'"
+    - "Louisville occupational tax: 2.2% resident, 1.45% nonresident"
+    - "Called 'occupational license fee'"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Louisville rates verified for 2025"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Louisville occupational tax - placeholder for development"
+  - source_name: "Louisville Metro"
+    url: "https://louisvilleky.gov/"
+    retrieved_date: "2025-02-20"
+    notes: "Louisville occupational tax rates 2025"

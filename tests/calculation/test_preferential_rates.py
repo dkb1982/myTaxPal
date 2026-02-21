@@ -68,6 +68,14 @@ class TestPreferentialRateTax:
         preferential_tax = context.get_decimal_result("preferential_tax")
         assert preferential_tax == Decimal("0")
 
+        # Ordinary tax: $5k → 10% on $5k = $500
+        ordinary_tax = context.get_decimal_result("ordinary_tax")
+        assert ordinary_tax == Decimal("500")
+
+        # Total tax before credits = ordinary + preferential
+        tax_before_credits = context.get_decimal_result("tax_before_credits")
+        assert tax_before_credits == Decimal("500")
+
     def test_fifteen_percent_rate_for_middle_income(
         self, federal_rules: JurisdictionRules
     ) -> None:
@@ -110,6 +118,14 @@ class TestPreferentialRateTax:
         # 15% applies to the LTCG: $20,000 x 15% = $3,000
         preferential_tax = context.get_decimal_result("preferential_tax")
         assert preferential_tax == Decimal("3000")
+
+        # Ordinary tax: $65k → 10% on $10k + 20% on $40k + 30% on $15k = $1k + $8k + $4.5k = $13,500
+        ordinary_tax = context.get_decimal_result("ordinary_tax")
+        assert ordinary_tax == Decimal("13500")
+
+        # Total = $16,500
+        tax_before_credits = context.get_decimal_result("tax_before_credits")
+        assert tax_before_credits == Decimal("16500")
 
     def test_split_preferential_rates(
         self, federal_rules: JurisdictionRules
@@ -156,6 +172,24 @@ class TestPreferentialRateTax:
         expected = Decimal("1196.25")
         assert preferential_tax == expected
 
+        # Ordinary tax: $15k → 10% on $10k + 20% on $5k = $1k + $1k = $2,000
+        ordinary_tax = context.get_decimal_result("ordinary_tax")
+        assert ordinary_tax == Decimal("2000")
+
+        # Total = $2,000 + $1,196.25 = $3,196.25
+        tax_before_credits = context.get_decimal_result("tax_before_credits")
+        assert tax_before_credits == Decimal("3196.25")
+
+        # Preferential rate breakdown should have 3 entries (always fixed-size)
+        pref_breakdown = context.get_result("preferential_rate_breakdown")
+        assert len(pref_breakdown) == 3
+        assert pref_breakdown[0].rate == Decimal("0.00")
+        assert pref_breakdown[0].income_in_bracket == Decimal("32025")
+        assert pref_breakdown[1].rate == Decimal("0.15")
+        assert pref_breakdown[1].income_in_bracket == Decimal("7975")
+        assert pref_breakdown[2].rate == Decimal("0.20")
+        assert pref_breakdown[2].income_in_bracket == Decimal("0")
+
     def test_twenty_percent_rate_for_high_income(
         self, federal_rules: JurisdictionRules
     ) -> None:
@@ -197,6 +231,16 @@ class TestPreferentialRateTax:
         # All LTCG taxed at 20%: $100,000 x 0.20 = $20,000
         preferential_tax = context.get_decimal_result("preferential_tax")
         assert preferential_tax == Decimal("20000")
+
+        # Ordinary tax: high income through all brackets
+        ordinary_tax = context.get_decimal_result("ordinary_tax")
+        # 10% on $10k + 20% on $40k + 30% on $50k + 40% on $485k
+        # = $1k + $8k + $15k + $194k = $218,000
+        assert ordinary_tax == Decimal("218000")
+
+        # Total = $218,000 + $20,000 = $238,000
+        tax_before_credits = context.get_decimal_result("tax_before_credits")
+        assert tax_before_credits == Decimal("238000")
 
     def test_mfj_higher_thresholds(
         self, federal_rules: JurisdictionRules
@@ -241,6 +285,14 @@ class TestPreferentialRateTax:
         # $30,000 LTCG all fits in 0% zone
         preferential_tax = context.get_decimal_result("preferential_tax")
         assert preferential_tax == Decimal("0")
+
+        # Ordinary tax on $50k MFJ: 10% on $20k + 20% on $30k = $2k + $6k = $8,000
+        ordinary_tax = context.get_decimal_result("ordinary_tax")
+        assert ordinary_tax == Decimal("8000")
+
+        # Total = $8,000 + $0 = $8,000
+        tax_before_credits = context.get_decimal_result("tax_before_credits")
+        assert tax_before_credits == Decimal("8000")
 
 
 class TestPreferentialRateEdgeCases:
@@ -320,3 +372,101 @@ class TestPreferentialRateEdgeCases:
         # Ordinary tax should also be 0
         ordinary_tax = context.get_decimal_result("ordinary_tax")
         assert ordinary_tax == Decimal("0")
+
+
+class TestPreferentialRateBlending:
+    """Tests verifying blended effective rates and marginal rate correctness."""
+
+    def test_blended_effective_rate(
+        self, federal_rules: JurisdictionRules
+    ) -> None:
+        """Verify effective rate is between ordinary-only and preferential rates."""
+        tax_input = TaxInput(
+            tax_year=2025,
+            filing_status=FilingStatus.SINGLE,
+            residence_state="CA",
+            wages=[
+                WageIncome(
+                    employer_name="Job",
+                    employer_state="CA",
+                    gross_wages=Decimal("80000"),
+                )
+            ],
+            capital_gains=CapitalGains(
+                long_term_gains=Decimal("30000"),
+            ),
+        )
+
+        trace = CalculationTrace(calculation_id="test", tax_year=2025)
+        context = CalculationContext(
+            input=tax_input,
+            tax_year=2025,
+            trace=trace,
+        )
+        context.jurisdiction_rules["US"] = federal_rules
+        # Taxable: $110k - $15k = $95k; ordinary=$65k, preferential=$30k
+        context.set_result("taxable_income", Decimal("95000"))
+        context.set_result("ordinary_income", Decimal("65000"))
+        context.set_result("preferential_income", Decimal("30000"))
+
+        stage = TaxComputationStage()
+        result = stage.execute(context)
+        assert result.status.value == "success"
+
+        tax_before_credits = context.get_decimal_result("tax_before_credits")
+        effective_rate = context.get_decimal_result("effective_rate")
+
+        # Effective rate = total_tax / total_taxable
+        expected_effective = (tax_before_credits / Decimal("95000")).quantize(Decimal("0.0001"))
+        assert effective_rate == expected_effective
+
+        # Effective rate should be below the top ordinary marginal rate (30%)
+        assert effective_rate < Decimal("0.30")
+        # And above the preferential rate (15%)
+        assert effective_rate > Decimal("0.10")
+
+    def test_marginal_rate_uses_ordinary_income(
+        self, federal_rules: JurisdictionRules
+    ) -> None:
+        """Verify marginal rate is based on ordinary income, not total taxable income.
+
+        With $60k ordinary + $50k preferential = $110k total.
+        The marginal rate should reflect the $60k ordinary bracket (30%),
+        NOT the $110k total bracket (40%).
+        """
+        tax_input = TaxInput(
+            tax_year=2025,
+            filing_status=FilingStatus.SINGLE,
+            residence_state="CA",
+            wages=[
+                WageIncome(
+                    employer_name="Job",
+                    employer_state="CA",
+                    gross_wages=Decimal("75000"),
+                )
+            ],
+            capital_gains=CapitalGains(
+                long_term_gains=Decimal("50000"),
+            ),
+        )
+
+        trace = CalculationTrace(calculation_id="test", tax_year=2025)
+        context = CalculationContext(
+            input=tax_input,
+            tax_year=2025,
+            trace=trace,
+        )
+        context.jurisdiction_rules["US"] = federal_rules
+        context.set_result("taxable_income", Decimal("110000"))
+        context.set_result("ordinary_income", Decimal("60000"))
+        context.set_result("preferential_income", Decimal("50000"))
+
+        stage = TaxComputationStage()
+        result = stage.execute(context)
+        assert result.status.value == "success"
+
+        marginal_rate = context.get_decimal_result("marginal_rate")
+        # $60k ordinary income is in the 30% bracket (50k-100k)
+        assert marginal_rate == Decimal("0.30")
+        # It should NOT be 40% (which is the bracket for $110k total)
+        assert marginal_rate != Decimal("0.40")

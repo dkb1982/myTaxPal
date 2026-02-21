@@ -158,6 +158,14 @@ class Surtax(BaseModel):
     description: str = Field(..., description="Explanation of the surtax")
 
 
+class PreferentialRateThreshold(BaseModel):
+    """LTCG / qualified dividend rate thresholds for a filing status."""
+
+    filing_status: str = Field(..., description="Filing status (single, mfj, etc.)")
+    zero_rate_limit: float = Field(..., ge=0, description="Income up to which 0% rate applies")
+    fifteen_rate_limit: float = Field(..., ge=0, description="Income up to which 15% rate applies (above this: 20%)")
+
+
 class RateSchedule(BaseModel):
     """Complete rate schedule for a jurisdiction."""
 
@@ -168,6 +176,9 @@ class RateSchedule(BaseModel):
     flat_rate: float | None = Field(None, description="Rate for flat tax jurisdictions")
     surtaxes: list[Surtax] = Field(
         default_factory=list, description="Additional surtaxes"
+    )
+    preferential_thresholds: list[PreferentialRateThreshold] = Field(
+        default_factory=list, description="LTCG/qualified dividend rate thresholds by filing status"
     )
 
     @field_validator("brackets")

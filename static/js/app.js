@@ -203,6 +203,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Setup mode toggle
     setupModeToggle();
 
+    // Setup landing page card navigation
+    setupLandingPage();
+
     // Setup country selector currency hint
     setupCountrySelector();
 
@@ -214,6 +217,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Setup live total income counters
     setupIncomeTotals();
+
+    // Setup results navigation active state
+    setupResultsNavActiveState();
 
     // Setup region search filtering
     setupRegionSearch();
@@ -241,6 +247,58 @@ function setupModeToggle() {
     }
     if (modeCompareBtn) {
         modeCompareBtn.addEventListener('click', () => switchMode('compare'));
+    }
+}
+
+// =============================================================================
+// Landing Page Card Navigation
+// =============================================================================
+
+function setupLandingPage() {
+    const landingSection = document.getElementById('landing');
+    const backToLanding = document.getElementById('back-to-landing');
+    const modeToggleWrapper = document.querySelector('.mode-toggle-wrapper');
+    const modeCards = document.querySelectorAll('.mode-card');
+
+    if (!landingSection || modeCards.length === 0) return;
+
+    // Initially hide the US form (it lacks a hidden attribute in HTML)
+    if (form) form.hidden = true;
+
+    // Handle mode card clicks
+    modeCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const mode = card.dataset.mode;
+            if (!mode) return;
+
+            // Hide landing, show calculator
+            landingSection.hidden = true;
+            if (backToLanding) backToLanding.hidden = false;
+            if (modeToggleWrapper) modeToggleWrapper.hidden = false;
+
+            // Activate the selected mode
+            switchMode(mode);
+        });
+    });
+
+    // Handle back button
+    if (backToLanding) {
+        const backBtn = backToLanding.querySelector('.back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                // Show landing, hide everything else
+                landingSection.hidden = false;
+                backToLanding.hidden = true;
+                if (modeToggleWrapper) modeToggleWrapper.hidden = true;
+
+                // Hide all forms and results
+                if (form) form.hidden = true;
+                if (intlForm) intlForm.hidden = true;
+                if (compareForm) compareForm.hidden = true;
+                hideAllResults();
+                hideError();
+            });
+        }
     }
 }
 
@@ -557,8 +615,58 @@ function setupIncomeTotals() {
 
         inputs.forEach(input => {
             input.addEventListener('input', updateTotal);
+            // Format with 2 decimal places on blur (no commas - type="number" rejects them)
+            input.addEventListener('blur', () => {
+                const value = parseFloat(input.value) || 0;
+                if (value > 0) {
+                    input.value = value.toFixed(2);
+                }
+            });
+            // Clear field on focus if value is zero for easy editing
+            input.addEventListener('focus', () => {
+                const value = parseFloat(input.value) || 0;
+                input.value = value > 0 ? value : '';
+            });
         });
         updateTotal();
+    });
+}
+
+// =============================================================================
+// Results Navigation Active State
+// =============================================================================
+
+function setupResultsNavActiveState() {
+    const navLinks = document.querySelectorAll('.results-nav a');
+    const sections = ['federal-breakdown-section', 'fica-breakdown-section', 'state-breakdown-section', 'bracket-breakdown'];
+
+    if (navLinks.length === 0) return;
+
+    const observerOptions = {
+        rootMargin: '-100px 0px -70% 0px',
+        threshold: 0
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.id;
+                navLinks.forEach(link => {
+                    if (link.getAttribute('href') === `#${id}`) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+            }
+        });
+    }, observerOptions);
+
+    sections.forEach(sectionId => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+            observer.observe(section);
+        }
     });
 }
 
@@ -966,6 +1074,25 @@ function displayResults(result) {
             `;
             bracketTable.appendChild(tr);
         });
+
+        // Add preferential rate rows if present
+        if (federal.preferential_rate_breakdown && federal.preferential_rate_breakdown.length > 0) {
+            const separator = document.createElement('tr');
+            separator.className = 'bracket-separator';
+            separator.innerHTML = '<td colspan="4">LTCG / Qualified Dividends</td>';
+            bracketTable.appendChild(separator);
+
+            federal.preferential_rate_breakdown.forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>Preferential</td>
+                    <td>${formatPercent(entry.rate)}</td>
+                    <td>${formatCurrency(entry.income_in_bracket)}</td>
+                    <td>${formatCurrency(entry.tax_in_bracket)}</td>
+                `;
+                bracketTable.appendChild(tr);
+            });
+        }
     } else {
         const tr = document.createElement('tr');
         tr.innerHTML = '<td colspan="4" class="no-state-tax">No bracket information available</td>';
@@ -982,7 +1109,7 @@ function displayResults(result) {
             stateDiv.className = 'state-result';
 
             const stateHtml = `
-                <h4>${state.jurisdiction_name} State Tax</h4>
+                <h4>${escapeHtml(state.jurisdiction_name)} State Tax</h4>
                 <table class="state-table">
                     <tbody>
                         <tr><td>State Taxable Income</td><td>${formatCurrency(state.taxable_income)}</td></tr>
@@ -1067,7 +1194,7 @@ function displayIntlResults(result) {
             if (row[2]) {
                 tr.className = row[2];
             }
-            tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td>`;
+            tr.innerHTML = `<td>${escapeHtml(row[0])}</td><td>${escapeHtml(row[1])}</td>`;
             summaryTable.appendChild(tr);
         }
     });
@@ -1135,12 +1262,12 @@ function displayCompareResults(result) {
     if (infoEl) {
         const symbol = CURRENCY_SYMBOLS[result.base_currency] || result.base_currency;
         const totalIncome = result.total_gross_income || result.gross_income || 0;
-        infoEl.innerHTML = `Comparing tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${result.base_currency})`;
+        infoEl.innerHTML = `Comparing tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${escapeHtml(result.base_currency)})`;
     }
 
-    // Populate comparison table
-    const compareTable = document.getElementById('compare-table').querySelector('tbody');
-    compareTable.innerHTML = '';
+    // Populate comparison cards
+    const cardsContainer = document.getElementById('compare-cards');
+    cardsContainer.innerHTML = '';
 
     // Handle both old format (countries) and new format (regions)
     const regions = result.regions || result.countries || [];
@@ -1151,59 +1278,77 @@ function displayCompareResults(result) {
             parseFloat(b.net_income_base) - parseFloat(a.net_income_base)
         );
 
-        sortedResults.forEach((region, index) => {
-            const tr = document.createElement('tr');
+        // Find best options upfront for badges
+        const lowestTax = sortedResults.reduce((best, curr) =>
+            parseFloat(curr.total_tax_base) < parseFloat(best.total_tax_base) ? curr : best
+        );
+        const lowestTaxId = lowestTax.region_id || lowestTax.country_code;
+        const highestNet = sortedResults[0];
+        const highestNetId = highestNet.region_id || highestNet.country_code;
 
-            // Get region name - try various sources
+        sortedResults.forEach((region) => {
+            const card = document.createElement('div');
+
             const regionId = region.region_id || region.country_code;
             const regionName = region.region_name || REGION_NAMES[regionId] || regionId;
 
-            // Format amounts in base currency
             const baseCurrency = result.base_currency;
             const totalTax = formatIntlCurrency(region.total_tax_base, baseCurrency);
             const netIncome = formatIntlCurrency(region.net_income_base, baseCurrency);
             const effectiveRate = formatPercent(region.effective_rate);
 
-            // Highlight best option
-            let rowClass = '';
-            if (index === 0) {
-                rowClass = 'result-positive';
+            // Determine badges
+            const isBestNet = regionId === highestNetId;
+            const isLowestTax = regionId === lowestTaxId;
+            let cardClass = 'compare-card';
+            if (isBestNet) cardClass += ' compare-card--best';
+
+            card.className = cardClass;
+            card.dataset.regionId = regionId;
+
+            let badgesHtml = '';
+            if (isBestNet) {
+                badgesHtml += '<span class="compare-card-badge compare-card-badge--best">Best Net Income</span>';
+            }
+            if (isLowestTax && !isBestNet) {
+                badgesHtml += '<span class="compare-card-badge compare-card-badge--low-tax">Lowest Tax</span>';
             }
 
-            tr.className = rowClass;
-            tr.dataset.regionId = regionId; // Store region ID for click handler
-            tr.innerHTML = `
-                <td>${escapeHtml(regionName)}</td>
-                <td>${totalTax}</td>
-                <td>${netIncome}</td>
-                <td>${effectiveRate}</td>
+            card.innerHTML = `
+                <div class="compare-card-badges">${badgesHtml}</div>
+                <h4 class="compare-card-name">${escapeHtml(regionName)}</h4>
+                <div class="compare-card-stats">
+                    <div class="compare-card-stat">
+                        <span class="compare-card-stat-label">Total Tax</span>
+                        <span class="compare-card-stat-value">${totalTax}</span>
+                    </div>
+                    <div class="compare-card-stat">
+                        <span class="compare-card-stat-label">Net Income</span>
+                        <span class="compare-card-stat-value compare-card-stat-value--net">${netIncome}</span>
+                    </div>
+                    <div class="compare-card-stat">
+                        <span class="compare-card-stat-label">Effective Rate</span>
+                        <span class="compare-card-stat-value">${effectiveRate}</span>
+                    </div>
+                </div>
+                <span class="compare-card-cta">View breakdown &rarr;</span>
             `;
 
-            // Add click handler to open modal (Phase 2)
-            tr.addEventListener('click', () => {
+            card.addEventListener('click', () => {
                 openBreakdownModal(regionId);
             });
-            tr.style.cursor = 'pointer';
-            tr.title = 'Click for detailed breakdown';
 
-            compareTable.appendChild(tr);
+            cardsContainer.appendChild(card);
         });
 
-        // Find best options
-        const lowestTax = sortedResults.reduce((best, curr) =>
-            parseFloat(curr.total_tax_base) < parseFloat(best.total_tax_base) ? curr : best
-        );
-        const highestNet = sortedResults[0]; // Already sorted by net income
-
+        // Update best options display
         const lowestTaxEl = document.getElementById('lowest-tax-country');
         const highestNetEl = document.getElementById('highest-net-country');
 
         if (lowestTaxEl) {
-            const lowestTaxId = lowestTax.region_id || lowestTax.country_code;
             lowestTaxEl.textContent = lowestTax.region_name || REGION_NAMES[lowestTaxId] || lowestTaxId;
         }
         if (highestNetEl) {
-            const highestNetId = highestNet.region_id || highestNet.country_code;
             highestNetEl.textContent = highestNet.region_name || REGION_NAMES[highestNetId] || highestNetId;
         }
     }
@@ -1419,7 +1564,7 @@ function populateFederalBreakdown(federal) {
                 <span class="breakdown-component-name">${escapeHtml(federal.deduction_type || 'Standard')} Deduction</span>
                 <span class="breakdown-component-amount">-${formatCurrency(federal.deduction_amount)}</span>
             </div>
-            <div class="breakdown-component" style="font-weight: bold;">
+            <div class="breakdown-component breakdown-component--bold">
                 <span class="breakdown-component-name">Taxable Income</span>
                 <span class="breakdown-component-amount">${formatCurrency(federal.taxable_income)}</span>
             </div>
@@ -1454,17 +1599,56 @@ function populateFederalBreakdown(federal) {
                 </tr>
             `;
         });
+        const ordinaryTax = federal.ordinary_tax || federal.tax_before_credits;
         html += `
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="3">Total Ordinary Income Tax</td>
-                            <td>${formatCurrency(federal.tax_before_credits)}</td>
+                            <td colspan="3">Ordinary Income Tax</td>
+                            <td>${formatCurrency(ordinaryTax)}</td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
         `;
+
+        // Preferential rate breakdown (LTCG / Qualified Dividends)
+        if (federal.preferential_rate_breakdown && federal.preferential_rate_breakdown.length > 0) {
+            html += `
+                <div class="breakdown-nested">
+                    <div class="breakdown-nested-title">Long-Term Capital Gains &amp; Qualified Dividends Tax</div>
+                    <table class="bracket-breakdown-table">
+                        <thead>
+                            <tr>
+                                <th>Rate</th>
+                                <th>Income</th>
+                                <th>Tax</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            federal.preferential_rate_breakdown.forEach(entry => {
+                html += `
+                    <tr class="current-bracket">
+                        <td>${formatPercent(entry.rate)}</td>
+                        <td>${formatCurrency(entry.income_in_bracket)}</td>
+                        <td>${formatCurrency(entry.tax_in_bracket)}</td>
+                    </tr>
+                `;
+            });
+            html += `
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td>Preferential Rate Tax</td>
+                                <td></td>
+                                <td>${formatCurrency(federal.preferential_tax)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+        }
     }
 
     // Credits
@@ -1524,13 +1708,49 @@ function populateFederalBreakdown(federal) {
 
     // Total
     html += `
-        <div class="breakdown-component" style="font-weight: bold; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-border);">
+        <div class="breakdown-component breakdown-component--total">
             <span class="breakdown-component-name">Total Federal Income Tax</span>
             <span class="breakdown-component-amount">${formatCurrency(federal.total_tax)}</span>
         </div>
     `;
 
     contentEl.innerHTML = html;
+
+    // Populate income-type-breakdown section if there's preferential income
+    const incomeTypeSection = document.getElementById('income-type-breakdown-section');
+    if (incomeTypeSection) {
+        if (federal.preferential_income > 0) {
+            incomeTypeSection.hidden = false;
+            const incomeTypeContent = document.getElementById('income-type-breakdown-content');
+            if (incomeTypeContent) {
+                let typeHtml = `
+                    <div class="breakdown-component">
+                        <span class="breakdown-component-name">Ordinary Income</span>
+                        <span class="breakdown-component-amount">${formatCurrency(federal.ordinary_income)}</span>
+                    </div>
+                    <div class="breakdown-component breakdown-component--sub">
+                        <span class="breakdown-component-name">Tax on ordinary income</span>
+                        <span class="breakdown-component-amount">${formatCurrency(federal.ordinary_tax)}</span>
+                    </div>
+                    <div class="breakdown-component breakdown-component--spaced">
+                        <span class="breakdown-component-name">LTCG / Qualified Dividends</span>
+                        <span class="breakdown-component-amount">${formatCurrency(federal.preferential_income)}</span>
+                    </div>
+                    <div class="breakdown-component breakdown-component--sub">
+                        <span class="breakdown-component-name">Tax at preferential rates</span>
+                        <span class="breakdown-component-amount">${formatCurrency(federal.preferential_tax)}</span>
+                    </div>
+                    <div class="breakdown-component breakdown-component--subtotal">
+                        <span class="breakdown-component-name">Total Tax Before Credits</span>
+                        <span class="breakdown-component-amount">${formatCurrency(federal.tax_before_credits)}</span>
+                    </div>
+                `;
+                incomeTypeContent.innerHTML = typeHtml;
+            }
+        } else {
+            incomeTypeSection.hidden = true;
+        }
+    }
 }
 
 /**
@@ -1545,15 +1765,17 @@ function populateFICABreakdown(result) {
 
     if (!contentEl || !sectionEl) return;
 
-    // Calculate FICA from wages (estimated)
-    // Get tax year from result or default to current year
+    // Use API-provided FICA config if available, fall back to hardcoded constants
+    const ficaConfig = result.fica_config;
     const taxYear = result.tax_year || 2025;
-    const ssWageBase = SS_WAGE_BASE[taxYear] || SS_WAGE_BASE[2025];
+    const ssWageBase = ficaConfig?.ss_wage_base || SS_WAGE_BASE[taxYear] || SS_WAGE_BASE[2025];
+    const ssRate = ficaConfig?.ss_rate || 0.062;
+    const medicareRate = ficaConfig?.medicare_rate || 0.0145;
 
     const wages = result.summary?.total_income || 0;
     const ssTaxableWages = Math.min(wages, ssWageBase);
-    const ssTax = ssTaxableWages * 0.062;
-    const medicareTax = wages * 0.0145;
+    const ssTax = ssTaxableWages * ssRate;
+    const medicareTax = wages * medicareRate;
     const totalFICA = ssTax + medicareTax;
 
     if (amountEl) amountEl.textContent = formatCurrency(totalFICA);
@@ -1562,14 +1784,16 @@ function populateFICABreakdown(result) {
         pctEl.textContent = `(${formatPercent(rate)})`;
     }
 
+    const ssRatePct = (ssRate * 100).toFixed(1);
+    const medicareRatePct = (medicareRate * 100).toFixed(2);
     const formattedWageBase = formatCurrency(ssWageBase);
     let html = `
         <div class="fica-detail">
-            <span class="fica-detail-label">Social Security (6.2%)</span>
+            <span class="fica-detail-label">Social Security (${ssRatePct}%)</span>
             <span class="fica-detail-value">${formatCurrency(ssTax)}</span>
             <span class="fica-detail-label">Taxable wages (up to ${formattedWageBase})</span>
             <span class="fica-detail-value">${formatCurrency(ssTaxableWages)}</span>
-            <span class="fica-detail-label">Medicare (1.45%)</span>
+            <span class="fica-detail-label">Medicare (${medicareRatePct}%)</span>
             <span class="fica-detail-value">${formatCurrency(medicareTax)}</span>
             <span class="fica-detail-label">Taxable wages (no limit)</span>
             <span class="fica-detail-value">${formatCurrency(wages)}</span>
@@ -1640,7 +1864,7 @@ function populateStateBreakdown(states) {
         }
 
         html += `
-            <div class="breakdown-component" style="font-weight: bold;">
+            <div class="breakdown-component breakdown-component--bold">
                 <span class="breakdown-component-name">Total State Tax</span>
                 <span class="breakdown-component-amount">${formatCurrency(state.total_tax)}</span>
             </div>
@@ -1683,7 +1907,7 @@ function populateNIITBreakdown(federal) {
             <span class="breakdown-component-name">NIIT Rate</span>
             <span class="breakdown-component-amount">3.8%</span>
         </div>
-        <div class="breakdown-component" style="font-weight: bold;">
+        <div class="breakdown-component breakdown-component--bold">
             <span class="breakdown-component-name">NIIT Amount</span>
             <span class="breakdown-component-amount">${formatCurrency(niitAmount)}</span>
         </div>
@@ -1964,7 +2188,7 @@ function buildUSBreakdownModalContent(region, baseCurrency) {
     }
 
     html += `
-                <div class="breakdown-component" style="font-weight: bold; border-top: 1px solid var(--color-border); padding-top: 0.5rem; margin-top: 0.5rem;">
+                <div class="breakdown-component breakdown-component--subtotal">
                     <span class="breakdown-component-name">Total Federal Tax</span>
                     <span class="breakdown-component-amount">${formatCurrency(bd.federal_tax)}</span>
                     <span class="breakdown-component-rate">${formatPercent(bd.federal_effective_rate)}</span>
@@ -2323,7 +2547,7 @@ function populateIntlIncomeTaxSection(result, currency, grossIncome) {
                 <span class="breakdown-component-name">Taxable Income</span>
                 <span class="breakdown-component-amount">${formatIntlCurrency(result.taxable_income, currency)}</span>
             </div>
-            <div class="breakdown-component" style="font-weight: bold;">
+            <div class="breakdown-component breakdown-component--bold">
                 <span class="breakdown-component-name">Income Tax</span>
                 <span class="breakdown-component-amount">${formatIntlCurrency(incomeTax, currency)}</span>
             </div>
@@ -2384,7 +2608,7 @@ function populateIntlSocialInsuranceSection(result, currency, grossIncome) {
             });
         } else {
             html = `
-                <div class="breakdown-component" style="font-weight: bold;">
+                <div class="breakdown-component breakdown-component--bold">
                     <span class="breakdown-component-name">${getSocialInsuranceLabel(result.country_code)}</span>
                     <span class="breakdown-component-amount">${formatIntlCurrency(socialInsurance, currency)}</span>
                 </div>

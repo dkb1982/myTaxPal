@@ -44,7 +44,10 @@ RECONSTRUCTION_TAX_RATE = Decimal("0.021")  # 2.1% of income tax
 
 # Resident Tax (PLACEHOLDER)
 RESIDENT_TAX_RATE = Decimal("0.10")  # 10% (6% prefectural + 4% municipal)
-RESIDENT_TAX_PER_CAPITA = Decimal(5000)  # Flat per-capita amount
+RESIDENT_TAX_PER_CAPITA = Decimal(5000)  # Flat per-capita amount (均等割)
+# Per-capita levy is waived if total income is below this threshold
+# (varies by municipality; ~¥280k-¥350k for single person in most cities)
+RESIDENT_TAX_PER_CAPITA_THRESHOLD = Decimal(350000)
 
 # Employment Income Deduction (simplified) (PLACEHOLDER)
 EMPLOYMENT_DEDUCTION_RATE = Decimal("0.30")  # Simplified approximation
@@ -231,7 +234,9 @@ class JPCalculator(BaseCountryCalculator):
         )
 
         # Resident tax (simplified)
-        resident_tax = (taxable_income * RESIDENT_TAX_RATE + RESIDENT_TAX_PER_CAPITA).quantize(Decimal("1"))
+        # Per-capita levy is waived for low-income earners
+        per_capita = RESIDENT_TAX_PER_CAPITA if employment_income >= RESIDENT_TAX_PER_CAPITA_THRESHOLD else Decimal(0)
+        resident_tax = (taxable_income * RESIDENT_TAX_RATE + per_capita).quantize(Decimal("1"))
         breakdown.append(
             TaxComponent(
                 component_id="JP-RESIDENT-TAX",

@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
 # Baltimore - County piggyback tax (percentage of MD state tax)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# 2025 rate verified - increased retroactively
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "city"
-jurisdiction_name: "Baltimore City (PLACEHOLDER)"
+jurisdiction_name: "Baltimore City"
 jurisdiction_abbreviation: "BAL"
 parent_jurisdiction_id: "US-MD"
 parent_state: "MD"
@@ -31,14 +29,13 @@ effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
 # Rate Schedule - PIGGYBACK TAX
-# PLACEHOLDER: Rate needs verification
 rate_schedule:
   rate_type: "piggyback"
-  tax_base: "md_taxable_income"  # Based on Maryland taxable income
+  tax_base: "md_taxable_income"
 
   piggyback:
     base: "md_taxable_income"
-    rate: 0.032  # PLACEHOLDER - 3.2% of MD taxable income
+    rate: 0.033
 
 # Filing requirements
 filing:
@@ -50,19 +47,19 @@ filing:
 # Local-specific configuration
 local_config:
   special_notes:
-    - "PLACEHOLDER: Baltimore City tax is calculated as percentage of MD taxable income"
-    - "PLACEHOLDER: Filed with Maryland state return, not separately"
-    - "PLACEHOLDER: Rate is 3.2% - highest in MD"
+    - "Baltimore City tax is calculated as percentage of MD taxable income"
+    - "Rate increased to 3.3% for 2025 (retroactive)"
+    - "Filed with Maryland state return, not separately"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Baltimore rate increased to 3.3% for 2025"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Baltimore piggyback tax - placeholder for development"
+  - source_name: "Maryland Comptroller"
+    url: "https://marylandcomptroller.gov/"
+    retrieved_date: "2025-02-20"
+    notes: "Baltimore City 3.3% for 2025"

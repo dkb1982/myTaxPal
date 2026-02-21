@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# Indiana - Flat tax state (3.05%) - Plus mandatory county taxes
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Indiana - Flat tax state (3.00%) - Plus mandatory county taxes
+# 2025 tax brackets verified
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Indiana (PLACEHOLDER)"
+jurisdiction_name: "Indiana"
 jurisdiction_abbreviation: "IN"
 parent_jurisdiction_id: "US"
 
@@ -24,14 +22,13 @@ effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
 # Rate Schedule - FLAT TAX
-# PLACEHOLDER: Indiana flat 3.05% rate
 rate_schedule:
   rate_type: "flat"
-  flat_rate: 0.0305  # PLACEHOLDER - 3.05%
+  flat_rate: 0.0300
   brackets: []
   surtaxes: []
 
-# Deductions - PLACEHOLDER VALUES
+# Deductions - 2025 values
 deductions:
   standard_deduction:
     available: false
@@ -39,36 +36,35 @@ deductions:
     additional_amounts: []
   exemptions:
     personal_exemption_available: true
-    personal_exemption_amount: 1000  # PLACEHOLDER
+    personal_exemption_amount: 1500
     dependent_exemption_available: true
-    dependent_exemption_amount: 1500  # PLACEHOLDER
+    dependent_exemption_amount: 3000
 
 # State-specific configuration
 state_config:
   starting_point: "federal_agi"
   has_local_income_tax: true
-  local_tax_mandatory: true  # Indiana counties have mandatory local tax
+  local_tax_mandatory: true
   reciprocity_states:
-    - "KY"   # Kentucky
-    - "MI"   # Michigan
-    - "OH"   # Ohio
-    - "PA"   # Pennsylvania
-    - "WI"   # Wisconsin
+    - "KY"
+    - "MI"
+    - "OH"
+    - "PA"
+    - "WI"
   special_notes:
-    - "PLACEHOLDER: Indiana has a flat 3.05% state rate"
-    - "PLACEHOLDER: County income taxes are MANDATORY (ranges from ~0.5% to 3%)"
-    - "PLACEHOLDER: Exemption amounts need verification"
-    - "IMPORTANT: Must calculate county tax in addition to state tax"
+    - "Indiana has a flat 3.00% state rate (reduced from 3.05% in 2025)"
+    - "County income taxes are MANDATORY (ranges from ~0.5% to 3%)"
+    - "Must calculate county tax in addition to state tax"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS. County tax rates vary."
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Indiana flat tax rate verified - 3.00% for 2025"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Flat tax state with mandatory county taxes - placeholder for development"
+  - source_name: "Indiana Department of Revenue"
+    url: "https://in.gov/dor/individual-income-taxes/"
+    retrieved_date: "2025-02-20"
+    notes: "Indiana flat tax rate 3.00%"

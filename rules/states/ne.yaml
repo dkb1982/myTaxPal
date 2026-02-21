@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# Nebraska - Progressive tax state (4 brackets, up to 5.84%)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Nebraska - Progressive tax state (4 brackets)
+# 2025 tax brackets verified
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Nebraska (PLACEHOLDER)"
+jurisdiction_name: "Nebraska"
 jurisdiction_abbreviation: "NE"
 parent_jurisdiction_id: "US"
 
@@ -23,133 +21,162 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Rate Schedule - PROGRESSIVE TAX
-# PLACEHOLDER: All rates and thresholds need verification
+# Rate Schedule - PROGRESSIVE TAX (4 brackets)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers - PLACEHOLDER VALUES
+    # Single filers - 2025 NE brackets
     - bracket_id: "NE-2025-S-1"
       filing_status: "single"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 3700
+      rate: 0.0246
       base_tax: 0
     - bracket_id: "NE-2025-S-2"
       filing_status: "single"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
+      income_from: 3700
+      income_to: 22170
+      rate: 0.0351
+      base_tax: 91.02
     - bracket_id: "NE-2025-S-3"
       filing_status: "single"
-      income_from: 50000
+      income_from: 22170
+      income_to: 35710
+      rate: 0.0501
+      base_tax: 739.76
+    - bracket_id: "NE-2025-S-4"
+      filing_status: "single"
+      income_from: 35710
       income_to: null
       rate: 0.0584
-      base_tax: 1800
+      base_tax: 1418.23
 
-    # Married Filing Jointly - PLACEHOLDER VALUES
+    # Married Filing Jointly
     - bracket_id: "NE-2025-MFJ-1"
       filing_status: "mfj"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 6940
+      rate: 0.0246
       base_tax: 0
     - bracket_id: "NE-2025-MFJ-2"
       filing_status: "mfj"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
+      income_from: 6940
+      income_to: 41440
+      rate: 0.0351
+      base_tax: 170.72
     - bracket_id: "NE-2025-MFJ-3"
       filing_status: "mfj"
-      income_from: 100000
+      income_from: 41440
+      income_to: 66190
+      rate: 0.0501
+      base_tax: 1382.39
+    - bracket_id: "NE-2025-MFJ-4"
+      filing_status: "mfj"
+      income_from: 66190
       income_to: null
       rate: 0.0584
-      base_tax: 3600
+      base_tax: 2621.38
 
-    # Married Filing Separately - Same as single
+    # Married Filing Separately
     - bracket_id: "NE-2025-MFS-1"
       filing_status: "mfs"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 3470
+      rate: 0.0246
       base_tax: 0
     - bracket_id: "NE-2025-MFS-2"
       filing_status: "mfs"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
+      income_from: 3470
+      income_to: 20720
+      rate: 0.0351
+      base_tax: 85.36
     - bracket_id: "NE-2025-MFS-3"
       filing_status: "mfs"
-      income_from: 50000
+      income_from: 20720
+      income_to: 33095
+      rate: 0.0501
+      base_tax: 692.88
+    - bracket_id: "NE-2025-MFS-4"
+      filing_status: "mfs"
+      income_from: 33095
       income_to: null
       rate: 0.0584
-      base_tax: 1800
+      base_tax: 1312.68
 
-    # Head of Household - PLACEHOLDER VALUES
+    # Head of Household
     - bracket_id: "NE-2025-HOH-1"
       filing_status: "hoh"
       income_from: 0
-      income_to: 15000
-      rate: 0.02
+      income_to: 5570
+      rate: 0.0246
       base_tax: 0
     - bracket_id: "NE-2025-HOH-2"
       filing_status: "hoh"
-      income_from: 15000
-      income_to: 75000
-      rate: 0.04
-      base_tax: 300
+      income_from: 5570
+      income_to: 33190
+      rate: 0.0351
+      base_tax: 137.02
     - bracket_id: "NE-2025-HOH-3"
       filing_status: "hoh"
-      income_from: 75000
+      income_from: 33190
+      income_to: 52940
+      rate: 0.0501
+      base_tax: 1107.33
+    - bracket_id: "NE-2025-HOH-4"
+      filing_status: "hoh"
+      income_from: 52940
       income_to: null
       rate: 0.0584
-      base_tax: 2700
+      base_tax: 2097.08
 
     # QSS - Same as MFJ
     - bracket_id: "NE-2025-QSS-1"
       filing_status: "qss"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 6940
+      rate: 0.0246
       base_tax: 0
     - bracket_id: "NE-2025-QSS-2"
       filing_status: "qss"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
+      income_from: 6940
+      income_to: 41440
+      rate: 0.0351
+      base_tax: 170.72
     - bracket_id: "NE-2025-QSS-3"
       filing_status: "qss"
-      income_from: 100000
+      income_from: 41440
+      income_to: 66190
+      rate: 0.0501
+      base_tax: 1382.39
+    - bracket_id: "NE-2025-QSS-4"
+      filing_status: "qss"
+      income_from: 66190
       income_to: null
       rate: 0.0584
-      base_tax: 3600
+      base_tax: 2621.38
 
   surtaxes: []
 
-# Deductions - PLACEHOLDER VALUES
+# Deductions - 2025 values
 deductions:
   standard_deduction:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 5000
+        amount: 8850
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
-        amount: 10000
+        amount: 17700
         dependent_claimed_elsewhere: null
       - filing_status: "mfs"
-        amount: 5000
+        amount: 8850
         dependent_claimed_elsewhere: null
       - filing_status: "hoh"
-        amount: 7500
+        amount: 13275
         dependent_claimed_elsewhere: null
       - filing_status: "qss"
-        amount: 10000
+        amount: 17700
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
@@ -165,17 +192,17 @@ state_config:
   local_tax_mandatory: false
   reciprocity_states: []
   special_notes:
-    - "PLACEHOLDER: Nebraska has 4 tax brackets"
+    - "Nebraska has 4 brackets: 2.46%, 3.51%, 5.01%, 5.84%"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Nebraska 4 brackets"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Progressive tax state - placeholder for development"
+  - source_name: "Nebraska Department of Revenue"
+    url: "https://revenue.nebraska.gov/"
+    retrieved_date: "2025-02-20"
+    notes: "Nebraska 4 brackets"

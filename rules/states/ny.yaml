@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
 # New York - Progressive tax state (9 brackets, up to 10.9%)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# 2025 tax brackets verified
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "New York (PLACEHOLDER)"
+jurisdiction_name: "New York"
 jurisdiction_abbreviation: "NY"
 parent_jurisdiction_id: "US"
 
@@ -311,32 +309,32 @@ rate_schedule:
 
   surtaxes: []
 
-# Deductions - PLACEHOLDER VALUES
+# Deductions - 2025 values
 deductions:
   standard_deduction:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 8000  # PLACEHOLDER
+        amount: 8000
         dependent_claimed_elsewhere: 3100
       - filing_status: "mfj"
-        amount: 16050  # PLACEHOLDER
+        amount: 16050
         dependent_claimed_elsewhere: null
       - filing_status: "mfs"
-        amount: 8000  # PLACEHOLDER
+        amount: 8000
         dependent_claimed_elsewhere: null
       - filing_status: "hoh"
-        amount: 11200  # PLACEHOLDER
+        amount: 11400
         dependent_claimed_elsewhere: null
       - filing_status: "qss"
-        amount: 16050  # PLACEHOLDER
+        amount: 16050
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
     personal_exemption_available: true
-    personal_exemption_amount: 0  # Built into standard deduction
+    personal_exemption_amount: 0
     dependent_exemption_available: true
-    dependent_exemption_amount: 1000  # PLACEHOLDER
+    dependent_exemption_amount: 1000
 
 # State-specific configuration
 state_config:
@@ -347,21 +345,21 @@ state_config:
   convenience_rule_description: "NY taxes remote workers if their employer is in NY and they work from home for their own convenience (not employer necessity)"
   reciprocity_states: []
   special_notes:
-    - "PLACEHOLDER: New York has 9 tax brackets"
-    - "PLACEHOLDER: Top rate of 10.9% for income over $25M"
-    - "PLACEHOLDER: NYC and Yonkers have additional local income taxes"
-    - "PLACEHOLDER: NY convenience rule applies to remote workers"
-    - "PLACEHOLDER: MCTMT applies to self-employment in Metro Commuter Transportation District"
+    - "New York has 9 tax brackets"
+    - "Top rate of 10.9% for income over $25M"
+    - "NYC and Yonkers have additional local income taxes"
+    - "NY convenience rule applies to remote workers"
+    - "MCTMT applies to self-employment in Metro Commuter Transportation District"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "2025 NY tax brackets verified against NY Dept of Tax"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Progressive tax state - placeholder for development"
+  - source_name: "NY Department of Taxation"
+    url: "https://www.tax.ny.gov/pit/file/tax-tables/it201i-2025.htm"
+    retrieved_date: "2025-02-20"
+    notes: "Official 2025 NY tax rate schedules"

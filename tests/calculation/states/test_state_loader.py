@@ -104,13 +104,13 @@ class TestFlatTaxStates:
         "AZ": Decimal("0.025"),
         "CO": Decimal("0.044"),
         "IL": Decimal("0.0495"),
-        "IN": Decimal("0.0305"),
+        "IN": Decimal("0.0300"),
         "KY": Decimal("0.04"),
         "MA": Decimal("0.05"),
         "MI": Decimal("0.0425"),
-        "NC": Decimal("0.0475"),
+        "NC": Decimal("0.0425"),
         "PA": Decimal("0.0307"),
-        "UT": Decimal("0.0465"),
+        "UT": Decimal("0.0455"),
     }
 
     @pytest.fixture
@@ -183,13 +183,13 @@ class TestSpecialCaseStates:
     def loader(self) -> StateRulesLoader:
         return StateRulesLoader()
 
-    def test_new_hampshire_interest_dividends_only(
+    def test_new_hampshire_no_tax(
         self, loader: StateRulesLoader
     ) -> None:
-        """Test NH only taxes interest and dividends."""
+        """Test NH has no income tax as of 2025."""
         rules = loader.load_state_rules("NH")
-        assert rules.has_income_tax is True
-        assert rules.tax_type == StateTaxType.INTEREST_DIVIDENDS_ONLY
+        assert rules.has_income_tax is False
+        assert rules.tax_type == StateTaxType.NONE
 
     def test_massachusetts_has_millionaire_surtax(
         self, loader: StateRulesLoader
@@ -198,8 +198,8 @@ class TestSpecialCaseStates:
         rules = loader.load_state_rules("MA")
         assert len(rules.surtaxes) > 0
         surtax = rules.surtaxes[0]
-        assert surtax.threshold == Decimal("1000000")
-        assert surtax.rate == Decimal("0.04")
+        assert surtax.threshold == Decimal("1083150")
+        assert surtax.rate == Decimal("0.09")
 
     def test_colorado_uses_federal_taxable_income(
         self, loader: StateRulesLoader

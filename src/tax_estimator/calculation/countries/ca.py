@@ -3,8 +3,8 @@ Canada (CA) tax calculator.
 
 Calculates Canadian federal and provincial income tax, CPP, and EI contributions.
 
-IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
-These are NOT real tax rates and must be verified from CRA.
+Uses 2025 tax year rates.
+Source: Canada Revenue Agency (CRA).
 
 Tax year in Canada runs January 1 to December 31.
 """
@@ -25,24 +25,24 @@ from tax_estimator.models.international import (
 
 
 # =============================================================================
-# PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
+# 2025 TAX RATES (CRA)
 # =============================================================================
 
-# Canadian Federal Income Tax Brackets (PLACEHOLDER)
+# Canadian Federal Income Tax Brackets - 2025 rates
 CA_FEDERAL_BRACKETS = [
-    (Decimal(0), Decimal(55867), Decimal("0.15")),
-    (Decimal(55867), Decimal(111733), Decimal("0.205")),
-    (Decimal(111733), Decimal(173205), Decimal("0.26")),
-    (Decimal(173205), Decimal(246752), Decimal("0.29")),
-    (Decimal(246752), None, Decimal("0.33")),
+    (Decimal(0), Decimal(57375), Decimal("0.15")),
+    (Decimal(57375), Decimal(114750), Decimal("0.205")),
+    (Decimal(114750), Decimal(177882), Decimal("0.26")),
+    (Decimal(177882), Decimal(253414), Decimal("0.29")),
+    (Decimal(253414), None, Decimal("0.33")),
 ]
 
-# Provincial Tax Brackets (Simplified - Ontario used as example) (PLACEHOLDER)
+# Provincial Tax Brackets - 2025 rates (Ontario updated, others may need update)
 PROVINCIAL_BRACKETS = {
-    "ON": [  # Ontario
-        (Decimal(0), Decimal(51446), Decimal("0.0505")),
-        (Decimal(51446), Decimal(102894), Decimal("0.0915")),
-        (Decimal(102894), Decimal(150000), Decimal("0.1116")),
+    "ON": [  # Ontario - 2025 rates
+        (Decimal(0), Decimal(52886), Decimal("0.0505")),
+        (Decimal(52886), Decimal(105775), Decimal("0.0915")),
+        (Decimal(105775), Decimal(150000), Decimal("0.1116")),
         (Decimal(150000), Decimal(220000), Decimal("0.1216")),
         (Decimal(220000), None, Decimal("0.1316")),
     ],
@@ -72,21 +72,21 @@ PROVINCIAL_BRACKETS = {
 # Default provincial rates (use Ontario)
 DEFAULT_PROVINCE = "ON"
 
-# Basic Personal Amount (federal) (PLACEHOLDER)
-FEDERAL_BPA = Decimal(15705)
+# Basic Personal Amount (federal) - 2025 rate
+FEDERAL_BPA = Decimal(16129)
 
-# CPP/QPP rates (PLACEHOLDER)
+# CPP/QPP rates - 2025 rates
 CPP_RATE = Decimal("0.0595")  # 5.95%
-CPP_MAX_EARNINGS = Decimal(68500)
+CPP_MAX_EARNINGS = Decimal(71300)  # YMPE for 2025
 CPP_BASIC_EXEMPTION = Decimal(3500)
 
-# CPP2 (second additional CPP) (PLACEHOLDER)
+# CPP2 (second additional CPP) - 2025 rates
 CPP2_RATE = Decimal("0.04")  # 4%
-CPP2_MAX_EARNINGS = Decimal(73200)
+CPP2_MAX_EARNINGS = Decimal(81200)  # YAMPE for 2025
 
-# EI rates (PLACEHOLDER)
-EI_RATE = Decimal("0.0163")  # 1.63%
-EI_MAX_EARNINGS = Decimal(63200)
+# EI rates - 2025 rates
+EI_RATE = Decimal("0.0164")  # 1.64%
+EI_MAX_EARNINGS = Decimal(65700)
 QPIP_RATE = Decimal("0.00494")  # Quebec parental insurance
 
 
@@ -100,7 +100,7 @@ class CACalculator(BaseCountryCalculator):
     - CPP/QPP contributions
     - EI/QPIP premiums
 
-    PLACEHOLDER RATES - DO NOT USE FOR REAL TAX CALCULATIONS
+    Uses 2025 rates (CRA).
     """
 
     country_code = "CA"
@@ -111,7 +111,7 @@ class CACalculator(BaseCountryCalculator):
         """Calculate Canadian tax."""
         breakdown: list[TaxComponent] = []
         notes: list[str] = [
-            "PLACEHOLDER RATES: All rates are for development only.",
+            "2025 tax year rates (CRA).",
         ]
 
         # Get Canada-specific input or use defaults

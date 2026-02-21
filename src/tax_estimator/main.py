@@ -32,6 +32,7 @@ from tax_estimator.api.routes import (
     states_router,
 )
 from tax_estimator.config import Settings, get_settings
+from tax_estimator.logging_config import setup_logging
 from tax_estimator.rules.loader import list_available_rules
 
 
@@ -53,6 +54,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings is None:
         settings = get_settings()
 
+    # Configure logging before anything else
+    setup_logging(debug=settings.debug, log_level=settings.log_level)
+
     application = FastAPI(
         title="TaxEstimate API",
         description=(
@@ -61,9 +65,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "constitute tax advice. Consult a qualified tax professional for actual tax filing."
         ),
         version=__version__,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        docs_url="/docs" if settings.debug else None,
+        redoc_url="/redoc" if settings.debug else None,
+        openapi_url="/openapi.json" if settings.debug else None,
     )
 
     # Add CORS middleware (must be added before other middleware)
@@ -75,7 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=settings.cors_allow_headers,
     )
 
-    # Add other middleware (timing, rate limiting, request ID)
+    # Add other middleware (timing, rate limiting, security headers, request ID)
     setup_middleware(
         application,
         rate_limit_enabled=settings.rate_limit_enabled,
@@ -83,6 +87,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         rate_limit_trust_proxy=settings.rate_limit_trust_proxy,
         rate_limit_trusted_proxy_ips=settings.rate_limit_trusted_proxy_ips or None,
         rate_limit_window_seconds=settings.rate_limit_window_seconds,
+        security_headers_enabled=settings.security_headers_enabled,
+        csp_policy=settings.csp_policy,
+        hsts_max_age=settings.hsts_max_age,
+        max_request_body_bytes=settings.max_request_body_bytes,
+        debug=settings.debug,
     )
 
     # Setup exception handlers
@@ -180,12 +189,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         async def api_info() -> dict[str, Any]:
             """API information endpoint."""
-            return {
+            info: dict[str, Any] = {
                 "name": "TaxEstimate API",
                 "version": __version__,
-                "docs": "/docs",
-                "redoc": "/redoc",
-                "openapi": "/openapi.json",
                 "health": "/health",
                 "api_version": "v1",
                 "endpoints": {
@@ -203,6 +209,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "constitute tax advice."
                 ),
             }
+            if settings.debug:
+                info["docs"] = "/docs"
+                info["redoc"] = "/redoc"
+                info["openapi"] = "/openapi.json"
+            return info
     else:
         # No static files - serve API info at root
         @application.get(
@@ -213,12 +224,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         async def root() -> dict[str, Any]:
             """Root endpoint providing basic API information."""
-            return {
+            info: dict[str, Any] = {
                 "name": "TaxEstimate API",
                 "version": __version__,
-                "docs": "/docs",
-                "redoc": "/redoc",
-                "openapi": "/openapi.json",
                 "health": "/health",
                 "api_version": "v1",
                 "endpoints": {
@@ -236,6 +244,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "constitute tax advice."
                 ),
             }
+            if settings.debug:
+                info["docs"] = "/docs"
+                info["redoc"] = "/redoc"
+                info["openapi"] = "/openapi.json"
+            return info
 
     # Legacy endpoint
     @application.get(

@@ -4,9 +4,7 @@ Spain (ES) tax calculator.
 Calculates Spanish IRPF (income tax), social security contributions,
 and regional differences.
 
-IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
-These are NOT real tax rates and must be verified from Agencia Tributaria.
-
+Tax rates loaded from YAML (single source of truth).
 Tax year in Spain runs January 1 to December 31.
 """
 
@@ -23,39 +21,25 @@ from tax_estimator.models.international import (
 
 
 # =============================================================================
-# PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
+# Fallback rates (only used if YAML fails to load)
+# Combined State + Regional rates (2025)
 # =============================================================================
 
-# Spanish IRPF State Brackets (PLACEHOLDER)
-# Spain splits tax between state (50%) and autonomous community (50%)
-ES_STATE_BRACKETS = [
-    (Decimal(0), Decimal(12450), Decimal("0.095")),
-    (Decimal(12450), Decimal(20200), Decimal("0.12")),
-    (Decimal(20200), Decimal(35200), Decimal("0.15")),
-    (Decimal(35200), Decimal(60000), Decimal("0.185")),
-    (Decimal(60000), Decimal(300000), Decimal("0.225")),
-    (Decimal(300000), None, Decimal("0.245")),
+ES_COMBINED_BRACKETS = [
+    (Decimal(0), Decimal(12450), Decimal("0.19")),
+    (Decimal(12450), Decimal(20200), Decimal("0.24")),
+    (Decimal(20200), Decimal(35200), Decimal("0.30")),
+    (Decimal(35200), Decimal(60000), Decimal("0.37")),
+    (Decimal(60000), Decimal(300000), Decimal("0.45")),
+    (Decimal(300000), None, Decimal("0.47")),
 ]
 
-# Regional brackets (simplified - varies by autonomous community) (PLACEHOLDER)
-ES_REGIONAL_BRACKETS_DEFAULT = [
-    (Decimal(0), Decimal(12450), Decimal("0.095")),
-    (Decimal(12450), Decimal(17707), Decimal("0.12")),
-    (Decimal(17707), Decimal(33007), Decimal("0.145")),
-    (Decimal(33007), Decimal(53407), Decimal("0.18")),
-    (Decimal(53407), None, Decimal("0.215")),
-]
+SS_COMMON_RATE = Decimal("0.047")
+SS_UNEMPLOYMENT_RATE = Decimal("0.0155")
+SS_TRAINING_RATE = Decimal("0.001")
+SS_MAX_BASE = Decimal(4720.5) * 12
 
-# Social Security rates (employee portion) (PLACEHOLDER)
-SS_COMMON_RATE = Decimal("0.047")     # Common contingencies
-SS_UNEMPLOYMENT_RATE = Decimal("0.0155")  # Unemployment
-SS_TRAINING_RATE = Decimal("0.001")   # Professional training
-SS_MAX_BASE = Decimal(4720.5) * 12    # Monthly max * 12
-
-# Personal minimum (PLACEHOLDER)
 PERSONAL_MINIMUM = Decimal(5550)
-ADDITIONAL_OVER_65 = Decimal(1150)
-ADDITIONAL_OVER_75 = Decimal(1400)
 
 
 class ESCalculator(BaseCountryCalculator):
@@ -66,36 +50,53 @@ class ESCalculator(BaseCountryCalculator):
     - IRPF (Impuesto sobre la Renta de las Personas Fisicas)
     - Social Security contributions
 
-    PLACEHOLDER RATES - DO NOT USE FOR REAL TAX CALCULATIONS
+    Tax rates loaded from YAML.
     """
 
     country_code = "ES"
     country_name = "Spain"
     currency_code = "EUR"
 
+    def __init__(self, brackets=None):
+        """Initialize calculator with optional custom brackets."""
+        super().__init__()
+        self._brackets = brackets
+
+    @property
+    def brackets(self):
+        """Get tax brackets (from YAML or fallback)."""
+        if self._brackets is not None:
+            return self._brackets
+        
+        try:
+            from tax_estimator.rules.loader import get_rules_for_jurisdiction
+            rules = get_rules_for_jurisdiction("ES", 2025)
+            brackets = []
+            for b in rules.rate_schedule.brackets:
+                brackets.append((
+                    Decimal(str(b.income_from)),
+                    Decimal(str(b.income_to)) if b.income_to is not None else None,
+                    Decimal(str(b.rate)),
+                ))
+            return brackets
+        except Exception:
+            return ES_COMBINED_BRACKETS
+
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
         """Calculate Spanish tax."""
         breakdown: list[TaxComponent] = []
         notes: list[str] = [
-            "PLACEHOLDER RATES: All rates are for development only.",
-            "Tax split between state (50%) and autonomous community (50%).",
+            "Tax year 2025.",
         ]
 
-        # Get Spain-specific input or use defaults
         es = tax_input.es
         gross_income = tax_input.gross_income
 
         if es:
             employment_income = es.employment_income or gross_income
-            autonomous_community = es.autonomous_community
-            # Note: num_dependents is available in the model but dependent
-            # deductions are not yet implemented for Spain.
-            # TODO: Implement deducciones por descendientes (child deductions)
         else:
             employment_income = gross_income
-            autonomous_community = "madrid"
 
-        # Calculate Social Security
         ss_base = min(employment_income, SS_MAX_BASE)
         ss_common = (ss_base * SS_COMMON_RATE).quantize(Decimal("0.01"))
         ss_unemployment = (ss_base * SS_UNEMPLOYMENT_RATE).quantize(Decimal("0.01"))
@@ -123,7 +124,6 @@ class ESCalculator(BaseCountryCalculator):
             )
         )
 
-        # Work income reduction (reduccion por rendimientos del trabajo)
         work_reduction = self._calculate_work_reduction(employment_income)
         if work_reduction > 0:
             breakdown.append(
@@ -136,10 +136,8 @@ class ESCalculator(BaseCountryCalculator):
                 )
             )
 
-        # Taxable base
         taxable_base = max(Decimal(0), employment_income - social_security - work_reduction)
 
-        # Apply personal minimum
         personal_min = PERSONAL_MINIMUM
         taxable_after_minimum = max(Decimal(0), taxable_base - personal_min)
 
@@ -153,26 +151,10 @@ class ESCalculator(BaseCountryCalculator):
             )
         )
 
-        # State portion
-        state_tax, state_marginal, state_breakdown = self._apply_brackets(
-            taxable_after_minimum, ES_STATE_BRACKETS, "ES-STATE"
+        income_tax, marginal_rate, tax_breakdown = self._apply_brackets(
+            taxable_after_minimum, self.brackets, "ES-IRPF"
         )
-        for comp in state_breakdown:
-            comp.name = f"IRPF Estatal: {comp.name}"
-        breakdown.extend(state_breakdown)
-
-        # Regional portion
-        regional_tax, regional_marginal, regional_breakdown = self._apply_brackets(
-            taxable_after_minimum, ES_REGIONAL_BRACKETS_DEFAULT, "ES-REGIONAL"
-        )
-        for comp in regional_breakdown:
-            comp.name = f"IRPF Autonomico: {comp.name}"
-        breakdown.extend(regional_breakdown)
-
-        notes.append(f"Regional rates for {autonomous_community.title()} (using default).")
-
-        income_tax = state_tax + regional_tax
-        combined_marginal = state_marginal + regional_marginal
+        breakdown.extend(tax_breakdown)
 
         return self._create_result(
             tax_input=tax_input,
@@ -181,13 +163,12 @@ class ESCalculator(BaseCountryCalculator):
             social_insurance=social_security,
             other_taxes=Decimal(0),
             breakdown=breakdown,
-            marginal_rate=combined_marginal,
+            marginal_rate=marginal_rate,
             notes=notes,
         )
 
     def _calculate_work_reduction(self, income: Decimal) -> Decimal:
         """Calculate work income reduction."""
-        # Simplified reduction (actual rules are more complex)
         if income <= Decimal(13115):
             return Decimal(5565)
         elif income <= Decimal(16825):

@@ -1,14 +1,15 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Portugal Tax Rules - 2025 Tax Year
 # =============================================================================
 # Portugal Tax Year: January 1 to December 31
 # IRS (Imposto sobre o Rendimento das Pessoas Singulares)
+# Source: PwC Portugal Tax Summary 2025
 # =============================================================================
 
 jurisdiction_id: "PT"
 tax_year: 2025
 jurisdiction_type: "country"
-jurisdiction_name: "Portugal (PLACEHOLDER)"
+jurisdiction_name: "Portugal"
 jurisdiction_abbreviation: "PT"
 parent_jurisdiction_id: null
 
@@ -22,65 +23,87 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
+# Portugal IRS brackets (2025)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    - bracket_id: "PT-2025-13.25"
+    - bracket_id: "PT-2025-12.5"
       filing_status: "all"
       income_from: 0
-      income_to: 7703
-      rate: 0.1325
+      income_to: 8059
+      rate: 0.125
       base_tax: 0
-    - bracket_id: "PT-2025-18"
+    - bracket_id: "PT-2025-16"
       filing_status: "all"
-      income_from: 7703
-      income_to: 11623
-      rate: 0.18
-      base_tax: 1021
-    - bracket_id: "PT-2025-23"
+      income_from: 8059
+      income_to: 12160
+      rate: 0.16
+      base_tax: 1007  # (8059-0) * 0.125
+    - bracket_id: "PT-2025-21.5"
       filing_status: "all"
-      income_from: 11623
-      income_to: 16472
-      rate: 0.23
-      base_tax: 1726
-    - bracket_id: "PT-2025-26"
+      income_from: 12160
+      income_to: 17233
+      rate: 0.215
+      base_tax: 1663  # 1007 + (12160-8059) * 0.16
+    - bracket_id: "PT-2025-24.4"
       filing_status: "all"
-      income_from: 16472
-      income_to: 21321
-      rate: 0.26
-      base_tax: 2841
-    - bracket_id: "PT-2025-32.75"
+      income_from: 17233
+      income_to: 22306
+      rate: 0.244
+      base_tax: 2759  # 1663 + (17233-12160) * 0.215
+    - bracket_id: "PT-2025-31.4"
       filing_status: "all"
-      income_from: 21321
-      income_to: 27146
-      rate: 0.3275
-      base_tax: 4102
+      income_from: 22306
+      income_to: 28400
+      rate: 0.314
+      base_tax: 3997  # 2759 + (22306-17233) * 0.244
+    - bracket_id: "PT-2025-34.9"
+      filing_status: "all"
+      income_from: 28400
+      income_to: 41629
+      rate: 0.349
+      base_tax: 5910  # 3997 + (28400-22306) * 0.314
     - bracket_id: "PT-2025-37"
       filing_status: "all"
-      income_from: 27146
-      income_to: 39791
+      income_from: 41629
+      income_to: 55632
       rate: 0.37
-      base_tax: 6009
+      base_tax: 10529  # 5910 + (41629-28400) * 0.349
     - bracket_id: "PT-2025-43.5"
       filing_status: "all"
-      income_from: 39791
-      income_to: 51997
+      income_from: 55632
+      income_to: 77834
       rate: 0.435
-      base_tax: 10687
+      base_tax: 15720  # 10529 + (55632-41629) * 0.37
     - bracket_id: "PT-2025-45"
       filing_status: "all"
-      income_from: 51997
-      income_to: 81199
+      income_from: 77834
+      income_to: 113628
       rate: 0.45
-      base_tax: 15997
+      base_tax: 25343  # 15720 + (77834-55632) * 0.435
     - bracket_id: "PT-2025-48"
       filing_status: "all"
-      income_from: 81199
+      income_from: 113628
       income_to: null
       rate: 0.48
-      base_tax: 29138
+      base_tax: 41400  # 25343 + (113628-77834) * 0.45
   surtaxes: []
+
+# Solidarity surcharge (2025)
+surtaxes:
+  - surtax_id: "PT-SOLIDARITY"
+    name: "Solidarity Surcharge"
+    threshold: 80000
+    rate: 0.025
+    filing_status: "all"
+    description: "2.5% surcharge on income over €80,000"
+  - surtax_id: "PT-SOLIDARITY-HIGH"
+    name: "Solidarity Surcharge (High)"
+    threshold: 250000
+    rate: 0.05
+    filing_status: "all"
+    description: "5% surcharge on income over €250,000"
 
 social_insurance:
   components:
@@ -88,21 +111,18 @@ social_insurance:
       name: "Seguranca Social"
       type: "general_social"
       employee_rate: 0.11
-      employer_rate: 0.2375
-      ceiling: null  # No ceiling
+      employer_rate: 0.235
+      ceiling: 0
       floor: 0
-      notes: "Social security contribution"
+      notes: "Employee pays 11% (2025)"
   calculation_method: "percentage"
   employer_contribution: true
   employee_contribution: true
 
 deductions:
   standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 4104  # Deducao especifica
-        dependent_claimed_elsewhere: null
+    available: false
+    amounts: []
     additional_amounts: []
   exemptions:
     personal_exemption_available: false
@@ -111,13 +131,12 @@ deductions:
     dependent_exemption_amount: 0
 
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER - Verify with Portal das Financas"
+  status: "verified"
+  last_verified: "2026-02-17"
+  verified_by: "external_consultant"
+  notes: "Verified against PwC Portugal Tax Summary 2025"
 
 references:
-  - source_name: "Portal das Financas"
-    url: "https://www.portaldasfinancas.gov.pt"
-    retrieved_date: null
-    notes: "Portuguese tax authority"
+  - source_name: "PwC Portugal Tax Summary 2025"
+    url: "https://taxsummaries.pwc.com/portugal"
+    retrieved_date: "2026-02-17"

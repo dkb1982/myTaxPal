@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
 # Texas has no state income tax.
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Constitutionally prohibited - verified 2025
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Texas (PLACEHOLDER)"
+jurisdiction_name: "Texas"
 jurisdiction_abbreviation: "TX"
 parent_jurisdiction_id: "US"
 
@@ -55,13 +53,13 @@ state_config:
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Texas has no state income tax - constitutionally prohibited"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "No income tax state - placeholder for development"
+  - source_name: "Texas Comptroller"
+    url: "https://comptroller.texas.gov/taxes/income/"
+    retrieved_date: "2025-02-20"
+    notes: "Texas does not have a state income tax"

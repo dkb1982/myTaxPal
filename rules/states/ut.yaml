@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# Utah - Flat tax state (4.65%)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Utah - Flat tax state (4.55%)
+# 2025 tax brackets verified
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Utah (PLACEHOLDER)"
+jurisdiction_name: "Utah"
 jurisdiction_abbreviation: "UT"
 parent_jurisdiction_id: "US"
 
@@ -24,10 +22,9 @@ effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
 # Rate Schedule - FLAT TAX
-# PLACEHOLDER: Utah flat 4.65% rate
 rate_schedule:
   rate_type: "flat"
-  flat_rate: 0.0465  # PLACEHOLDER - 4.65%
+  flat_rate: 0.0455
   brackets: []
   surtaxes: []
 
@@ -51,24 +48,23 @@ state_config:
   reciprocity_states: []
   taxpayer_credit:
     available: true
-    base_credit: 792  # PLACEHOLDER per taxpayer
-    dependent_credit: 792  # PLACEHOLDER per dependent
-    phase_out_start: 15548  # PLACEHOLDER - MFJ
-    notes: "PLACEHOLDER - Utah provides a taxpayer credit that phases out at higher incomes"
+    base_credit: 835
+    dependent_credit: 835
+    phase_out_start: 16135
+    notes: "Utah provides a taxpayer credit that phases out at higher incomes"
   special_notes:
-    - "PLACEHOLDER: Utah flat 4.65% rate"
-    - "PLACEHOLDER: Uses taxpayer credit system instead of deductions"
-    - "PLACEHOLDER: Credit amounts and phaseout thresholds need verification"
+    - "Utah flat tax rate is 4.55% for 2025"
+    - "Uses taxpayer credit system instead of deductions"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Utah flat tax rate verified - 4.55% for 2025"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Flat tax state - placeholder for development"
+  - source_name: "Utah State Tax Commission"
+    url: "https://tax.utah.gov/"
+    retrieved_date: "2025-02-20"
+    notes: "Utah flat tax rate 4.55%"

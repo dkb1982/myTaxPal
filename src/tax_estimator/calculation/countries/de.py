@@ -4,8 +4,8 @@ Germany (DE) tax calculator.
 Calculates German Einkommensteuer (income tax), Solidaritaetszuschlag,
 Kirchensteuer (church tax), and social insurance contributions.
 
-IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
-These are NOT real tax rates and must be verified from official German sources.
+IMPORTANT: Tax rates updated to 2025 tax year but are still PLACEHOLDERS
+for development purposes. These must be verified from official German sources.
 
 Tax year in Germany runs January 1 to December 31.
 """
@@ -26,37 +26,37 @@ from tax_estimator.models.international import (
 # =============================================================================
 # PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
 # =============================================================================
-# These rates are PLACEHOLDER values for development and testing.
+# These rates target 2025 tax year but are still PLACEHOLDER values.
 # Germany uses a continuous formula for progressive zones, not discrete brackets.
 # This is a simplified approximation.
 
-# German Income Tax Brackets (PLACEHOLDER - simplified)
+# German Income Tax Brackets (2025 rates - simplified)
 DE_INCOME_TAX_BRACKETS = [
-    (Decimal(0), Decimal(11604), Decimal("0.00")),          # Grundfreibetrag
-    (Decimal(11604), Decimal(17005), Decimal("0.14")),      # Progressive zone 1 (avg)
-    (Decimal(17005), Decimal(66760), Decimal("0.24")),      # Progressive zone 2 (avg)
-    (Decimal(66760), Decimal(277825), Decimal("0.42")),     # Proportional zone
-    (Decimal(277825), None, Decimal("0.45")),               # Reichensteuer
+    (Decimal(0), Decimal(12096), Decimal("0.00")),          # Grundfreibetrag 2025
+    (Decimal(12096), Decimal(17005), Decimal("0.14")),        # Progressive zone 1 (avg)
+    (Decimal(17005), Decimal(68429), Decimal("0.24")),        # Progressive zone 2 (avg)
+    (Decimal(68429), Decimal(277825), Decimal("0.42")),       # Proportional zone
+    (Decimal(277825), None, Decimal("0.45")),                  # Reichensteuer
 ]
 
-# Solidarity surcharge (PLACEHOLDER)
-SOLI_THRESHOLD = Decimal(18130)  # No Soli below this income tax amount
+# Solidarity surcharge (2025 rates - PLACEHOLDER)
+SOLI_THRESHOLD = Decimal(18950)  # 2025 threshold (was 18130)
 SOLI_RATE = Decimal("0.055")     # 5.5% of income tax
 
-# Church tax rates by state (PLACEHOLDER)
+# Church tax rates by state (2025 rates - PLACEHOLDER)
 CHURCH_TAX_RATE_STANDARD = Decimal("0.09")  # Most states
 CHURCH_TAX_RATE_BAVARIA = Decimal("0.08")   # Bavaria, Baden-Wuerttemberg
 
-# Social insurance ceilings (PLACEHOLDER)
-PENSION_CEILING_WEST = Decimal(90600)
-HEALTH_CEILING = Decimal(62100)
+# Social insurance ceilings (2025 rates - PLACEHOLDER)
+PENSION_CEILING_WEST = Decimal(96600)   # 2025 (was 90600)
+HEALTH_CEILING = Decimal(66150)         # 2025 (was 62100)
 
-# Social insurance rates (employee portion) (PLACEHOLDER)
+# Social insurance rates (employee portion) (2025 rates - PLACEHOLDER)
 PENSION_RATE = Decimal("0.093")       # 9.3% pension
 HEALTH_RATE = Decimal("0.073")        # 7.3% health + addon
-HEALTH_ADDON = Decimal("0.008")       # ~0.8% average addon
+HEALTH_ADDON = Decimal("0.0088")      # 2025 average addon (was 0.008)
 UNEMPLOYMENT_RATE = Decimal("0.013")  # 1.3% unemployment
-LONG_TERM_CARE_RATE = Decimal("0.017")      # 1.7% care
+LONG_TERM_CARE_RATE = Decimal("0.017")      # 1.7% care - unchanged for 2025
 LONG_TERM_CARE_CHILDLESS = Decimal("0.006")  # +0.6% if childless
 
 
@@ -70,7 +70,7 @@ class DECalculator(BaseCountryCalculator):
     - Kirchensteuer (church tax if applicable)
     - Social insurance contributions
 
-    PLACEHOLDER RATES - DO NOT USE FOR REAL TAX CALCULATIONS
+    2025 rates - PLACEHOLDER, DO NOT USE FOR REAL TAX CALCULATIONS
     """
 
     country_code = "DE"
@@ -81,7 +81,7 @@ class DECalculator(BaseCountryCalculator):
         """Calculate German tax."""
         breakdown: list[TaxComponent] = []
         notes: list[str] = [
-            "PLACEHOLDER RATES: All rates are for development only.",
+            "PLACEHOLDER RATES: 2025 rates for development only.",
             "German tax calculation is simplified; actual formula is more complex.",
         ]
 

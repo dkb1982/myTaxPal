@@ -3,8 +3,8 @@ Australia (AU) tax calculator.
 
 Calculates Australian income tax, Medicare Levy, and HELP/HECS repayments.
 
-IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
-These are NOT real tax rates and must be verified from ATO.
+Uses 2024-25 tax year rates (July 2024 - June 2025).
+Source: Australian Taxation Office (ATO).
 
 Tax year in Australia runs July 1 to June 30.
 """
@@ -22,54 +22,54 @@ from tax_estimator.models.international import (
 
 
 # =============================================================================
-# PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
+# 2024-25 TAX RATES (ATO)
 # =============================================================================
 
-# Australian Income Tax Brackets (Residents) (PLACEHOLDER)
+# Australian Income Tax Brackets (Residents) - 2024-25 rates
 AU_INCOME_TAX_BRACKETS = [
     (Decimal(0), Decimal(18200), Decimal("0.00")),       # Tax-free threshold
-    (Decimal(18200), Decimal(45000), Decimal("0.19")),   # 19%
-    (Decimal(45000), Decimal(120000), Decimal("0.325")), # 32.5%
-    (Decimal(120000), Decimal(180000), Decimal("0.37")), # 37%
-    (Decimal(180000), None, Decimal("0.45")),            # 45%
+    (Decimal(18200), Decimal(45000), Decimal("0.16")),   # 16%
+    (Decimal(45000), Decimal(135000), Decimal("0.30")),  # 30%
+    (Decimal(135000), Decimal(190000), Decimal("0.37")), # 37%
+    (Decimal(190000), None, Decimal("0.45")),            # 45%
 ]
 
-# Non-resident brackets (no tax-free threshold) (PLACEHOLDER)
+# Non-resident brackets (no tax-free threshold) - 2024-25 rates
 AU_NON_RESIDENT_BRACKETS = [
-    (Decimal(0), Decimal(120000), Decimal("0.325")),
-    (Decimal(120000), Decimal(180000), Decimal("0.37")),
-    (Decimal(180000), None, Decimal("0.45")),
+    (Decimal(0), Decimal(135000), Decimal("0.30")),      # 30%
+    (Decimal(135000), Decimal(190000), Decimal("0.37")), # 37%
+    (Decimal(190000), None, Decimal("0.45")),            # 45%
 ]
 
-# Medicare Levy (PLACEHOLDER)
+# Medicare Levy - 2024-25 rates
 MEDICARE_LEVY_RATE = Decimal("0.02")  # 2%
-MEDICARE_LEVY_THRESHOLD = Decimal(24276)  # Below this, reduced or no levy
+MEDICARE_LEVY_THRESHOLD = Decimal(26000)  # 2024-25 threshold
 
-# Medicare Levy Surcharge (no private health) (PLACEHOLDER)
-MLS_TIER_1 = (Decimal(90000), Decimal("0.01"))   # 1%
-MLS_TIER_2 = (Decimal(105000), Decimal("0.0125"))  # 1.25%
-MLS_TIER_3 = (Decimal(140000), Decimal("0.015"))   # 1.5%
+# Medicare Levy Surcharge (no private health) - 2024-25 rates
+MLS_TIER_1 = (Decimal(93000), Decimal("0.01"))     # 1%
+MLS_TIER_2 = (Decimal(108000), Decimal("0.0125"))  # 1.25%
+MLS_TIER_3 = (Decimal(144000), Decimal("0.015"))   # 1.5%
 
-# HELP/HECS Repayment Thresholds (PLACEHOLDER)
+# HELP/HECS Repayment Thresholds - 2024-25 rates
 HELP_THRESHOLDS = [
-    (Decimal(51550), Decimal("0.01")),
-    (Decimal(59518), Decimal("0.02")),
-    (Decimal(63089), Decimal("0.025")),
-    (Decimal(66875), Decimal("0.03")),
-    (Decimal(70888), Decimal("0.035")),
-    (Decimal(75140), Decimal("0.04")),
-    (Decimal(79649), Decimal("0.045")),
-    (Decimal(84429), Decimal("0.05")),
-    (Decimal(89494), Decimal("0.055")),
-    (Decimal(94865), Decimal("0.06")),
-    (Decimal(100557), Decimal("0.065")),
-    (Decimal(106590), Decimal("0.07")),
-    (Decimal(112985), Decimal("0.075")),
-    (Decimal(119764), Decimal("0.08")),
-    (Decimal(126950), Decimal("0.085")),
-    (Decimal(134568), Decimal("0.09")),
-    (Decimal(142642), Decimal("0.095")),
-    (Decimal(151200), Decimal("0.10")),
+    (Decimal(54435), Decimal("0.01")),
+    (Decimal(62850), Decimal("0.02")),
+    (Decimal(66620), Decimal("0.025")),
+    (Decimal(70618), Decimal("0.03")),
+    (Decimal(74855), Decimal("0.035")),
+    (Decimal(79346), Decimal("0.04")),
+    (Decimal(84107), Decimal("0.045")),
+    (Decimal(89154), Decimal("0.05")),
+    (Decimal(94503), Decimal("0.055")),
+    (Decimal(100174), Decimal("0.06")),
+    (Decimal(106185), Decimal("0.065")),
+    (Decimal(112556), Decimal("0.07")),
+    (Decimal(119309), Decimal("0.075")),
+    (Decimal(126467), Decimal("0.08")),
+    (Decimal(134056), Decimal("0.085")),
+    (Decimal(142100), Decimal("0.09")),
+    (Decimal(150626), Decimal("0.095")),
+    (Decimal(159663), Decimal("0.10")),
 ]
 
 
@@ -83,7 +83,7 @@ class AUCalculator(BaseCountryCalculator):
     - Medicare Levy Surcharge (if no private health)
     - HELP/HECS repayments
 
-    PLACEHOLDER RATES - DO NOT USE FOR REAL TAX CALCULATIONS
+    Uses 2024-25 rates (ATO).
     """
 
     country_code = "AU"
@@ -94,7 +94,7 @@ class AUCalculator(BaseCountryCalculator):
         """Calculate Australian tax."""
         breakdown: list[TaxComponent] = []
         notes: list[str] = [
-            "PLACEHOLDER RATES: All rates are for development only.",
+            "2024-25 tax year rates (ATO).",
             "Tax year runs July 1 to June 30.",
         ]
 

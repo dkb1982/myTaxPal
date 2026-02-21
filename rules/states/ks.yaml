@@ -1,8 +1,6 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
-# Kansas - Progressive tax state (3 brackets, up to 5.7%)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Kansas - Progressive tax state (2 brackets)
+# 2025 tax brackets verified
 # =============================================================================
 
 # Identity
@@ -11,7 +9,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Kansas (PLACEHOLDER)"
+jurisdiction_name: "Kansas"
 jurisdiction_abbreviation: "KS"
 parent_jurisdiction_id: "US"
 
@@ -23,133 +21,102 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Rate Schedule - PROGRESSIVE TAX
-# PLACEHOLDER: All rates and thresholds need verification
+# Rate Schedule - PROGRESSIVE TAX (2 brackets)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers - PLACEHOLDER VALUES
+    # Single filers - 2025 KS brackets
     - bracket_id: "KS-2025-S-1"
       filing_status: "single"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 23000
+      rate: 0.0520
       base_tax: 0
     - bracket_id: "KS-2025-S-2"
       filing_status: "single"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
-    - bracket_id: "KS-2025-S-3"
-      filing_status: "single"
-      income_from: 50000
+      income_from: 23000
       income_to: null
-      rate: 0.0570
-      base_tax: 1800
+      rate: 0.0558
+      base_tax: 1196
 
-    # Married Filing Jointly - PLACEHOLDER VALUES
+    # Married Filing Jointly
     - bracket_id: "KS-2025-MFJ-1"
       filing_status: "mfj"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 23000
+      rate: 0.0520
       base_tax: 0
     - bracket_id: "KS-2025-MFJ-2"
       filing_status: "mfj"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
-    - bracket_id: "KS-2025-MFJ-3"
-      filing_status: "mfj"
-      income_from: 100000
+      income_from: 23000
       income_to: null
-      rate: 0.0570
-      base_tax: 3600
+      rate: 0.0558
+      base_tax: 1196
 
-    # Married Filing Separately - Same as single
+    # Married Filing Separately
     - bracket_id: "KS-2025-MFS-1"
       filing_status: "mfs"
       income_from: 0
-      income_to: 10000
-      rate: 0.02
+      income_to: 23000
+      rate: 0.0520
       base_tax: 0
     - bracket_id: "KS-2025-MFS-2"
       filing_status: "mfs"
-      income_from: 10000
-      income_to: 50000
-      rate: 0.04
-      base_tax: 200
-    - bracket_id: "KS-2025-MFS-3"
-      filing_status: "mfs"
-      income_from: 50000
+      income_from: 23000
       income_to: null
-      rate: 0.0570
-      base_tax: 1800
+      rate: 0.0558
+      base_tax: 1196
 
-    # Head of Household - PLACEHOLDER VALUES
+    # Head of Household
     - bracket_id: "KS-2025-HOH-1"
       filing_status: "hoh"
       income_from: 0
-      income_to: 15000
-      rate: 0.02
+      income_to: 23000
+      rate: 0.0520
       base_tax: 0
     - bracket_id: "KS-2025-HOH-2"
       filing_status: "hoh"
-      income_from: 15000
-      income_to: 75000
-      rate: 0.04
-      base_tax: 300
-    - bracket_id: "KS-2025-HOH-3"
-      filing_status: "hoh"
-      income_from: 75000
+      income_from: 23000
       income_to: null
-      rate: 0.0570
-      base_tax: 2700
+      rate: 0.0558
+      base_tax: 1196
 
     # QSS - Same as MFJ
     - bracket_id: "KS-2025-QSS-1"
       filing_status: "qss"
       income_from: 0
-      income_to: 20000
-      rate: 0.02
+      income_to: 23000
+      rate: 0.0520
       base_tax: 0
     - bracket_id: "KS-2025-QSS-2"
       filing_status: "qss"
-      income_from: 20000
-      income_to: 100000
-      rate: 0.04
-      base_tax: 400
-    - bracket_id: "KS-2025-QSS-3"
-      filing_status: "qss"
-      income_from: 100000
+      income_from: 23000
       income_to: null
-      rate: 0.0570
-      base_tax: 3600
+      rate: 0.0558
+      base_tax: 1196
 
   surtaxes: []
 
-# Deductions - PLACEHOLDER VALUES
+# Deductions - 2025 values
 deductions:
   standard_deduction:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 5000
+        amount: 9000
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
-        amount: 10000
+        amount: 18000
         dependent_claimed_elsewhere: null
       - filing_status: "mfs"
-        amount: 5000
+        amount: 9000
         dependent_claimed_elsewhere: null
       - filing_status: "hoh"
-        amount: 7500
+        amount: 13500
         dependent_claimed_elsewhere: null
       - filing_status: "qss"
-        amount: 10000
+        amount: 18000
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
@@ -165,17 +132,17 @@ state_config:
   local_tax_mandatory: false
   reciprocity_states: []
   special_notes:
-    - "PLACEHOLDER: Kansas has 3 tax brackets"
+    - "Kansas has 2 brackets: 5.2% up to $23k, 5.58% above"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2025-02-20"
+  verified_by: "opencode"
+  notes: "Kansas 2 brackets"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Progressive tax state - placeholder for development"
+  - source_name: "Kansas Department of Revenue"
+    url: "https://www.ksrevenue.gov/"
+    retrieved_date: "2025-02-20"
+    notes: "Kansas 2 brackets"
