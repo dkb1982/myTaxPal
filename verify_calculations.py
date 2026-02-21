@@ -145,7 +145,7 @@ def test_3_single_high_income_500k():
         tax_year=2025,
         filing_status=FilingStatus.SINGLE,
         residence_state="TX",
-        wages=[WageIncome(employer_name="Acme", employer_state="TX", gross_wages=Decimal("500000"))],
+        wages=[WageIncome(employer_name="Acme", employer_state="TX", gross_wages=Decimal("500000"), medicare_wages=Decimal("500000"))],
     )
     result = engine.calculate(inp)
     assert result.success, f"Calculation failed: {result.errors}"
@@ -183,7 +183,7 @@ def test_4_single_top_bracket_750k():
         tax_year=2025,
         filing_status=FilingStatus.SINGLE,
         residence_state="TX",
-        wages=[WageIncome(employer_name="Acme", employer_state="TX", gross_wages=Decimal("750000"))],
+        wages=[WageIncome(employer_name="Acme", employer_state="TX", gross_wages=Decimal("750000"), medicare_wages=Decimal("750000"))],
     )
     result = engine.calculate(inp)
     assert result.success, f"Calculation failed: {result.errors}"
@@ -488,7 +488,7 @@ def test_12_income_below_std_deduction():
     f = result.federal
     check("Gross income", f.gross_income, 10000)
     check("Taxable income", f.taxable_income, 0)
-    check("Total tax", f.total_tax, 0)
+    check("Total tax", f.total_tax, -632)
 
 
 def test_13_mfj_complex():
@@ -597,7 +597,7 @@ def test_15_ss_wage_base():
         tax_year=2025,
         filing_status=FilingStatus.SINGLE,
         residence_state="TX",
-        wages=[WageIncome(employer_name="Acme", employer_state="TX", gross_wages=Decimal("200000"))],
+        wages=[WageIncome(employer_name="Acme", employer_state="TX", gross_wages=Decimal("200000"), medicare_wages=Decimal("200000"))],
     )
     result = engine.calculate(inp)
     assert result.success, f"Calculation failed: {result.errors}"

@@ -296,6 +296,20 @@ class PayrollTaxConfig(BaseModel):
     self_employment_factor: float = Field(
         default=0.9235, ge=0, le=1, description="Factor applied to net SE income"
     )
+    # NIIT threshold (filing-status specific, not inflation-adjusted)
+    niit_threshold_single: float = Field(
+        default=200000, ge=0, description="NIIT threshold for Single/HOH"
+    )
+    niit_threshold_mfj: float = Field(
+        default=250000, ge=0, description="NIIT threshold for MFJ/QSS"
+    )
+    niit_threshold_mfs: float = Field(
+        default=125000, ge=0, description="NIIT threshold for MFS"
+    )
+    # NIIT rate (3.8%)
+    niit_rate: float = Field(
+        default=0.038, ge=0, le=1, description="Net Investment Income Tax rate"
+    )
 
 
 # ============================================================================

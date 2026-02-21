@@ -218,6 +218,16 @@ class AdjustmentsAGIStage(CalculationStage):
         context.set_result("agi", agi)
         context.set_result("se_tax_deduction", se_tax_deduction)
 
+        # Calculate Additional Medicare Tax (0.9% on wages over threshold)
+        additional_medicare = self._calculate_additional_medicare_tax(input_data, agi, context)
+        if additional_medicare > 0:
+            context.set_result("additional_medicare_tax", additional_medicare)
+
+        # Calculate Net Investment Income Tax (NIIT)
+        niit = self._calculate_niit(agi, context, input_data.filing_status.value)
+        if niit > 0:
+            context.set_result("niit", niit)
+
         return self._success(f"AGI: ${agi:,.2f}")
 
     def _calculate_self_employment_tax(
@@ -286,3 +296,122 @@ class AdjustmentsAGIStage(CalculationStage):
             reduction_pct = income_over / phase_out_range
             reduced = amount * (1 - reduction_pct)
             return reduced.quantize(Decimal("0.01"))
+
+    def _calculate_additional_medicare_tax(
+        self, input_data, agi: Decimal, context: CalculationContext
+    ) -> Decimal:
+        """
+        Calculate Additional Medicare Tax (0.9% on Medicare wages over threshold).
+
+        Thresholds:
+        - Single/HOH/QSS: $200,000
+        - MFJ: $250,000
+        - MFS: $125,000
+        """
+        # Get Medicare wages from W-2 incomes
+        medicare_wages = input_data.total_medicare_wages()
+
+        if medicare_wages <= 0:
+            return Decimal(0)
+
+        # Get threshold based on filing status
+        filing_status = input_data.filing_status.value
+        if filing_status in ("mfj", "qss"):
+            threshold = Decimal(250000)
+        elif filing_status == "mfs":
+            threshold = Decimal(125000)
+        else:  # single, hoh
+            threshold = Decimal(200000)
+
+        # Calculate excess wages over threshold
+        excess_wages = max(Decimal(0), medicare_wages - threshold)
+        if excess_wages <= 0:
+            return Decimal(0)
+
+        # Get rate from config
+        federal_rules = context.get_rules("US")
+        if federal_rules and federal_rules.payroll_taxes:
+            rate = Decimal(str(federal_rules.payroll_taxes.additional_medicare_rate))
+        else:
+            rate = Decimal("0.009")
+
+        additional_medicare = (excess_wages * rate).quantize(Decimal("0.01"))
+
+        # Trace the calculation
+        context.trace.add_step(
+            step_id="ADD-MEDICARE",
+            label="Additional Medicare Tax",
+            formula="0.9% x (Medicare Wages - Threshold)",
+            inputs={
+                "medicare_wages": str(medicare_wages),
+                "threshold": str(threshold),
+                "excess_wages": str(excess_wages),
+                "rate": str(rate),
+            },
+            result=additional_medicare,
+            jurisdiction="US",
+        )
+
+        return additional_medicare
+
+    def _calculate_niit(
+        self, agi: Decimal, context: CalculationContext, filing_status: str
+    ) -> Decimal:
+        """
+        Calculate Net Investment Income Tax (NIIT).
+
+        NIIT = 3.8% x min(Net Investment Income, max(0, AGI - threshold))
+
+        Thresholds:
+        - Single/HOH: $200,000
+        - MFJ/QSS: $250,000
+        - MFS: $125,000
+        """
+        # Get investment income from stage 02
+        investment_income = context.get_decimal_result("investment_income", Decimal(0))
+
+        if investment_income <= 0:
+            return Decimal(0)
+
+        # Get threshold based on filing status
+        if filing_status in ("mfj", "qss"):
+            threshold = Decimal(250000)
+        elif filing_status == "mfs":
+            threshold = Decimal(125000)
+        else:  # single, hoh
+            threshold = Decimal(200000)
+
+        # Get rate from config
+        federal_rules = context.get_rules("US")
+        if federal_rules and federal_rules.payroll_taxes:
+            rate = Decimal(str(federal_rules.payroll_taxes.niit_rate))
+        else:
+            rate = Decimal("0.038")
+
+        # Calculate excess AGI over threshold
+        excess_agi = max(Decimal(0), agi - threshold)
+        if excess_agi <= 0:
+            return Decimal(0)
+
+        # NIIT applies to lesser of NII or excess AGI
+        niit_base = min(investment_income, excess_agi)
+        niit = (niit_base * rate).quantize(Decimal("0.01"))
+
+        # Trace the calculation
+        context.trace.add_step(
+            step_id="NIIT",
+            label="Net Investment Income Tax",
+            formula="3.8% x min(NII, max(0, AGI - threshold))",
+            inputs={
+                "investment_income": str(investment_income),
+                "agi": str(agi),
+                "threshold": str(threshold),
+                "excess_agi": str(excess_agi),
+                "niit_base": str(niit_base),
+                "rate": str(rate),
+            },
+            result=niit,
+            jurisdiction="US",
+        )
+
+        return niit

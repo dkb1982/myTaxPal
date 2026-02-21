@@ -344,6 +344,10 @@ payroll_taxes:
   additional_medicare_threshold: 200000
   additional_medicare_rate: 0.009
   self_employment_factor: 0.9235
+  niit_threshold_single: 200000
+  niit_threshold_mfj: 250000
+  niit_threshold_mfs: 125000
+  niit_rate: 0.038
 
 # Verification
 verification:

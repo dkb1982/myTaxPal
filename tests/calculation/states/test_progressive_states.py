@@ -19,7 +19,7 @@ class TestProgressiveTaxStates:
     # Note: Some states like ND and OH have placeholder data where top rate is lower
     # Note: GA, IA, LA, MS switched to flat tax in 2024/2025
     PROGRESSIVE_STATES = [
-        "AL", "AR", "CA", "CT", "DC", "DE", "HI", "ID",
+        "AL", "AR", "CA", "CT", "DC", "DE", "HI",
         "KS", "ME", "MD", "MN", "MO", "MT", "NE",
         "NJ", "NM", "NY", "OK", "OR", "RI", "SC", "VA", "VT",
         "WI", "WV"

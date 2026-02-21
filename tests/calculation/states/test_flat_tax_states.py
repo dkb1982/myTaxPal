@@ -31,6 +31,7 @@ class TestFlatTaxStates:
     FLAT_TAX_STATES = {
         "AZ": Decimal("0.025"),
         "CO": Decimal("0.044"),
+        "ID": Decimal("0.05695"),
         "IL": Decimal("0.0495"),
         "IN": Decimal("0.0300"),
         "KY": Decimal("0.04"),

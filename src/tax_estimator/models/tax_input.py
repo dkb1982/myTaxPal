@@ -270,6 +270,10 @@ class TaxInput(BaseModel):
         """Sum of all federal withholding."""
         return sum((w.federal_withholding for w in self.wages), Decimal(0))
 
+    def total_medicare_wages(self) -> Decimal:
+        """Sum of all Medicare wages (Box 5)."""
+        return sum((w.medicare_wages for w in self.wages), Decimal(0))
+
     def total_self_employment_net(self) -> Decimal:
         """Sum of all net self-employment income."""
         return sum((se.net_income for se in self.self_employment), Decimal(0))
