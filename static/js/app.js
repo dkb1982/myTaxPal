@@ -976,14 +976,27 @@ async function calculateInternationalTaxes() {
 // Comparison Calculation
 // =============================================================================
 
-function gatherUSScenarioFacts(prefix) {
+function gatherUSScenarioFacts(prefix, selectedRegions = []) {
+    let includeArizona = false;
+    let includePhiladelphia = false;
+    if (prefix === 'us') {
+        const state = document.getElementById('residence-state')?.value;
+        const zip = String(document.getElementById('residence-zip')?.value ?? '').trim();
+        includeArizona = state === 'AZ';
+        includePhiladelphia = state === 'PA' && /^(190|191)\d{2}$/.test(zip);
+    } else {
+        includeArizona = selectedRegions.includes('US-AZ');
+        includePhiladelphia = selectedRegions.includes('US-PA-PHL');
+    }
+
     const fields = {
-        'az-eligible-ltcg': 'az_post_2011_eligible_long_term_gains',
-        'philly-six-month-gains': 'philly_gains_held_six_months_or_less',
-        'philly-first-half-wages': 'philly_first_half_wages'
+        'az-eligible-ltcg': ['az_post_2011_eligible_long_term_gains', includeArizona],
+        'philly-six-month-gains': ['philly_gains_held_six_months_or_less', includePhiladelphia],
+        'philly-first-half-wages': ['philly_first_half_wages', includePhiladelphia]
     };
     const facts = {};
-    for (const [id, field] of Object.entries(fields)) {
+    for (const [id, [field, isRelevant]] of Object.entries(fields)) {
+        if (!isRelevant) continue;
         const value = String(document.getElementById(`${prefix}-${id}`)?.value ?? '').trim();
         if (value !== '') facts[field] = Number(value);
     }
@@ -1008,7 +1021,7 @@ function gatherCompareFormData() {
         regions: regions,
         tax_year: taxYear,
         filing_status: filingStatus,
-        us_scenario: gatherUSScenarioFacts('compare')
+        us_scenario: gatherUSScenarioFacts('compare', regions)
     };
     const profiles = {};
     if (regions.includes('GB')) profiles.GB = { tax_region: document.getElementById('compare-gb-region').value };
@@ -1568,9 +1581,9 @@ function updateSummaryCard(summary) {
 
     const badgeEl = document.getElementById('tax-status-badge');
     if (badgeEl) {
-        const isRefund = summary.balance_due < 0;
-        badgeEl.textContent = isRefund ? 'Estimated Refund' : 'Amount Owed';
-        badgeEl.className = 'summary-card-badge ' + (isRefund ? 'refund' : 'owed');
+        const isNetCredit = statutoryDeductions < 0;
+        badgeEl.textContent = isNetCredit ? 'Net Modelled Credit' : 'Modelled Taxes + Contributions';
+        badgeEl.className = 'summary-card-badge ' + (isNetCredit ? 'refund' : 'owed');
     }
 }
 
