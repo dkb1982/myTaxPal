@@ -12,6 +12,12 @@ from tax_estimator.calculation.states.policies_2025_a_m import _ar_table_tax
 @pytest.mark.parametrize(
     ("taxable_income", "expected_tax"),
     [
+        # Official 2025 brackets PDF examples: use each $100 row's midpoint.
+        ("14800", "222"),
+        ("75900", "2542"),
+        # The final lower-table row ends inclusively at $94,700. The phaseout
+        # begins at $94,701 and therefore uses a different midpoint/adjustment.
+        ("94700", "3271"),
         ("94701", "3296"),
         ("94800", "3296"),
         ("94801", "3310"),
@@ -25,7 +31,7 @@ from tax_estimator.calculation.states.policies_2025_a_m import _ar_table_tax
         ("100001", "3809.039"),
         ("15999.49", "255"),
         ("15999.50", "258"),
-        ("94700.49", "3275"),
+        ("94700.49", "3271"),
         ("94700.50", "3296"),
         ("100000.49", "3809"),
         ("100000.50", "3809.039"),

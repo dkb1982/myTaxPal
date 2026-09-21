@@ -1,7 +1,7 @@
 """
 Local tax calculator.
 
-Calculates local (city/county) income taxes based on loaded rules.
+Calculates local (city/county) income taxes from an explicit jurisdiction.
 """
 
 from __future__ import annotations
@@ -486,8 +486,7 @@ class LocalCalculator:
         wages: Decimal,
         **kwargs
     ) -> LocalTaxResult | None:
-        """
-        Calculate local tax for a ZIP code.
+        """Return no estimate because ZIP alone cannot establish a jurisdiction.
 
         Args:
             zip_code: 5-digit ZIP code
@@ -497,22 +496,8 @@ class LocalCalculator:
             wages: Wage income
             **kwargs: Additional inputs
 
-        Returns:
-            LocalTaxResult or None if no local jurisdiction
+        Call :meth:`calculate_for_jurisdiction` with an explicit covered-city
+        choice instead.  This compatibility method deliberately never turns a
+        ZIP prefix into a city tax calculation.
         """
-        jurisdiction_id = self.zip_lookup.lookup_local_jurisdiction(zip_code)
-
-        if not jurisdiction_id:
-            return None
-
-        tax_input = LocalTaxInput(
-            jurisdiction_id=jurisdiction_id,
-            tax_year=tax_year,
-            filing_status=filing_status,
-            is_resident=is_resident,
-            total_income=wages + kwargs.get("self_employment_income", Decimal(0)),
-            wages=wages,
-            **{k: v for k, v in kwargs.items() if k not in ["total_income"]}
-        )
-
-        return self.calculate(tax_input)
+        return None

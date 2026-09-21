@@ -22,6 +22,7 @@ from tax_estimator.calculation.states.policy_common import (
     StatePolicyError,
     calculate_flat_tax,
     calculate_rate_schedule,
+    irc_net_capital_gain,
     require_policy_inputs,
 )
 
@@ -261,6 +262,12 @@ def _ar_table_tax(taxable: Decimal) -> Decimal:
     elif taxable <= Decimal("26399"):
         raw = midpoint * Decimal(".034") - Decimal("287.97")
     elif taxable <= Decimal("94700"):
+        # The final lower-table band ends inclusively at $94,700, whereas the
+        # separately published phaseout starts at $94,701.  Use the final
+        # lower row's $94,650 midpoint at this otherwise lower-exclusive
+        # terminal boundary.
+        if taxable == Decimal("94700"):
+            midpoint = Decimal("94650")
         raw = midpoint * Decimal(".039") - Decimal("419.96")
     else:
         # The indexed phaseout bands begin at $94,701 rather than on an even
@@ -576,10 +583,19 @@ def _id(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         extra_zero_band=Decimal("4811"),
     )
     food = _credit(
-        "ID-FOOD", "Grocery tax credit", Decimal("155"), base.tax_before_credits, refundable=True
+        "ID-FOOD",
+        "Idaho Food Tax Credit",
+        Decimal("155"),
+        base.tax_before_credits,
+        refundable=True,
     )
     base.credits = (food,)
-    base.notes = ("$155 refundable grocery credit is separate from gross Idaho income tax.",)
+    base.assumptions = (
+        "Idaho Food Tax Credit assumes 12 qualifying resident months with no federal "
+        "food-assistance benefits, incarceration, or unlawful U.S. residence; the taxpayer "
+        "is not claimable as another person's dependent.",
+    )
+    base.notes = ("$155 refundable Food Tax Credit is separate from gross Idaho income tax.",)
     return base
 
 
@@ -680,8 +696,9 @@ def _md(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         base.tax_before_credits = rounded
         base.notes = ("Maryland official $50-band tax table used below $100,000.",)
     require_policy_inputs(tax_input, "net_short_term_gains", "net_long_term_gains")
-    net_gain = max(
-        ZERO, (tax_input.net_short_term_gains or ZERO) + (tax_input.net_long_term_gains or ZERO)
+    net_gain = irc_net_capital_gain(
+        tax_input.net_short_term_gains or ZERO,
+        tax_input.net_long_term_gains or ZERO,
     )
     if tax_input.federal_agi > Decimal("350000"):
         base.surtax = net_gain * Decimal(".02")

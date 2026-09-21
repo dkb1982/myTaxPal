@@ -11,17 +11,16 @@ from __future__ import annotations
 
 from decimal import Decimal
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 from pydantic import BaseModel, Field
 
 from tax_estimator.api.dependencies import SettingsDep
 from tax_estimator.api.errors import NotFoundError
-from tax_estimator.calculation.states.loader import StateRulesLoader, StateRulesLoaderError
-from tax_estimator.calculation.states.models import StateTaxType
 from tax_estimator.calculation.locals.loader import LocalRulesLoader
 from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
+from tax_estimator.calculation.states.loader import StateRulesLoader, StateRulesLoaderError
 
 router = APIRouter()
 
@@ -117,10 +116,23 @@ class ZipLookupResponse(BaseModel):
     zip_code: str = Field(..., description="The ZIP code queried")
     state_code: str | None = Field(None, description="State code for this ZIP")
     state_name: str | None = Field(None, description="State name")
-    local_jurisdiction_id: str | None = Field(None, description="Local jurisdiction ID if applicable")
-    local_jurisdiction_name: str | None = Field(None, description="Local jurisdiction name if applicable")
-    has_state_income_tax: bool = Field(default=False, description="Whether state has income tax")
-    has_local_income_tax: bool = Field(default=False, description="Whether location has local income tax")
+    local_jurisdiction_id: str | None = Field(
+        None, description="Always null: ZIP alone cannot establish a local jurisdiction"
+    )
+    local_jurisdiction_name: str | None = Field(
+        None, description="Always null: ZIP alone cannot establish a local jurisdiction"
+    )
+    state_lookup_status: Literal["mapped", "unmapped"] = Field(
+        ..., description="Whether the partial ZIP-prefix table identified a state"
+    )
+    has_state_income_tax: bool | None = Field(
+        default=None,
+        description="Whether the mapped state has income tax; null when the state is unmapped",
+    )
+    has_local_income_tax: bool | None = Field(
+        default=None,
+        description="Always null: ZIP alone cannot establish whether local income tax applies",
+    )
 
 
 # =============================================================================
@@ -251,7 +263,6 @@ class ZipLookupProvider:
 
     def __init__(self):
         self._zip_lookup = ZipJurisdictionLookup()
-        self._local_loader = LocalRulesLoader()
         self._state_loader = StateRulesLoader()
 
     def lookup(self, zip_code: str) -> ZipLookupResponse:
@@ -263,7 +274,7 @@ class ZipLookupProvider:
 
         # Get state info
         state_name = None
-        has_state_income_tax = False
+        has_state_income_tax = None
         if state_code:
             try:
                 rules = self._state_loader.load_state_rules(state_code)
@@ -274,30 +285,15 @@ class ZipLookupProvider:
                 from tax_estimator.api.dependencies import get_state_name
                 state_name = get_state_name(state_code)
 
-        # Get local info
-        local_jur_name = None
-        has_local_income_tax = False
-        if local_jur_id:
-            try:
-                # Convert jurisdiction ID to file name format (e.g., US-NY-NYC -> ny_nyc)
-                parts = local_jur_id.split("-")
-                if len(parts) == 3:
-                    file_id = f"{parts[1].lower()}_{parts[2].lower()}"
-                    local_rules = self._local_loader.load_local_rules(file_id)
-                    local_jur_name = local_rules.jurisdiction_name
-                    has_local_income_tax = True
-            except Exception:
-                # Just use the ID if we can't load the rules
-                local_jur_name = local_jur_id
-
         return ZipLookupResponse(
             zip_code=zip_code,
             state_code=state_code,
             state_name=state_name,
+            state_lookup_status="mapped" if state_code else "unmapped",
             local_jurisdiction_id=local_jur_id,
-            local_jurisdiction_name=local_jur_name,
+            local_jurisdiction_name=None,
             has_state_income_tax=has_state_income_tax,
-            has_local_income_tax=has_local_income_tax,
+            has_local_income_tax=None,
         )
 
 
@@ -414,21 +410,23 @@ async def get_state(
 @router.get(
     "/lookup/zip/{zip_code}",
     response_model=ZipLookupResponse,
-    summary="Look up tax jurisdiction from ZIP code",
+    summary="Look up state from ZIP code",
     description="""
-    Looks up the tax jurisdictions (state and local) for a given ZIP code.
+    Looks up the state for a given ZIP code.
 
     Returns:
     - State code and name
-    - Local jurisdiction ID if applicable (e.g., NYC, Philadelphia)
-    - Whether state/local income taxes apply
+    - No local jurisdiction: ZIP alone cannot confirm a city or local-tax duty
+    - Whether state income tax applies
 
-    IMPORTANT: ZIP mappings are PLACEHOLDER and may not be accurate.
-    Some ZIP code areas may span multiple jurisdictions.
+    Five-digit and ZIP+4 values are accepted. State coverage is a partial prefix
+    table: an unmapped result returns a null state and null state-tax status. It
+    does not mean the ZIP belongs to a no-income-tax state. ZIP never establishes
+    a city or local-tax duty.
     """,
 )
 async def lookup_zip(
-    zip_code: str,
+    zip_code: Annotated[str, Path(pattern=r"^\d{5}(-\d{4})?$")],
     settings: SettingsDep,
     provider: ZipProviderDep,
 ) -> ZipLookupResponse:

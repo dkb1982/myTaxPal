@@ -152,14 +152,15 @@ class TestStateDetailEndpoint:
 class TestZipLookupEndpoint:
     """Tests for GET /v1/lookup/zip/{zip_code}."""
 
-    def test_lookup_nyc_zip(self, client: TestClient) -> None:
-        """Test looking up NYC ZIP code."""
+    def test_lookup_nyc_zip_returns_state_not_city(self, client: TestClient) -> None:
+        """ZIP lookup must not infer a local jurisdiction."""
         response = client.get("/v1/lookup/zip/10001")
         assert response.status_code == 200
         data = response.json()
         assert data["zip_code"] == "10001"
         assert data["state_code"] == "NY"
-        assert data["local_jurisdiction_id"] is not None
+        assert data["local_jurisdiction_id"] is None
+        assert data["has_local_income_tax"] is None
 
     def test_lookup_california_zip(self, client: TestClient) -> None:
         """Test looking up California ZIP code (no local tax)."""
@@ -179,34 +180,34 @@ class TestZipLookupEndpoint:
         assert data["state_code"] == "TX"
         assert data["has_state_income_tax"] is False
 
-    def test_lookup_philadelphia_zip(self, client: TestClient) -> None:
-        """Test looking up Philadelphia ZIP code."""
+    def test_lookup_philadelphia_zip_returns_state_not_city(self, client: TestClient) -> None:
+        """A ZIP cannot confirm Philadelphia local tax."""
         response = client.get("/v1/lookup/zip/19101")
         assert response.status_code == 200
         data = response.json()
         assert data["state_code"] == "PA"
-        assert data["local_jurisdiction_id"] is not None
+        assert data["local_jurisdiction_id"] is None
 
-    def test_lookup_detroit_zip(self, client: TestClient) -> None:
-        """Test looking up Detroit ZIP code."""
+    def test_lookup_detroit_zip_returns_state_not_city(self, client: TestClient) -> None:
+        """A ZIP cannot confirm Detroit local tax."""
         response = client.get("/v1/lookup/zip/48201")
         assert response.status_code == 200
         data = response.json()
         assert data["state_code"] == "MI"
-        assert data["local_jurisdiction_id"] is not None
+        assert data["local_jurisdiction_id"] is None
 
-    def test_lookup_cleveland_zip(self, client: TestClient) -> None:
-        """Test looking up Cleveland ZIP code."""
+    def test_lookup_cleveland_zip_returns_state_not_city(self, client: TestClient) -> None:
+        """A ZIP cannot confirm Cleveland local tax."""
         response = client.get("/v1/lookup/zip/44101")
         assert response.status_code == 200
         data = response.json()
         assert data["state_code"] == "OH"
-        assert data["local_jurisdiction_id"] is not None
+        assert data["local_jurisdiction_id"] is None
 
     def test_lookup_with_spaces(self, client: TestClient) -> None:
-        """Test ZIP lookup handles leading/trailing spaces."""
+        """The public path accepts only canonical ZIP syntax."""
         response = client.get("/v1/lookup/zip/ 10001 ")
-        assert response.status_code == 200
+        assert response.status_code == 422
 
     def test_lookup_response_includes_all_fields(self, client: TestClient) -> None:
         """Test ZIP lookup response includes all required fields."""
@@ -215,6 +216,7 @@ class TestZipLookupEndpoint:
         assert "zip_code" in data
         assert "state_code" in data
         assert "state_name" in data
+        assert data["state_lookup_status"] == "mapped"
         assert "local_jurisdiction_id" in data
         assert "has_state_income_tax" in data
         assert "has_local_income_tax" in data
@@ -248,13 +250,10 @@ class TestStateWithLocalJurisdictions:
 class TestZipLookupEdgeCases:
     """Additional tests for ZIP lookup API edge cases."""
 
-    def test_lookup_short_zip(self, client: TestClient) -> None:
-        """Test ZIP lookup handles 3-digit prefix."""
+    def test_lookup_short_zip_is_rejected(self, client: TestClient) -> None:
+        """A three-digit prefix is not a public ZIP input."""
         response = client.get("/v1/lookup/zip/100")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["zip_code"] == "100"
-        assert data["state_code"] == "NY"
+        assert response.status_code == 422
 
     def test_lookup_full_zip_plus_4(self, client: TestClient) -> None:
         """Test ZIP lookup handles ZIP+4 format by using first 3 digits."""
@@ -264,14 +263,14 @@ class TestZipLookupEdgeCases:
         # Should extract first 3 digits
         assert data["state_code"] == "NY"
 
-    def test_lookup_zip_with_no_local_tax(self, client: TestClient) -> None:
-        """Test ZIP lookup for location with no local tax."""
+    def test_lookup_zip_never_asserts_local_tax_status(self, client: TestClient) -> None:
+        """ZIP alone cannot establish either presence or absence of local tax."""
         response = client.get("/v1/lookup/zip/90210")  # Beverly Hills, CA
         assert response.status_code == 200
         data = response.json()
         assert data["state_code"] == "CA"
-        # CA has no local income taxes (except for some special districts)
-        assert data["local_jurisdiction_id"] is None or data["has_local_income_tax"] is False
+        assert data["local_jurisdiction_id"] is None
+        assert data["has_local_income_tax"] is None
 
     def test_lookup_yonkers_zip(self, client: TestClient) -> None:
         """Test ZIP lookup for Yonkers."""
@@ -302,13 +301,19 @@ class TestZipLookupEdgeCases:
         assert "zip_code" in data
         assert data["zip_code"] == "63101"
 
-    def test_lookup_unknown_zip_prefix(self, client: TestClient) -> None:
-        """Test ZIP lookup for an unknown ZIP prefix."""
-        response = client.get("/v1/lookup/zip/999")  # Invalid prefix
+    def test_lookup_unmapped_valid_zip_has_unknown_tax_status(self, client: TestClient) -> None:
+        """An unmapped ZIP is not misreported as a no-tax state."""
+        response = client.get("/v1/lookup/zip/80202")
         assert response.status_code == 200
         data = response.json()
-        # Should return None for unknown ZIP
-        assert data["state_code"] is None or data["zip_code"] == "999"
+        assert data["state_code"] is None
+        assert data["state_lookup_status"] == "unmapped"
+        assert data["has_state_income_tax"] is None
+
+    @pytest.mark.parametrize("zip_code", ["100banana", "1234", "123456", "12345-123"])
+    def test_lookup_malformed_zip_is_rejected(self, client: TestClient, zip_code: str) -> None:
+        response = client.get(f"/v1/lookup/zip/{zip_code}")
+        assert response.status_code == 422
 
 
 class TestStateReciprocityInfo:

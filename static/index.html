@@ -93,8 +93,15 @@
                     <option value="">-- Select State --</option>
                     <!-- Populated by JavaScript -->
                 </select>
-                <label for="residence-zip">Residence ZIP code <small>(needed for local tax coverage)</small></label>
-                <input type="text" id="residence-zip" name="residence_zip" inputmode="numeric" pattern="[0-9]{5}" placeholder="e.g. 10001">
+                <div id="residence-local-jurisdiction-field" hidden>
+                    <label for="residence-local-jurisdiction">Covered city/county confirmation <small>(optional)</small></label>
+                    <select id="residence-local-jurisdiction" name="local_jurisdiction_id" disabled>
+                        <option value="">None / outside a listed city or county</option>
+                    </select>
+                    <small class="field-hint">Select a listed location only when it is your residence. ZIP code does not select local tax coverage.</small>
+                </div>
+                <label for="residence-zip">Residence ZIP code <small>(optional; 5 digits or ZIP+4)</small></label>
+                <input type="text" id="residence-zip" name="residence_zip" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?" placeholder="e.g. 10001 or 10001-1234">
             </fieldset>
 
             <!-- Income -->
@@ -143,15 +150,18 @@
             </fieldset>
 
             <p class="us-scope-disclosure">US scenario assumes age 40, full-year residence and work in the same jurisdiction. Source-checked state/city scope: single, no dependants, standard deductions, wages, dividends and direct securities gains. Other profiles remain unvalidated. EITC legal eligibility is not assumed. Net income excludes unmodelled state/local payroll contributions.</p>
+            <p class="us-scope-disclosure">ZIP code does not select a local tax. When a covered city or county is applicable, confirm it explicitly in the location selector.</p>
             <details>
                 <summary>Arizona / Philadelphia details (only if relevant)</summary>
                 <p>Amounts in USD. Leave blank when irrelevant; enter 0 when none qualifies. These are portions of income already entered, not additional income.</p>
                 <label for="us-az-eligible-ltcg">Arizona: LT gains from securities acquired after 2011</label>
                 <input type="number" id="us-az-eligible-ltcg" min="0" step="0.01">
-                <label for="us-philly-six-month-gains">Philadelphia: ST gains held six months or less</label>
-                <input type="number" id="us-philly-six-month-gains" min="0" step="0.01">
-                <label for="us-philly-first-half-wages">Philadelphia: wages paid January–June 2025</label>
-                <input type="number" id="us-philly-first-half-wages" min="0" step="0.01">
+                <div id="us-philly-facts" hidden>
+                    <label for="us-philly-six-month-gains">Philadelphia: ST gains held six months or less</label>
+                    <input type="number" id="us-philly-six-month-gains" min="0" step="0.01" disabled>
+                    <label for="us-philly-first-half-wages">Philadelphia: wages paid January–June 2025</label>
+                    <input type="number" id="us-philly-first-half-wages" min="0" step="0.01" disabled>
+                </div>
             </details>
             <button type="submit" id="calculate-btn">Calculate Taxes</button>
         </form>
@@ -707,6 +717,6 @@
         <p><small>TaxEstimate API v0.1.0</small></p>
     </footer>
 
-    <script src="/static/js/app.js?v=20260921"></script>
+    <script src="/static/js/app.js?v=20260921-2"></script>
 </body>
 </html>

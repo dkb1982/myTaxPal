@@ -23,32 +23,25 @@ from tax_estimator.calculation.comparison_enhanced import (
 )
 from tax_estimator.calculation.comparison_regions import (
     INTERNATIONAL_COUNTRIES,
-    INTEREST_DIVIDENDS_ONLY_STATES,
     NO_CGT_COUNTRIES,
     NO_INCOME_TAX_STATES,
     NO_TAX_COUNTRIES,
     RegionType,
     US_CITIES,
     US_STATES,
+    get_city_for_local_jurisdiction,
     get_local_jurisdiction_id,
-    get_region_info,
     get_region_name,
     get_state_code_for_region,
     is_valid_region,
     parse_region,
 )
 from tax_estimator.calculation.comparison_us import (
-    FederalLTCGResult,
-    NIIT_RATE,
-    NIIT_THRESHOLD,
-    NIITResult,
     USComparisonResult,
-    USJurisdictionBreakdown,
     USStateComparisonCalculator,
     calculate_us_comparison,
 )
 from tax_estimator.models.income_breakdown import (
-    INCOME_TYPE_DISPLAY_NAMES,
     IncomeBreakdown,
     IncomeTypeTaxResult,
     get_income_type_display_name,
@@ -243,6 +236,14 @@ class TestRegionInfo:
         assert get_local_jurisdiction_id("US-NY-NYC") == "ny_nyc"
         assert get_local_jurisdiction_id("US-PA-PHL") == "pa_philadelphia"
         assert get_local_jurisdiction_id("US-CA") is None
+
+    def test_explicit_city_ids_and_legacy_aliases_resolve(self):
+        """All advertised cities are valid explicit selections for estimates."""
+        assert len(US_CITIES) == 11
+        for region_id, city in US_CITIES.items():
+            assert get_city_for_local_jurisdiction(region_id) is city
+            assert get_city_for_local_jurisdiction(city.local_jurisdiction_id) is city
+        assert get_city_for_local_jurisdiction("US-NY-YON") is None
 
 
 # =============================================================================

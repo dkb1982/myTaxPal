@@ -1,15 +1,18 @@
 """
 ZIP code to jurisdiction lookup.
 
-Maps ZIP codes to local tax jurisdictions.
+Maps ZIP codes to states.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+import re
 
 import yaml
+
+
+ZIP_PATTERN = re.compile(r"^\d{5}(?:-\d{4})?$")
 
 
 class ZipLookupError(Exception):
@@ -20,9 +23,11 @@ class ZipLookupError(Exception):
 
 class ZipJurisdictionLookup:
     """
-    Lookup for mapping ZIP codes to local tax jurisdictions.
+    Lookup for mapping ZIP codes to states.
 
-    IMPORTANT: ZIP mappings are PLACEHOLDER data and may not be accurate.
+    ZIP prefixes are intentionally not used to infer a local tax jurisdiction:
+    a ZIP can cover multiple cities, counties, and tax districts.  A caller must
+    provide an explicit covered-city ID to calculate local tax.
     """
 
     def __init__(self, mapping_file: Path | None = None):
@@ -62,66 +67,42 @@ class ZipJurisdictionLookup:
         self._loaded = True
 
     def lookup_local_jurisdiction(self, zip_code: str) -> str | None:
-        """
-        Look up the local tax jurisdiction for a ZIP code.
+        """Return no local jurisdiction; ZIP alone cannot confirm a city."""
+        self._normalize_base_zip(zip_code)
+        # Keep this compatibility method so existing callers receive an explicit
+        # no-result rather than silently selecting a city from stale prefix data.
+        return None
 
-        IMPORTANT LIMITATION: This lookup uses only the first 3 digits (ZIP prefix)
-        of the ZIP code. This may result in:
-        - Some ZIP codes within a 3-digit prefix being mapped to a jurisdiction
-          they don't actually belong to
-        - Multiple jurisdictions within the same 3-digit prefix area being
-          collapsed to a single result
-
-        For more accurate results, consider using a full 5-digit ZIP to
-        jurisdiction database.
-
-        Args:
-            zip_code: 5-digit ZIP code or 3-digit prefix
-
-        Returns:
-            Jurisdiction ID (e.g., "US-NY-NYC") or None if not found
-        """
-        self._load_mappings()
-
-        # Normalize ZIP code
-        # NOTE: We only use the first 3 digits for lookup. This is a known
-        # limitation - some jurisdictions (e.g., NYC) span multiple prefixes,
-        # and some prefixes contain multiple jurisdictions.
-        zip_code = zip_code.strip()
-        if len(zip_code) >= 3:
-            prefix = zip_code[:3]
-        else:
-            prefix = zip_code
-
-        return self._zip_mappings.get(prefix)
+    @staticmethod
+    def _normalize_base_zip(zip_code: str) -> str:
+        """Validate a five-digit or ZIP+4 value and return its five-digit base."""
+        normalized = zip_code.strip()
+        if not ZIP_PATTERN.fullmatch(normalized):
+            raise ZipLookupError("ZIP code must be five digits or ZIP+4 (12345-6789)")
+        return normalized[:5]
 
     def lookup_state(self, zip_code: str) -> str | None:
         """
         Look up the state for a ZIP code.
 
         Args:
-            zip_code: 5-digit ZIP code or 3-digit prefix
+            zip_code: 5-digit ZIP code or ZIP+4
 
         Returns:
             Two-letter state code or None if not found
         """
         self._load_mappings()
 
-        # Normalize ZIP code
-        zip_code = zip_code.strip()
-        if len(zip_code) >= 3:
-            prefix = zip_code[:3]
-        else:
-            prefix = zip_code
+        prefix = self._normalize_base_zip(zip_code)[:3]
 
         return self._state_mappings.get(prefix)
 
     def lookup(self, zip_code: str) -> dict[str, str | None]:
         """
-        Look up both state and local jurisdiction for a ZIP code.
+        Look up state and report that no local jurisdiction is confirmed.
 
         Args:
-            zip_code: 5-digit ZIP code or 3-digit prefix
+            zip_code: 5-digit ZIP code or ZIP+4
 
         Returns:
             Dict with "state" and "local_jurisdiction" keys
@@ -132,17 +113,12 @@ class ZipJurisdictionLookup:
         }
 
     def get_all_local_jurisdictions(self) -> list[str]:
-        """Get all local jurisdictions in the mapping."""
-        self._load_mappings()
-        return sorted(set(self._zip_mappings.values()))
+        """Return no ZIP-confirmed local jurisdictions."""
+        return []
 
     def get_zips_for_jurisdiction(self, jurisdiction_id: str) -> list[str]:
-        """Get all ZIP prefixes for a jurisdiction."""
-        self._load_mappings()
-        return [
-            zip_prefix for zip_prefix, jur_id in self._zip_mappings.items()
-            if jur_id == jurisdiction_id
-        ]
+        """Return no ZIP prefixes because ZIP does not establish a city."""
+        return []
 
     def reload(self) -> None:
         """Force reload of mappings from file."""

@@ -160,6 +160,28 @@ def test_id_gross_and_refundable_food_credit_are_separate() -> None:
     assert result.tax_before_credits == D("4210.27")
     assert result.refundable_credits == D("155.00")
     assert result.total_tax == D("4055.27")
+    assert result.credit_components[0].name == "Idaho Food Tax Credit"
+    assert "12 qualifying resident months" in result.assumptions[0]
+
+
+@pytest.mark.parametrize(
+    ("agi", "short_term", "long_term", "expected_surtax"),
+    [
+        ("500000", "100000", "0", "0"),
+        ("500000", "40000", "100000", "2000"),
+        ("500000", "100000", "-40000", "0"),
+        ("500000", "-40000", "100000", "1200"),
+        ("350000", "0", "100000", "0"),
+        ("350000.01", "0", "100000", "2000"),
+    ],
+)
+def test_md_surtax_uses_irc_net_capital_gain(
+    agi: str, short_term: str, long_term: str, expected_surtax: str
+) -> None:
+    result = StateCalculator().calculate(
+        _input("MD", agi, st=short_term, lt=long_term)
+    )
+    assert result.surtax == D(expected_surtax)
 
 
 def test_published_base_constants_and_recapture_helpers() -> None:

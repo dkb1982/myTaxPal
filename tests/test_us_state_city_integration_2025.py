@@ -205,15 +205,18 @@ def test_ambiguous_tax_facts_are_required_not_silently_defaulted(region, field):
     assert any(item["field"] == f"us_scenario.{field}" for item in response.json()["error"]["details"])
 
 
-def test_philadelphia_zip_missing_fact_is_a_request_error():
+def test_philadelphia_zip_does_not_activate_city_facts_or_local_tax():
     income = IncomeBreakdown(employment_wages=100000)
     payload = payload_for("US-PA-PHL", income, facts_for(income))
     payload["residency"].pop("local_jurisdiction_id", None)
     payload["residency"]["residence_zip"] = "19103"
     payload["us_scenario"].pop("philly_first_half_wages")
     response = client.post("/v1/estimates", json=payload)
-    assert response.status_code == 422
-    assert "philly_first_half_wages" in response.text
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["local"] == []
+    assert body["summary"]["total_local_tax"] == "0"
+    assert any("ZIP alone cannot confirm" in warning["message"] for warning in body["warnings"])
 
 
 def test_age_conflict_and_qualified_dividend_subset_rejected():
@@ -280,6 +283,41 @@ def test_compare_rejects_whole_ranking_when_selected_city_is_incomplete():
     })
     assert response.status_code == 400
     assert "regions" not in response.json()
+
+
+def test_public_estimate_rejects_unimplemented_new_york_high_income_worksheets():
+    income = IncomeBreakdown(employment_wages=D("5000001"))
+    response = client.post(
+        "/v1/estimates",
+        json=payload_for("US-NY", income, facts_for(income)),
+    )
+    assert response.status_code != 201
+    assert "Worksheets 10-11" in response.text
+
+
+def test_public_estimate_rejects_unsupported_signed_gain_combination():
+    income = IncomeBreakdown(capital_gains_long_term=D("100000"))
+    payload = payload_for("US-AR", income, facts_for(income))
+    payload["income"]["capital_gains"]["short_term_gain"] = "-3000"
+    response = client.post(
+        "/v1/estimates",
+        json=payload,
+    )
+    assert response.status_code != 201
+    assert "capital-loss" in response.text
+
+
+def test_compare_rejects_whole_ranking_when_arizona_fact_is_missing():
+    response = client.post(
+        "/v1/comparison/compare",
+        json={
+            "regions": ["US-AZ", "US-TX"],
+            "income": {"capital_gains_long_term": 100000},
+            "us_scenario": {},
+        },
+    )
+    assert response.status_code == 400
+    assert "az_post_2011_eligible_long_term_gains" in response.text
 
 
 @pytest.mark.parametrize("region", list(US_STATES) + list(US_CITIES))

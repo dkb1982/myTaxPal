@@ -191,11 +191,15 @@ def test_social_security_taxability_does_not_drop_nontaxable_household_income():
     assert D(body["summary"]["net_income"]) == 49040
 
 
-def test_new_york_zip_local_and_withholding_survive_all_layers():
+def test_explicit_new_york_city_local_and_withholding_survive_all_layers():
     response = estimate(
         state="NY",
         filer={"filing_status": "single", "age_at_year_end": 40},
-        residency={"residence_state": "NY", "residence_zip": "10001"},
+        residency={
+            "residence_state": "NY",
+            "residence_zip": "10001",
+            "local_jurisdiction_id": "US-NY-NYC",
+        },
         income={
             "wages": [
                 {
@@ -224,6 +228,53 @@ def test_new_york_zip_local_and_withholding_survive_all_layers():
     assert D(comparison.json()["regions"][0]["total_tax_local"]) == D(
         body["summary"]["total_statutory_deductions"]
     )
+
+
+@pytest.mark.parametrize("state,zip_code", [("PA", "19001"), ("NY", "10708"), ("MI", "48236")])
+def test_zip_only_omits_local_tax_and_warns(state, zip_code):
+    response = estimate(
+        state=state,
+        residency={"residence_state": state, "residence_zip": zip_code},
+        income={
+            "wages": [
+                {"employer_name": "Test", "employer_state": state, "gross_wages": 100000}
+            ]
+        },
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["local"] == []
+    assert D(body["summary"]["total_local_tax"]) == 0
+    assert any("ZIP alone cannot confirm" in warning["message"] for warning in body["warnings"])
+
+
+@pytest.mark.parametrize(
+    "state,city_id",
+    [("PA", "US-PA-PHL"), ("NY", "US-NY-YNK"), ("MI", "US-MI-DET")],
+)
+def test_explicit_city_id_retains_local_calculation(state, city_id):
+    scenario = {"philly_first_half_wages": 50000} if city_id == "US-PA-PHL" else {}
+    response = estimate(
+        state=state,
+        residency={"residence_state": state, "local_jurisdiction_id": city_id},
+        income={
+            "wages": [
+                {"employer_name": "Test", "employer_state": state, "gross_wages": 100000}
+            ]
+        },
+        us_scenario=scenario,
+    )
+    assert response.status_code == 201, response.text
+    assert len(response.json()["local"]) == 1
+
+
+def test_explicit_city_rejects_unknown_and_state_mismatch():
+    unknown = estimate(residency={"residence_state": "NY", "local_jurisdiction_id": "US-NY-XXX"})
+    assert unknown.status_code == 422
+    assert unknown.json()["error"]["code"] == "INVALID_LOCAL_JURISDICTION"
+    mismatched = estimate(residency={"residence_state": "PA", "local_jurisdiction_id": "US-NY-NYC"})
+    assert mismatched.status_code == 422
+    assert mismatched.json()["error"]["code"] == "LOCAL_JURISDICTION_STATE_MISMATCH"
 
 
 def ca(income, status="single", dependents=0, **kwargs):

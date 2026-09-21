@@ -1,7 +1,7 @@
 """
 Stage 10: Local Tax Calculation
 
-Calculates local (city/county) income tax based on residence ZIP code.
+Calculates local (city/county) income tax from an explicit covered-city choice.
 """
 
 from __future__ import annotations
@@ -9,9 +9,9 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
+from tax_estimator.calculation.comparison_regions import get_city_for_local_jurisdiction
 from tax_estimator.calculation.locals.calculator import LocalCalculator
 from tax_estimator.calculation.locals.models import LocalTaxInput
-from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
 from tax_estimator.calculation.stages.base import CalculationStage, StageResult
 
 if TYPE_CHECKING:
@@ -22,9 +22,8 @@ class LocalTaxCalculationStage(CalculationStage):
     """Calculates local income tax."""
 
     def __init__(self) -> None:
-        """Initialize with local calculator and ZIP lookup."""
+        """Initialize with the local calculator."""
         self._local_calculator = LocalCalculator()
-        self._zip_lookup = ZipJurisdictionLookup()
 
     @property
     def stage_id(self) -> str:
@@ -54,45 +53,51 @@ class LocalTaxCalculationStage(CalculationStage):
 
         if not residence_zip and not explicit_jurisdiction:
             context.add_warning(
-                "Local tax is not estimated without a residence ZIP or explicit city. Zero here does not establish that no local tax is due."
+                "Local tax is omitted because no explicit covered city was selected. "
+                "A ZIP is optional and does not establish a local-tax jurisdiction."
             )
-            # No ZIP code provided - skip local tax calculation
+            # No explicit city was provided, so local tax cannot be calculated.
             context.set_result("local_results", [])
             context.set_result("total_local_tax", Decimal(0))
 
             trace.add_step(
                 step_id="LOCAL-TAX-SKIPPED",
                 label="Local Tax",
-                formula="Local tax calculation skipped - no ZIP code",
+                formula="Local tax calculation skipped - no explicit city",
                 inputs={},
                 result=Decimal(0),
                 jurisdiction="local",
-                note="No residence ZIP code provided",
+                note="No explicit covered city selected",
             )
 
-            return self._success("Local tax skipped (no ZIP)")
+            return self._success("Local tax skipped (no explicit city)")
 
-        # Look up local jurisdiction from ZIP
+        # A ZIP can establish a state but not a city or local tax obligation.
+        # Local tax therefore requires an explicit city selected from US_CITIES.
         try:
-            lookup_result = self._zip_lookup.lookup(residence_zip) if residence_zip else {}
-            local_jurisdiction = explicit_jurisdiction or lookup_result.get("local_jurisdiction")
+            city = get_city_for_local_jurisdiction(explicit_jurisdiction)
+            if explicit_jurisdiction and city is None:
+                return self._error("Unknown explicit local jurisdiction")
+            if city and city.state_code != input_data.residence_state.upper():
+                return self._error("Explicit local jurisdiction does not match residence state")
+            local_jurisdiction = city.local_jurisdiction_id if city else None
 
             if not local_jurisdiction:
                 context.add_warning(
-                    "The ZIP lookup has limited local-tax coverage; no covered jurisdiction was found. Check city/county obligations separately."
+                    "Local tax is omitted because no explicit covered city was selected. ZIP alone cannot confirm city/county obligations."
                 )
-                # No local tax jurisdiction for this ZIP
+                # No explicit local-tax jurisdiction was selected.
                 context.set_result("local_results", [])
                 context.set_result("total_local_tax", Decimal(0))
 
                 trace.add_step(
                     step_id="LOCAL-TAX-NONE",
                     label="Local Tax",
-                    formula="No local tax jurisdiction for ZIP",
-                    inputs={"zip": residence_zip},
+                    formula="No explicit local tax jurisdiction",
+                    inputs={"zip": residence_zip, "local_jurisdiction_id": explicit_jurisdiction},
                     result=Decimal(0),
                     jurisdiction="local",
-                    note="No covered local jurisdiction found; local tax may still apply",
+                    note="ZIP alone cannot confirm a local jurisdiction; local tax may still apply",
                 )
 
                 return self._success("No local tax jurisdiction")
@@ -154,7 +159,10 @@ class LocalTaxCalculationStage(CalculationStage):
             if rules.parent_state.removeprefix("US-") != input_data.residence_state.upper():
                 return self._error("Local jurisdiction/ZIP does not match residence state")
             local_result = self._local_calculator.calculate(local_input)
-            context.add_warning("Local estimate assumes full-year residence and work in the same city/county; ZIP coverage is limited.")
+            context.add_warning(
+                "Local estimate assumes full-year residence and work in the explicitly "
+                "selected city/county."
+            )
             for warning in local_result.warnings + local_result.assumptions:
                 context.add_warning(warning)
 

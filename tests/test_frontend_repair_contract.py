@@ -29,5 +29,16 @@ def test_compare_shows_fx_provenance_and_payroll_components() -> None:
 
 def test_supported_years_and_location_profile_inputs_are_exposed() -> None:
     assert 'value="2024"' not in HTML
-    for field in ("residence-zip", "local-withholding", "intl-gb-region", "intl-sg-citizen", "compare-gb-region", "compare-sg-citizen"):
+    for field in ("residence-zip", "residence-local-jurisdiction", "local-withholding", "intl-gb-region", "intl-sg-citizen", "compare-gb-region", "compare-sg-citizen"):
         assert field in HTML
+    assert 'pattern="[0-9]{5}(-[0-9]{4})?"' in HTML
+    assert "None / outside a listed city or county" in HTML
+
+
+def test_standalone_local_coverage_requires_an_explicit_advertised_city() -> None:
+    assert "setCoveredUSCities(data.us_cities || [])" in JS
+    assert "option.value = city.region_id" in JS
+    assert "local_jurisdiction_id: localJurisdictionId" in JS
+    assert "includePhiladelphia = document.getElementById('residence-local-jurisdiction')?.value === 'US-PA-PHL'" in JS
+    assert "ZIP code does not select local tax coverage." in HTML
+    assert "ZIP code does not select a local tax." in HTML

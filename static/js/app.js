@@ -169,6 +169,10 @@ let compareResultsSection;
 let errorSection;
 let loadingSection;
 
+// Cities advertised by the comparison API. The standalone calculator only
+// applies a local rule after the user explicitly chooses one of these IDs.
+let coveredUSCities = [];
+
 // =============================================================================
 // Initialization
 // =============================================================================
@@ -186,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Populate state dropdown
     populateStates();
+    setupResidenceLocationSelector();
 
     // Setup event listeners
     form.addEventListener('submit', handleFormSubmit);
@@ -374,6 +379,9 @@ async function loadComparisonRegions() {
 
         // Populate US cities
         populateUSCities(data.us_cities || []);
+
+        // Reuse the same advertised city catalog for the standalone form.
+        setCoveredUSCities(data.us_cities || []);
 
         // Update region names map with loaded data
         updateRegionNames(data);
@@ -710,6 +718,74 @@ function populateStates() {
 }
 
 // =============================================================================
+// Standalone Local Jurisdiction Selection
+// =============================================================================
+
+function setupResidenceLocationSelector() {
+    const stateSelect = document.getElementById('residence-state');
+    const localSelect = document.getElementById('residence-local-jurisdiction');
+    if (!stateSelect || !localSelect) return;
+
+    stateSelect.addEventListener('change', () => {
+        // A city is only meaningful within its selected state; never carry one
+        // forward when the user changes state.
+        localSelect.value = '';
+        populateResidenceLocalJurisdictions(stateSelect.value);
+        updateResidenceCityFields();
+    });
+
+    localSelect.addEventListener('change', updateResidenceCityFields);
+    populateResidenceLocalJurisdictions(stateSelect.value);
+    updateResidenceCityFields();
+}
+
+function setCoveredUSCities(cities) {
+    coveredUSCities = Array.isArray(cities) ? cities : [];
+    const state = document.getElementById('residence-state')?.value || '';
+    populateResidenceLocalJurisdictions(state);
+    updateResidenceCityFields();
+}
+
+function populateResidenceLocalJurisdictions(stateCode) {
+    const field = document.getElementById('residence-local-jurisdiction-field');
+    const localSelect = document.getElementById('residence-local-jurisdiction');
+    if (!field || !localSelect) return;
+
+    const cities = coveredUSCities
+        .filter(city => city.state_code === stateCode)
+        .sort((a, b) => a.display_name.localeCompare(b.display_name));
+
+    field.hidden = cities.length === 0;
+    localSelect.disabled = cities.length === 0;
+    localSelect.innerHTML = '';
+
+    const noneOption = document.createElement('option');
+    noneOption.value = '';
+    noneOption.textContent = 'None / outside a listed city or county';
+    localSelect.appendChild(noneOption);
+
+    cities.forEach(city => {
+        const option = document.createElement('option');
+        option.value = city.region_id;
+        option.textContent = city.display_name;
+        localSelect.appendChild(option);
+    });
+}
+
+function updateResidenceCityFields() {
+    const selectedCity = document.getElementById('residence-local-jurisdiction')?.value;
+    const phillyFacts = document.getElementById('us-philly-facts');
+    if (!phillyFacts) return;
+
+    const isPhiladelphia = selectedCity === 'US-PA-PHL';
+    phillyFacts.hidden = !isPhiladelphia;
+    phillyFacts.querySelectorAll('input').forEach(input => {
+        input.disabled = !isPhiladelphia;
+        if (!isPhiladelphia) input.value = '';
+    });
+}
+
+// =============================================================================
 // Form Handling
 // =============================================================================
 
@@ -738,6 +814,7 @@ function gatherFormData() {
     const stateWithholding = parseFloat(document.getElementById('state-withholding').value) || 0;
     const localWithholding = parseFloat(document.getElementById('local-withholding').value) || 0;
     const residenceZip = document.getElementById('residence-zip').value.trim();
+    const localJurisdictionId = document.getElementById('residence-local-jurisdiction')?.value || '';
     const interest = parseFloat(document.getElementById('interest').value) || 0;
     const dividends = parseFloat(document.getElementById('dividends').value) || 0;
     const qualifiedDividends = parseFloat(document.getElementById('qualified-dividends')?.value) || 0;
@@ -753,7 +830,8 @@ function gatherFormData() {
         },
         residency: {
             residence_state: residenceState,
-            residence_zip: residenceZip || null
+            residence_zip: residenceZip || null,
+            ...(localJurisdictionId ? { local_jurisdiction_id: localJurisdictionId } : {})
         },
         income: {},
         us_scenario: gatherUSScenarioFacts('us')
@@ -981,9 +1059,8 @@ function gatherUSScenarioFacts(prefix, selectedRegions = []) {
     let includePhiladelphia = false;
     if (prefix === 'us') {
         const state = document.getElementById('residence-state')?.value;
-        const zip = String(document.getElementById('residence-zip')?.value ?? '').trim();
         includeArizona = state === 'AZ';
-        includePhiladelphia = state === 'PA' && /^(190|191)\d{2}$/.test(zip);
+        includePhiladelphia = document.getElementById('residence-local-jurisdiction')?.value === 'US-PA-PHL';
     } else {
         includeArizona = selectedRegions.includes('US-AZ');
         includePhiladelphia = selectedRegions.includes('US-PA-PHL');

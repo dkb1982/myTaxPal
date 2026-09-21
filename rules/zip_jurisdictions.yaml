@@ -1,112 +1,14 @@
 # =============================================================================
-# ZIP Code to Local Jurisdiction Mapping
+# ZIP Code to State Mapping
 # =============================================================================
-# This file maps ZIP code prefixes to local tax jurisdictions.
-# Format: 3-digit ZIP prefix -> jurisdiction_id
-#
-# PLACEHOLDER DATA - Actual ZIP ranges need verification
+# ZIP prefixes identify a state only. They are deliberately not mapped to a
+# local tax jurisdiction because a ZIP can cross city, county, and district
+# boundaries. Local tax requires an explicit covered-city ID.
 # =============================================================================
 
-# Mapping strategy:
-# - Uses 3-digit ZIP prefixes (first 3 digits)
-# - Falls back to state if no local jurisdiction match
-# - Some ZIP prefixes may span multiple jurisdictions
+zip_mappings: {}
 
-zip_mappings:
-  # =========================================================================
-  # New York City (Manhattan, Bronx, Brooklyn, Queens, Staten Island)
-  # =========================================================================
-  "100": "US-NY-NYC"  # Manhattan
-  "101": "US-NY-NYC"  # Manhattan
-  "102": "US-NY-NYC"  # Manhattan
-  "103": "US-NY-NYC"  # Staten Island
-  "104": "US-NY-NYC"  # Bronx
-  "105": "US-NY-NYC"  # Westchester (partial) - VERIFY
-  "110": "US-NY-NYC"  # Queens
-  "111": "US-NY-NYC"  # Queens/Long Island City
-  "112": "US-NY-NYC"  # Brooklyn
-  "113": "US-NY-NYC"  # Queens
-  "114": "US-NY-NYC"  # Queens
-  "116": "US-NY-NYC"  # Queens
-
-  # =========================================================================
-  # Yonkers, NY
-  # =========================================================================
-  "107": "US-NY-YON"  # Yonkers
-
-  # =========================================================================
-  # Philadelphia, PA
-  # =========================================================================
-  "190": "US-PA-PHL"  # Philadelphia suburbs - VERIFY
-  "191": "US-PA-PHL"  # Philadelphia
-
-  # =========================================================================
-  # Pittsburgh, PA
-  # =========================================================================
-  "151": "US-PA-PIT"  # Pittsburgh area
-  "152": "US-PA-PIT"  # Pittsburgh
-
-  # =========================================================================
-  # Detroit, MI
-  # =========================================================================
-  "482": "US-MI-DET"  # Detroit
-
-  # =========================================================================
-  # Baltimore, MD
-  # =========================================================================
-  "212": "US-MD-BAL"  # Baltimore City
-
-  # =========================================================================
-  # Cleveland, OH
-  # =========================================================================
-  "441": "US-OH-CLE"  # Cleveland
-
-  # =========================================================================
-  # Columbus, OH
-  # =========================================================================
-  "431": "US-OH-COL"  # Columbus area
-  "432": "US-OH-COL"  # Columbus
-
-  # =========================================================================
-  # Cincinnati, OH
-  # =========================================================================
-  "451": "US-OH-CIN"  # Cincinnati area - VERIFY
-  "452": "US-OH-CIN"  # Cincinnati
-
-  # =========================================================================
-  # St. Louis, MO
-  # =========================================================================
-  "630": "US-MO-STL"  # St. Louis area - VERIFY
-  "631": "US-MO-STL"  # St. Louis
-
-  # =========================================================================
-  # Kansas City, MO
-  # =========================================================================
-  "640": "US-MO-KCM"  # Kansas City area - VERIFY
-  "641": "US-MO-KCM"  # Kansas City
-
-  # =========================================================================
-  # Louisville, KY
-  # =========================================================================
-  "400": "US-KY-LOU"  # Louisville area
-  "401": "US-KY-LOU"  # Louisville
-  "402": "US-KY-LOU"  # Louisville
-
-  # =========================================================================
-  # Wilmington, DE
-  # =========================================================================
-  "198": "US-DE-WIL"  # Wilmington
-
-  # =========================================================================
-  # Newark, NJ
-  # =========================================================================
-  "071": "US-NJ-NEW"  # Newark
-
-# =============================================================================
-# State-level mappings for ZIP prefixes
-# =============================================================================
-# These are used as fallbacks when no local jurisdiction applies
-# Format: 3-digit ZIP prefix -> state code
+# State-level mappings for ZIP prefixes (3-digit prefix -> state code)
 
 state_zip_prefixes:
   # Alabama (350-369)
@@ -491,7 +393,6 @@ metadata:
   last_updated: "2025-01-12"
   status: "placeholder"
   notes:
-    - "PLACEHOLDER DATA - ZIP ranges need verification"
-    - "Some ZIP prefixes may include areas outside the listed jurisdiction"
-    - "For accurate determination, use full 5-digit ZIP code lookup"
-    - "State-level mappings are partial - add complete coverage as needed"
+    - "PLACEHOLDER DATA - state prefix coverage is partial and needs verification"
+    - "An unmapped ZIP means unknown state coverage, not a no-income-tax state"
+    - "ZIP never confirms a city or local-tax jurisdiction"

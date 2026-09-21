@@ -42,7 +42,7 @@ from tax_estimator.api.schemas import (
     WarningInfo,
     WarningSeverity,
 )
-from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
+from tax_estimator.calculation.comparison_regions import get_city_for_local_jurisdiction
 from tax_estimator.calculation.us_profile import baseline_profile_reasons
 from tax_estimator.models.tax_input import (
     Adjustments,
@@ -136,6 +136,9 @@ def _convert_api_request_to_tax_input(request: EstimateRequest) -> TaxInput:
     """
     # Map filing status
     filing_status = FilingStatus(request.filer.filing_status.value)
+    local_city = get_city_for_local_jurisdiction(
+        request.residency.local_jurisdiction_id
+    )
 
     # Build taxpayer info with age calculation
     taxpayer = TaxpayerInfo(
@@ -317,7 +320,9 @@ def _convert_api_request_to_tax_input(request: EstimateRequest) -> TaxInput:
         filing_status=filing_status,
         residence_state=request.residency.residence_state.upper(),
         residence_zip=request.residency.residence_zip,
-        local_jurisdiction_id=request.residency.local_jurisdiction_id,
+        local_jurisdiction_id=(
+            local_city.local_jurisdiction_id if local_city else None
+        ),
         lived_with_spouse_during_year=request.lived_with_spouse_during_year,
         eitc_eligibility_asserted=request.eitc_eligibility_asserted,
         us_scenario=request.us_scenario,
@@ -678,6 +683,34 @@ async def create_estimate(
             field="residency.residence_state",
         )
 
+    if residence.local_jurisdiction_id:
+        city = get_city_for_local_jurisdiction(residence.local_jurisdiction_id)
+        if city is None:
+            raise APIError(
+                code="INVALID_LOCAL_JURISDICTION",
+                message="local_jurisdiction_id must be a supported explicit city ID.",
+                status_code=422,
+                details=[ValidationErrorDetail(
+                    field="residency.local_jurisdiction_id",
+                    code="UNKNOWN_LOCAL_JURISDICTION",
+                    message="Choose a covered city from the comparison regions list.",
+                )],
+            )
+        if city.state_code != residence.residence_state.upper():
+            raise APIError(
+                code="LOCAL_JURISDICTION_STATE_MISMATCH",
+                message="local_jurisdiction_id must belong to residence_state.",
+                status_code=422,
+                details=[ValidationErrorDetail(
+                    field="residency.local_jurisdiction_id",
+                    code="STATE_MISMATCH",
+                    message=(
+                        f"{city.region_id} belongs to {city.state_code}, "
+                        f"not {residence.residence_state.upper()}."
+                    ),
+                )],
+            )
+
     # Validate work state if different from residence
     if request.residency.work_state:
         if not is_valid_state_code(request.residency.work_state):
@@ -726,14 +759,10 @@ async def create_estimate(
         )
 
     # Missing claimant facts are request errors, not server calculation failures.
-    # Match the same explicit-city-over-ZIP precedence used by stage 10.
+    # Philadelphia facts are required only when the user explicitly selected it;
+    # a ZIP cannot confirm a city or activate a local-tax calculation.
     if not baseline_profile_reasons(tax_input):
         local_id = tax_input.local_jurisdiction_id
-        if not local_id and tax_input.residence_zip:
-            try:
-                local_id = ZipJurisdictionLookup().lookup(tax_input.residence_zip).get("local_jurisdiction")
-            except Exception as exc:
-                raise CalculationError(f"Local jurisdiction lookup failed: {exc}") from exc
         facts = tax_input.us_scenario
         required = []
         if tax_input.residence_state.upper() == "AZ" and tax_input.capital_gains.long_term_gains > 0:

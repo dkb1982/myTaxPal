@@ -473,6 +473,35 @@ def get_local_jurisdiction_id(region_id: str) -> str | None:
     return None
 
 
+def get_city_for_local_jurisdiction(
+    local_jurisdiction_id: str | None,
+) -> USCityInfo | None:
+    """Resolve an explicit local-city value to its covered-city registry entry.
+
+    Public estimate requests use the canonical comparison-region ID (for example
+    ``US-PA-PHL``).  The calculation layer historically used short file aliases
+    such as ``pa_philadelphia``; accept those aliases while keeping the canonical
+    registry as the authority for which cities are covered.
+    """
+    if not local_jurisdiction_id:
+        return None
+
+    value = local_jurisdiction_id.strip()
+    city = US_CITIES.get(value.upper())
+    if city:
+        return city
+
+    alias = value.lower()
+    return next(
+        (
+            city_info
+            for city_info in US_CITIES.values()
+            if city_info.local_jurisdiction_id == alias
+        ),
+        None,
+    )
+
+
 def list_all_regions() -> dict[str, list[dict[str, Any]]]:
     """
     List all available comparison regions.

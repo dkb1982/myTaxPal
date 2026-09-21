@@ -7,12 +7,16 @@ const elements = new Map();
 const requestedIds = new Set();
 function element() {
   let text = '', html = '';
+  const children = [], listeners = new Map();
   return {
-    hidden: true, className: '', style: {}, value: '',
+    hidden: true, disabled: false, className: '', style: {}, value: '', children,
     set textContent(value) { text = String(value); html = text.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); },
     get textContent() { return text; },
-    set innerHTML(value) { html = String(value); }, get innerHTML() { return html; },
-    appendChild() {}, addEventListener() {}, querySelectorAll() { return []; },
+    set innerHTML(value) { html = String(value); children.length = 0; }, get innerHTML() { return html; },
+    appendChild(child) { children.push(child); return child; },
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    dispatch(type) { listeners.get(type)?.({target: this}); },
+    querySelectorAll(selector) { return selector === 'input' ? children.filter(child => child.type === 'input') : []; },
   };
 }
 const document = {
@@ -124,19 +128,51 @@ input('residence-state', 'AZ');
 payload = context.gatherFormData();
 assert.equal(payload.us_scenario.az_post_2011_eligible_long_term_gains, 0);
 input('residence-state', 'PA');
-input('residence-zip', '19103');
+input('residence-zip', '19103-1234');
 input('us-philly-first-half-wages', 50000);
 payload = context.gatherFormData();
 assert.equal(payload.us_scenario.az_post_2011_eligible_long_term_gains, undefined);
-assert.equal(payload.us_scenario.philly_first_half_wages, 50000);
-input('residence-zip', '19001');
+assert.equal(payload.us_scenario.philly_first_half_wages, undefined);
+assert.equal(payload.residency.local_jurisdiction_id, undefined);
+input('residence-local-jurisdiction', 'US-PA-PHL');
 payload = context.gatherFormData();
 assert.equal(payload.us_scenario.philly_first_half_wages, 50000);
+assert.equal(payload.residency.local_jurisdiction_id, 'US-PA-PHL');
 input('compare-az-eligible-ltcg', 0);
 input('compare-philly-first-half-wages', 50000);
 assert.equal(context.gatherUSScenarioFacts('compare', ['US-TX']).az_post_2011_eligible_long_term_gains, undefined);
 assert.equal(context.gatherUSScenarioFacts('compare', ['US-AZ']).az_post_2011_eligible_long_term_gains, 0);
 assert.equal(context.gatherUSScenarioFacts('compare', ['US-PA-PHL']).philly_first_half_wages, 50000);
+const stateSelect = elements.get('residence-state');
+const localSelect = elements.get('residence-local-jurisdiction');
+const phillyFacts = document.getElementById('us-philly-facts');
+for (const id of ['us-philly-six-month-gains', 'us-philly-first-half-wages']) {
+  const field = elements.get(id);
+  field.type = 'input';
+  phillyFacts.appendChild(field);
+}
+localSelect.value = '';
+context.setupResidenceLocationSelector();
+context.setCoveredUSCities([
+  {region_id: 'US-PA-PHL', state_code: 'PA', display_name: 'Philadelphia, PA'},
+  {region_id: 'US-NY-NYC', state_code: 'NY', display_name: 'New York City, NY'},
+]);
+stateSelect.value = 'PA';
+stateSelect.dispatch('change');
+assert.equal(localSelect.disabled, false);
+assert.deepEqual(localSelect.children.map(option => option.value), ['', 'US-PA-PHL']);
+localSelect.value = 'US-PA-PHL';
+localSelect.dispatch('change');
+assert.equal(elements.get('us-philly-facts').hidden, false);
+input('us-philly-six-month-gains', 2000);
+input('us-philly-first-half-wages', 50000);
+stateSelect.value = 'NY';
+stateSelect.dispatch('change');
+assert.equal(localSelect.value, '');
+assert.deepEqual(localSelect.children.map(option => option.value), ['', 'US-NY-NYC']);
+assert.equal(elements.get('us-philly-facts').hidden, true);
+assert.equal(elements.get('us-philly-first-half-wages').value, '');
+assert.equal(elements.get('us-philly-six-month-gains').value, '');
 const html = fs.readFileSync(path.join(__dirname, '../static/index.html'), 'utf8');
 for (const id of requestedIds) assert.ok(html.includes(`id="${id}"`), `Missing real form element: ${id}`);
 console.log('Frontend runtime contracts passed');

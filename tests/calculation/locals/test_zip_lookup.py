@@ -25,47 +25,42 @@ class TestZipJurisdictionLookup:
         assert lookup.mapping_file is not None
         assert lookup.mapping_file.exists()
 
-    def test_lookup_nyc_zip(self, lookup: ZipJurisdictionLookup) -> None:
-        """Test looking up NYC ZIP codes."""
-        # NYC ZIP codes start with 100xx, 101xx, 102xx, 103xx, 104xx
-        local_jur = lookup.lookup_local_jurisdiction("10001")  # Manhattan
+    def test_lookup_nyc_zip_does_not_infer_city(self, lookup: ZipJurisdictionLookup) -> None:
+        """ZIP lookup establishes NY but cannot confirm New York City."""
+        local_jur = lookup.lookup_local_jurisdiction("10001")
         state = lookup.lookup_state("10001")
         assert state == "NY"
-        assert local_jur is not None
-        # local_jur should be the jurisdiction ID for NYC
+        assert local_jur is None
 
-    def test_lookup_philadelphia_zip(self, lookup: ZipJurisdictionLookup) -> None:
-        """Test looking up Philadelphia ZIP codes."""
-        # Philadelphia ZIP codes start with 191xx
+    def test_lookup_philadelphia_zip_does_not_infer_city(
+        self, lookup: ZipJurisdictionLookup
+    ) -> None:
+        """A Philadelphia-area ZIP does not establish a city tax obligation."""
         local_jur = lookup.lookup_local_jurisdiction("19101")
         state = lookup.lookup_state("19101")
         assert state == "PA"
-        assert local_jur is not None
+        assert local_jur is None
 
-    def test_lookup_detroit_zip(self, lookup: ZipJurisdictionLookup) -> None:
-        """Test looking up Detroit ZIP codes."""
-        # Detroit ZIP codes start with 482xx
+    def test_lookup_detroit_zip_does_not_infer_city(self, lookup: ZipJurisdictionLookup) -> None:
+        """A Detroit-area ZIP does not establish a city tax obligation."""
         local_jur = lookup.lookup_local_jurisdiction("48201")
         state = lookup.lookup_state("48201")
         assert state == "MI"
-        assert local_jur is not None
+        assert local_jur is None
 
-    def test_lookup_cleveland_zip(self, lookup: ZipJurisdictionLookup) -> None:
-        """Test looking up Cleveland ZIP codes."""
-        # Cleveland ZIP codes start with 441xx
+    def test_lookup_cleveland_zip_does_not_infer_city(self, lookup: ZipJurisdictionLookup) -> None:
+        """A Cleveland-area ZIP does not establish a city tax obligation."""
         local_jur = lookup.lookup_local_jurisdiction("44101")
         state = lookup.lookup_state("44101")
         assert state == "OH"
-        assert local_jur is not None
+        assert local_jur is None
 
     def test_lookup_state_only_zip(self, lookup: ZipJurisdictionLookup) -> None:
         """Test looking up ZIP in state without local tax."""
         # Texas ZIP code (no state income tax, no local tax)
         state = lookup.lookup_state("75001")  # Dallas area
         assert state == "TX"
-        # Local jurisdiction may or may not exist
-        local_jur = lookup.lookup_local_jurisdiction("75001")
-        # Just verify no error is raised
+        assert lookup.lookup_local_jurisdiction("75001") is None
 
     def test_lookup_handles_zip_plus_4(self, lookup: ZipJurisdictionLookup) -> None:
         """Test lookup handles ZIP+4 format by using first 3 digits."""
@@ -75,9 +70,14 @@ class TestZipJurisdictionLookup:
     def test_lookup_returns_none_for_unknown(self, lookup: ZipJurisdictionLookup) -> None:
         """Test lookup returns None for unknown ZIP prefix."""
         # 999 is not a valid US ZIP prefix
-        state = lookup.lookup_state("99999")
-        # May or may not return a state depending on mappings
-        # Just verify no error is raised
+        assert lookup.lookup_state("99999") in {None, "AK"}
+
+    @pytest.mark.parametrize("zip_code", ["100", "100banana", "123456", "12345-123"])
+    def test_lookup_rejects_malformed_zip(
+        self, lookup: ZipJurisdictionLookup, zip_code: str
+    ) -> None:
+        with pytest.raises(ZipLookupError, match=r"five digits or ZIP\+4"):
+            lookup.lookup(zip_code)
 
 
 class TestZipPrefixMapping:
@@ -143,10 +143,10 @@ class TestZipEdgeCases:
         state = lookup.lookup_state(" 10001 ")
         assert state == "NY"
 
-    def test_get_all_local_jurisdictions(self, lookup: ZipJurisdictionLookup) -> None:
-        """Test getting all local jurisdictions."""
+    def test_get_all_local_jurisdictions_is_empty(self, lookup: ZipJurisdictionLookup) -> None:
+        """No local jurisdiction is ZIP-confirmed."""
         jurisdictions = lookup.get_all_local_jurisdictions()
-        assert len(jurisdictions) > 0
+        assert jurisdictions == []
 
     def test_get_zips_for_jurisdiction(self, lookup: ZipJurisdictionLookup) -> None:
         """Test getting ZIPs for a specific jurisdiction."""
