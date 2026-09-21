@@ -6,7 +6,7 @@ Applies tax credits (both nonrefundable and refundable).
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
 from tax_estimator.calculation.stages.base import CalculationStage, StageResult
@@ -51,15 +51,16 @@ class CreditsStage(CalculationStage):
 
         # ========== NONREFUNDABLE CREDITS ==========
 
-        # Child Tax Credit
+        # Child Tax Credit, Other Dependent Credit, and ACTC share the
+        # Schedule 8812 phaseout and liability limit.
         ctc_result = self._calculate_child_tax_credit(context, agi)
-        if ctc_result["total"] > 0:
-            ctc_nonrefundable = min(ctc_result["nonrefundable"], remaining_tax)
+        if ctc_result["ctc_available"] > 0:
+            ctc_nonrefundable = min(ctc_result["ctc_available"], remaining_tax)
             nonrefundable_credits.append(
                 CreditDetail(
                     credit_id="US-CTC",
                     credit_name="Child Tax Credit",
-                    credit_amount=ctc_result["total"],
+                    credit_amount=ctc_result["ctc_available"],
                     amount_used=ctc_nonrefundable,
                     is_refundable=False,
                 )
@@ -69,38 +70,24 @@ class CreditsStage(CalculationStage):
             trace.add_step(
                 step_id="CREDIT-CTC",
                 label="Child Tax Credit",
-                formula="$2,000 per qualifying child (under 17)",
+                formula="2025 Schedule 8812 combined CTC/ODC worksheet",
                 inputs={
                     "qualifying_children": ctc_result["qualifying_children"],
                     "base_credit": str(ctc_result["base"]),
                     "phase_out_reduction": str(ctc_result["phase_out"]),
-                    "total_credit": str(ctc_result["total"]),
+                    "available_credit": str(ctc_result["combined_available"]),
                 },
                 result=ctc_nonrefundable,
                 jurisdiction="US",
             )
 
-            # Additional Child Tax Credit (refundable portion)
-            if ctc_result["refundable"] > 0:
-                refundable_credits.append(
-                    CreditDetail(
-                        credit_id="US-ACTC",
-                        credit_name="Additional Child Tax Credit",
-                        credit_amount=ctc_result["refundable"],
-                        amount_used=ctc_result["refundable"],
-                        is_refundable=True,
-                    )
-                )
-
-        # Other Dependent Credit ($500 per qualifying dependent not eligible for CTC)
-        odc_result = self._calculate_other_dependent_credit(context, agi)
-        if odc_result > 0:
-            odc_used = min(odc_result, remaining_tax)
+        if ctc_result["odc_available"] > 0:
+            odc_used = min(ctc_result["odc_available"], remaining_tax)
             nonrefundable_credits.append(
                 CreditDetail(
                     credit_id="US-ODC",
                     credit_name="Other Dependent Credit",
-                    credit_amount=odc_result,
+                    credit_amount=ctc_result["odc_available"],
                     amount_used=odc_used,
                     is_refundable=False,
                 )
@@ -111,15 +98,30 @@ class CreditsStage(CalculationStage):
                 step_id="CREDIT-ODC",
                 label="Other Dependent Credit",
                 formula="$500 per qualifying dependent not eligible for CTC",
-                inputs={"credit": str(odc_result)},
+                inputs={"credit": str(ctc_result["odc_available"])},
                 result=odc_used,
                 jurisdiction="US",
+            )
+
+        if ctc_result["refundable"] > 0:
+            refundable_credits.append(
+                CreditDetail(
+                    credit_id="US-ACTC",
+                    credit_name="Additional Child Tax Credit",
+                    credit_amount=ctc_result["refundable"],
+                    amount_used=ctc_result["refundable"],
+                    is_refundable=True,
+                )
             )
 
         # ========== REFUNDABLE CREDITS ==========
 
         # Earned Income Credit
         eic_result = self._calculate_earned_income_credit(context, agi)
+        context.set_result(
+            "federal_earned_income_credit",
+            eic_result if context.get_result("federal_eic_assessed", False) else None,
+        )
         if eic_result > 0:
             refundable_credits.append(
                 CreditDetail(
@@ -137,10 +139,9 @@ class CreditsStage(CalculationStage):
                 formula="Based on earned income and qualifying children",
                 inputs={
                     "earned_income": str(context.get_decimal_result("earned_income")),
-                    "qualifying_children": len([
-                        d for d in input_data.dependents
-                        if d.age_at_year_end < 19 or (d.is_student and d.age_at_year_end < 24)
-                    ]),
+                    "qualifying_children": len(
+                        [d for d in input_data.dependents if d.qualifies_for_eitc is True]
+                    ),
                 },
                 result=eic_result,
                 jurisdiction="US",
@@ -184,173 +185,188 @@ class CreditsStage(CalculationStage):
 
         return self._success(f"Total credits: ${total_credits:,.2f}")
 
-    def _calculate_child_tax_credit(
-        self, context: "CalculationContext", agi: Decimal
-    ) -> dict:
-        """
-        Calculate Child Tax Credit.
-
-        - $2,000 per qualifying child under 17 with SSN
-        - Phase-out: $50 reduction per $1,000 over threshold
-        - Thresholds: $400,000 MFJ, $200,000 others
-        - Refundable portion (ACTC): up to $1,700 per child (2025 PLACEHOLDER)
-        """
+    def _calculate_child_tax_credit(self, context: CalculationContext, agi: Decimal) -> dict:
+        """Calculate the supported ordinary 2025 Schedule 8812 path."""
         input_data = context.input
         filing_status = input_data.filing_status.value
+        federal_rules = context.get_rules("US")
+        if federal_rules is None or federal_rules.federal_credits is None:
+            raise ValueError("Federal credit configuration is required")
+        config = federal_rules.federal_credits.child_tax_credit
 
-        # Count qualifying children (under 17, has SSN, lived with taxpayer 6+ months)
+        asserted_children = [d for d in input_data.dependents if d.qualifies_for_ctc]
+        unclassified_dependents = [
+            d for d in input_data.dependents if not d.qualifies_for_ctc and not d.qualifies_for_odc
+        ]
+        if unclassified_dependents:
+            context.add_warning(
+                "Dependent CTC/ODC omitted for one or more dependents because neither "
+                "credit eligibility assertion was provided."
+            )
+
+        claimant_has_ssn = input_data.taxpayer.has_valid_ssn_for_ctc is True or (
+            filing_status == "mfj"
+            and input_data.spouse is not None
+            and input_data.spouse.has_valid_ssn_for_ctc is True
+        )
+        if asserted_children and not claimant_has_ssn:
+            context.add_warning(
+                "CTC and ACTC omitted: no filer asserted the employment-valid SSN "
+                "required for a 2025 claim."
+            )
+
+        if any(
+            child.age_at_year_end >= 17 or not child.has_ssn or child.months_lived_with_you <= 6
+            for child in asserted_children
+        ):
+            context.add_warning(
+                "CTC/ACTC omitted for one or more asserted children because the supplied "
+                "age, SSN, or residency facts do not satisfy the modeled eligibility tests."
+            )
+
         qualifying_children = [
-            d for d in input_data.dependents
-            if d.age_at_year_end < 17 and d.has_ssn and d.months_lived_with_you >= 6
+            d
+            for d in input_data.dependents
+            if claimant_has_ssn
+            and d.qualifies_for_ctc
+            and d.age_at_year_end < 17
+            and d.has_ssn
+            and d.months_lived_with_you > 6
         ]
         num_children = len(qualifying_children)
+        num_other = len([d for d in input_data.dependents if d.qualifies_for_odc])
 
-        if num_children == 0:
-            return {
-                "qualifying_children": 0,
-                "base": Decimal(0),
-                "phase_out": Decimal(0),
-                "total": Decimal(0),
-                "nonrefundable": Decimal(0),
-                "refundable": Decimal(0),
-            }
-
-        # Base credit: $2,000 per child
-        base_credit = Decimal(2000) * num_children
-
-        # Phase-out thresholds
-        threshold = Decimal(400000) if filing_status == "mfj" else Decimal(200000)
-
-        # Phase-out: $50 per $1,000 over threshold
-        # Per IRS Publication 972, the excess is rounded DOWN to the next $1,000
+        ctc_base = Decimal(str(config.amount_per_child)) * num_children
+        odc_base = Decimal(str(config.other_dependent_amount)) * num_other
+        base_credit = ctc_base + odc_base
+        threshold = Decimal(
+            str(
+                config.mfj_phaseout_threshold
+                if filing_status == "mfj"
+                else config.phaseout_threshold
+            )
+        )
         phase_out = Decimal(0)
         if agi > threshold:
-            excess = ((agi - threshold) / 1000).to_integral_value(rounding="ROUND_DOWN")
-            phase_out = excess * 50
+            increments = (
+                (agi - threshold) / Decimal(str(config.phaseout_increment))
+            ).to_integral_value(rounding=ROUND_CEILING)
+            phase_out = increments * Decimal(str(config.reduction_per_increment))
 
-        total_credit = max(Decimal(0), base_credit - phase_out)
+        combined_available = max(Decimal(0), base_credit - phase_out)
+        # Preserve separate display rows while following the combined worksheet.
+        ctc_available = min(ctc_base, combined_available)
+        odc_available = min(odc_base, combined_available - ctc_available)
+        liability = context.get_decimal_result("tax_before_credits")
+        nonrefundable_used = min(combined_available, liability)
+        unused_combined = combined_available - nonrefundable_used
+        max_refundable = Decimal(str(config.refundable_amount_per_child)) * num_children
+        earned_limit = max(
+            Decimal(0),
+            context.get_decimal_result("earned_income")
+            - Decimal(str(config.refundable_earned_income_threshold)),
+        ) * Decimal(str(config.refundable_rate))
+        refundable_cap = min(unused_combined, max_refundable)
+        refundable = min(refundable_cap, earned_limit)
 
-        # Refundable portion (ACTC): up to $1,700 per child (2025 PLACEHOLDER)
-        max_refundable = Decimal(1700) * num_children
-        refundable = min(total_credit, max_refundable)
-        nonrefundable = total_credit - refundable
+        if num_children >= 3 and refundable < refundable_cap:
+            # Part II-B depends on actual Box 4/6 payroll withholding and other
+            # payments the model does not collect. Returning the general formula
+            # as if final can understate ACTC. Preserve the universally available
+            # earned-income result and surface that the alternative was not tested.
+            context.add_warning(
+                "ACTC uses the general earned-income formula only: the three-or-more-child "
+                "Schedule 8812 payroll-tax alternative requires actual withholding inputs "
+                "not collected by this estimator and could increase the credit."
+            )
 
         return {
             "qualifying_children": num_children,
             "base": base_credit,
             "phase_out": phase_out,
-            "total": total_credit,
-            "nonrefundable": nonrefundable,
-            "refundable": refundable,
+            "combined_available": combined_available,
+            "ctc_available": ctc_available,
+            "odc_available": odc_available,
+            "refundable": refundable.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
         }
 
-    def _calculate_other_dependent_credit(
-        self, context: "CalculationContext", agi: Decimal
-    ) -> Decimal:
-        """
-        Calculate Other Dependent Credit.
-
-        $500 per qualifying dependent who doesn't qualify for CTC.
-        Subject to same phase-out as CTC.
-        """
+    def _calculate_earned_income_credit(self, context: CalculationContext, agi: Decimal) -> Decimal:
+        """Calculate a continuous-formula 2025 EITC estimate."""
+        context.set_result("federal_eic_assessed", True)
         input_data = context.input
         filing_status = input_data.filing_status.value
-
-        # Count dependents who don't qualify for CTC
-        other_dependents = [
-            d for d in input_data.dependents
-            if d.age_at_year_end >= 17 or not d.has_ssn
-        ]
-        num_other = len(other_dependents)
-
-        if num_other == 0:
-            return Decimal(0)
-
-        # Base credit: $500 per other dependent
-        base_credit = Decimal(500) * num_other
-
-        # Same phase-out as CTC
-        threshold = Decimal(400000) if filing_status == "mfj" else Decimal(200000)
-
-        # Per IRS rules, the excess is rounded DOWN to the next $1,000
-        phase_out = Decimal(0)
-        if agi > threshold:
-            excess = ((agi - threshold) / 1000).to_integral_value(rounding="ROUND_DOWN")
-            phase_out = excess * 50
-
-        return max(Decimal(0), base_credit - phase_out)
-
-    def _calculate_earned_income_credit(
-        self, context: "CalculationContext", agi: Decimal
-    ) -> Decimal:
-        """
-        Calculate Earned Income Credit.
-
-        This is a simplified calculation. Full EIC requires:
-        - Earned income within limits
-        - Investment income under threshold
-        - Filing status and children count
-        - Phase-in and phase-out calculations
-        """
-        input_data = context.input
-        filing_status = input_data.filing_status.value
-
         earned_income = context.get_decimal_result("earned_income", Decimal(0))
         investment_income = context.get_decimal_result("investment_income", Decimal(0))
-
-        # Investment income limit (2025 PLACEHOLDER)
-        investment_limit = Decimal(11600)
+        federal_rules = context.get_rules("US")
+        if federal_rules is None or federal_rules.federal_credits is None:
+            raise ValueError("Federal credit configuration is required")
+        credit_config = federal_rules.federal_credits
+        investment_limit = Decimal(str(credit_config.eitc_investment_income_limit))
         if investment_income > investment_limit:
             return Decimal(0)
 
-        # Cannot be MFS
-        if filing_status == "mfs":
+        if earned_income <= 0:
             return Decimal(0)
 
-        # Count qualifying children for EIC (different from CTC)
+        if filing_status == "mfs":
+            context.set_result("federal_eic_assessed", False)
+            context.add_warning(
+                "EITC omitted for MFS: separated-spouse eligibility is not represented "
+                "by the available inputs."
+            )
+            return Decimal(0)
+
         qualifying_children = [
-            d for d in input_data.dependents
-            if (d.age_at_year_end < 19 or (d.is_student and d.age_at_year_end < 24) or d.is_disabled)
-            and d.months_lived_with_you >= 6
+            d
+            for d in input_data.dependents
+            if d.qualifies_for_eitc is True
+            and d.has_ssn
+            and d.months_lived_with_you > 6
+            and (
+                d.age_at_year_end < 19 or (d.is_student and d.age_at_year_end < 24) or d.is_disabled
+            )
         ]
-        num_children = min(len(qualifying_children), 3)  # Max 3 for EIC
+        num_children = min(len(qualifying_children), 3)
 
-        # EIC parameters by number of children (2025 PLACEHOLDER)
-        eic_params = {
-            0: {"max_credit": Decimal(632), "phase_in_end": Decimal(8490),
-                "phase_out_start": Decimal(10330), "phase_out_end": Decimal(18591)},
-            1: {"max_credit": Decimal(4213), "phase_in_end": Decimal(11750),
-                "phase_out_start": Decimal(22120), "phase_out_end": Decimal(49084)},
-            2: {"max_credit": Decimal(6960), "phase_in_end": Decimal(16510),
-                "phase_out_start": Decimal(22120), "phase_out_end": Decimal(55768)},
-            3: {"max_credit": Decimal(7830), "phase_in_end": Decimal(16510),
-                "phase_out_start": Decimal(22120), "phase_out_end": Decimal(59899)},
-        }
-
-        params = eic_params[num_children]
-
-        # MFJ adjustment
-        mfj_additional = Decimal(6920) if filing_status == "mfj" else Decimal(0)
-        phase_out_start = params["phase_out_start"] + mfj_additional
-        phase_out_end = params["phase_out_end"] + mfj_additional
-
-        # Use greater of earned income or AGI for phase-out
+        params = next(
+            p for p in credit_config.eitc_parameters if p.qualifying_children == num_children
+        )
         income_for_eic = max(earned_income, agi)
+        phase_out_end = Decimal(
+            str(params.mfj_phaseout_end if filing_status == "mfj" else params.phaseout_end)
+        )
+        if income_for_eic >= phase_out_end:
+            return Decimal(0)
 
-        # Calculate credit
-        if income_for_eic <= params["phase_in_end"]:
-            # Phase-in
-            credit_rate = params["max_credit"] / params["phase_in_end"]
-            credit = earned_income * credit_rate
-        elif income_for_eic <= phase_out_start:
-            # Plateau
-            credit = params["max_credit"]
-        elif income_for_eic < phase_out_end:
-            # Phase-out
-            phase_out_rate = params["max_credit"] / (phase_out_end - phase_out_start)
-            credit = params["max_credit"] - ((income_for_eic - phase_out_start) * phase_out_rate)
-        else:
-            # Above phase-out
-            credit = Decimal(0)
+        if input_data.eitc_eligibility_asserted is not True:
+            context.set_result("federal_eic_assessed", False)
+            context.add_warning(
+                "EITC omitted: claimant SSN, residency, dependency, and filing-status "
+                "eligibility was not asserted."
+            )
+            return Decimal(0)
 
-        return max(Decimal(0), credit.quantize(Decimal("1")))
+        if num_children == 0:
+            ages = [input_data.taxpayer.age_at_year_end]
+            if filing_status == "mfj" and input_data.spouse is not None:
+                ages.append(input_data.spouse.age_at_year_end)
+            known_eligible_age = any(age is not None and 25 <= age < 65 for age in ages)
+            if not known_eligible_age:
+                context.set_result("federal_eic_assessed", False)
+                context.add_warning(
+                    "Childless EITC omitted: no filer has a known year-end age from 25 through 64."
+                )
+                return Decimal(0)
+
+        maximum_credit = Decimal(str(params.maximum_credit))
+        phase_in_credit = min(maximum_credit, earned_income * Decimal(str(params.credit_rate)))
+        phase_out_start = Decimal(
+            str(params.mfj_phaseout_start if filing_status == "mfj" else params.phaseout_start)
+        )
+        phaseout_credit = maximum_credit
+        if income_for_eic > phase_out_start:
+            phaseout_credit -= (income_for_eic - phase_out_start) * Decimal(
+                str(params.phaseout_rate)
+            )
+        credit = min(phase_in_credit, phaseout_credit)
+        return max(Decimal(0), credit).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

@@ -1,7 +1,8 @@
 # =============================================================================
 # United States Federal Tax Rules — Tax Year 2025
 # =============================================================================
-# Source: IRS Revenue Procedure 2024-40, IRS.gov, SSA 2025 Fact Sheet
+# Sources include IRS Rev. Procs. 2024-40 and 2025-32, 2025 return
+# instructions, and the SSA 2025 fact sheet. Scope is listed under verification.
 # =============================================================================
 
 # Identity
@@ -279,25 +280,25 @@ rate_schedule:
       zero_rate_limit: 96700
       fifteen_rate_limit: 600050
 
-# Deductions (2025) — verified against IRS Rev. Proc. 2024-40
+# Deductions (2025)
 deductions:
   standard_deduction:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 15000
+        amount: 15750
         dependent_claimed_elsewhere: 1350
       - filing_status: "mfj"
-        amount: 30000
+        amount: 31500
         dependent_claimed_elsewhere: null
       - filing_status: "mfs"
-        amount: 15000
+        amount: 15750
         dependent_claimed_elsewhere: null
       - filing_status: "hoh"
-        amount: 22500
+        amount: 23625
         dependent_claimed_elsewhere: null
       - filing_status: "qss"
-        amount: 30000
+        amount: 31500
         dependent_claimed_elsewhere: null
     additional_amounts:
       - category: "age_65_plus"
@@ -335,6 +336,23 @@ deductions:
     personal_exemption_amount: 0
     dependent_exemption_available: false
     dependent_exemption_amount: 0
+  # 2025 Schedule A line 5e worksheet. The MFS worksheet halves its
+  # phased joint ceiling, which is equivalent to the 15% rate below.
+  salt:
+    ceiling: 40000
+    mfs_ceiling: 20000
+    phaseout_threshold: 500000
+    mfs_phaseout_threshold: 250000
+    phaseout_rate: 0.30
+    mfs_phaseout_rate: 0.15
+    floor: 10000
+    mfs_floor: 5000
+  # 2025 Schedule 1-A Part V.
+  enhanced_senior:
+    amount_per_eligible_person: 6000
+    phaseout_threshold: 75000
+    mfj_phaseout_threshold: 150000
+    phaseout_rate: 0.06
 
 # Payroll Taxes (2025) — verified against SSA 2025 Fact Sheet
 payroll_taxes:
@@ -349,12 +367,65 @@ payroll_taxes:
   niit_threshold_mfs: 125000
   niit_rate: 0.038
 
+# Federal Credits (2025)
+federal_credits:
+  child_tax_credit:
+    amount_per_child: 2200
+    other_dependent_amount: 500
+    phaseout_threshold: 200000
+    mfj_phaseout_threshold: 400000
+    phaseout_increment: 1000
+    reduction_per_increment: 50
+    refundable_amount_per_child: 1700
+    refundable_earned_income_threshold: 2500
+    refundable_rate: 0.15
+  eitc_investment_income_limit: 11950
+  # Continuous statutory formula. Form 1040 filers ordinarily use the
+  # published EITC table, so estimates may differ slightly from a filed return.
+  eitc_parameters:
+    - qualifying_children: 0
+      credit_rate: 0.0765
+      phaseout_rate: 0.0765
+      earned_income_amount: 8490
+      maximum_credit: 649
+      phaseout_start: 10620
+      phaseout_end: 19104
+      mfj_phaseout_start: 17730
+      mfj_phaseout_end: 26214
+    - qualifying_children: 1
+      credit_rate: 0.34
+      phaseout_rate: 0.1598
+      earned_income_amount: 12730
+      maximum_credit: 4328
+      phaseout_start: 23350
+      phaseout_end: 50434
+      mfj_phaseout_start: 30470
+      mfj_phaseout_end: 57554
+    - qualifying_children: 2
+      credit_rate: 0.40
+      phaseout_rate: 0.2106
+      earned_income_amount: 17880
+      maximum_credit: 7152
+      phaseout_start: 23350
+      phaseout_end: 57310
+      mfj_phaseout_start: 30470
+      mfj_phaseout_end: 64430
+    - qualifying_children: 3
+      credit_rate: 0.45
+      phaseout_rate: 0.2106
+      earned_income_amount: 17880
+      maximum_credit: 8046
+      phaseout_start: 23350
+      phaseout_end: 61555
+      mfj_phaseout_start: 30470
+      mfj_phaseout_end: 68675
+
 # Verification
 verification:
-  status: "verified"
-  last_verified: "2026-02-17"
-  verified_by: "Team"
-  notes: "Verified against IRS Rev. Proc. 2024-40 and IRS.gov"
+  status: "assumed"
+  last_verified: "2026-09-09"
+  verified_by: null
+  notes: "Primary-source checks cover 2025 rate schedules, deductions, ordinary CTC/ACTC/EITC formulas, Social Security benefits, and payroll taxes. Eligibility assertions and documented unsupported cases remain; this is not professional verification."
 
 references:
   - source_name: "IRS Revenue Procedure 2024-40"
@@ -369,3 +440,31 @@ references:
   - source_name: "SSA 2025 Fact Sheet"
     url: "https://www.ssa.gov/news/press/factsheets/colafacts2025.pdf"
     retrieved_date: "2026-02-17"
+  - source_name: "IRS Revenue Procedure 2025-32"
+    url: "https://www.irs.gov/irb/2025-45_IRB"
+    retrieved_date: "2026-09-09"
+    notes: "2025 standard deductions as amended"
+  - source_name: "2025 Schedule A Instructions"
+    url: "https://www.irs.gov/instructions/i1040sca"
+    retrieved_date: "2026-09-09"
+    notes: "SALT limitation and MAGI phase-down worksheet"
+  - source_name: "2025 Schedule 1-A"
+    url: "https://www.irs.gov/pub/irs-prior/f1040s1a--2025.pdf"
+    retrieved_date: "2026-09-09"
+    notes: "Enhanced deduction for seniors"
+  - source_name: "2025 Schedule 8812 and Instructions"
+    url: "https://www.irs.gov/instructions/i1040s8"
+    retrieved_date: "2026-09-09"
+    notes: "CTC, ODC, and ordinary ACTC worksheet"
+  - source_name: "IRS Revenue Procedure 2024-40"
+    url: "https://www.irs.gov/irb/2024-45_IRB"
+    retrieved_date: "2026-09-09"
+    notes: "2025 EITC and capital-gains parameters"
+  - source_name: "IRS Publication 915 (2025)"
+    url: "https://www.irs.gov/publications/p915"
+    retrieved_date: "2026-09-09"
+    notes: "Social Security benefits worksheet"
+  - source_name: "2025 Form 8959 Instructions"
+    url: "https://www.irs.gov/pub/irs-prior/i8959--2025.pdf"
+    retrieved_date: "2026-09-09"
+    notes: "Additional Medicare Tax on wages and self-employment"

@@ -192,27 +192,12 @@ rate_schedule:
 # Deductions
 deductions:
   standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 7000
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfj"
-        amount: 14000
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfs"
-        amount: 7000
-        dependent_claimed_elsewhere: null
-      - filing_status: "hoh"
-        amount: 10500
-        dependent_claimed_elsewhere: null
-      - filing_status: "qss"
-        amount: 14000
-        dependent_claimed_elsewhere: null
+    available: false
+    amounts: []
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 2000
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 
@@ -239,6 +224,6 @@ verification:
 
 references:
   - source_name: "West Virginia State Tax Department"
-    url: null
+    url: "https://tax.wv.gov/Documents/PIT/2025/it140.PersonalIncomeTaxFormsAndInstructions.2025.pdf"
     retrieved_date: "2025-02-20"
     notes: "2025 individual income tax rate schedule"

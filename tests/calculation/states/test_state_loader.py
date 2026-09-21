@@ -6,7 +6,6 @@ All tests use PLACEHOLDER tax data.
 
 import pytest
 from decimal import Decimal
-from pathlib import Path
 
 from tax_estimator.calculation.states.loader import (
     StateRulesLoader,
@@ -110,7 +109,7 @@ class TestFlatTaxStates:
         "MI": Decimal("0.0425"),
         "NC": Decimal("0.0425"),
         "PA": Decimal("0.0307"),
-        "UT": Decimal("0.0455"),
+        "UT": Decimal("0.045"),
     }
 
     @pytest.fixture
@@ -159,13 +158,13 @@ class TestProgressiveTaxStates:
         assert rules.tax_type == StateTaxType.GRADUATED
         assert len(rules.brackets) > 0
 
-    def test_california_has_10_brackets_per_status(
+    def test_california_has_9_brackets_per_status(
         self, loader: StateRulesLoader
     ) -> None:
-        """Test California has 10 brackets per filing status."""
+        """Test California has 9 brackets per filing status."""
         rules = loader.load_state_rules("CA")
         single_brackets = rules.get_brackets_for_status("single")
-        assert len(single_brackets) == 10
+        assert len(single_brackets) == 9
 
     def test_new_york_has_9_brackets_per_status(
         self, loader: StateRulesLoader
@@ -199,7 +198,7 @@ class TestSpecialCaseStates:
         assert len(rules.surtaxes) > 0
         surtax = rules.surtaxes[0]
         assert surtax.threshold == Decimal("1083150")
-        assert surtax.rate == Decimal("0.09")
+        assert surtax.rate == Decimal("0.04")  # Incremental surtax, not combined 5%+4%.
 
     def test_colorado_uses_federal_taxable_income(
         self, loader: StateRulesLoader

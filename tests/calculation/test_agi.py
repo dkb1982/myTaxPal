@@ -8,20 +8,41 @@ from decimal import Decimal
 
 import pytest
 
+from tax_estimator.calculation.context import CalculationContext
 from tax_estimator.calculation.stages.stage_02_income_aggregation import (
     IncomeAggregationStage,
 )
 from tax_estimator.calculation.stages.stage_04_adjustments_agi import AdjustmentsAGIStage
-from tax_estimator.calculation.context import CalculationContext
 from tax_estimator.calculation.trace import CalculationTrace
 from tax_estimator.models.tax_input import (
     Adjustments,
     FilingStatus,
+    RetirementIncome,
     SelfEmploymentIncome,
+    SpouseInfo,
     TaxInput,
+    TaxpayerInfo,
     WageIncome,
 )
 from tax_estimator.rules.schema import JurisdictionRules
+
+
+@pytest.fixture(autouse=True)
+def _supply_stage_rules(
+    monkeypatch: pytest.MonkeyPatch,
+    federal_rules: JurisdictionRules,
+) -> None:
+    """Standalone stage tests must supply the federal payroll rule dependency."""
+    original_execute = AdjustmentsAGIStage.execute
+
+    def execute_with_rules(
+        stage: AdjustmentsAGIStage,
+        context: CalculationContext,
+    ):
+        context.jurisdiction_rules.setdefault("US", federal_rules)
+        return original_execute(stage, context)
+
+    monkeypatch.setattr(AdjustmentsAGIStage, "execute", execute_with_rules)
 
 
 class TestBasicAGI:
@@ -162,6 +183,17 @@ class TestEducatorExpenses:
         assert context.get_decimal_result("agi") == Decimal("49700")
 
 
+def _run_adjustments(input_data: TaxInput) -> CalculationContext:
+    context = CalculationContext(
+        input=input_data,
+        tax_year=2025,
+        trace=CalculationTrace(calculation_id="adjustments-test", tax_year=2025),
+    )
+    assert IncomeAggregationStage().execute(context).status.value == "success"
+    assert AdjustmentsAGIStage().execute(context).status.value == "success"
+    return context
+
+
 class TestStudentLoanInterest:
     """Tests for student loan interest deduction."""
 
@@ -236,7 +268,7 @@ class TestStudentLoanInterest:
                 WageIncome(
                     employer_name="BigCorp",
                     employer_state="CA",
-                    gross_wages=Decimal("100000"),  # Above phase-out end ($90,000)
+                    gross_wages=Decimal("100000"),
                 )
             ],
             adjustments=Adjustments(
@@ -256,6 +288,99 @@ class TestStudentLoanInterest:
 
         # Fully phased out, so AGI = gross income
         assert context.get_decimal_result("agi") == Decimal("100000")
+
+    @pytest.mark.parametrize(
+        "status,magi,expected_deduction",
+        [
+            (FilingStatus.SINGLE, "85000", "2500"),
+            (FilingStatus.SINGLE, "92500", "1250.00"),
+            (FilingStatus.SINGLE, "100000", "0"),
+            (FilingStatus.MFJ, "170000", "2500"),
+            (FilingStatus.MFJ, "185000", "1250.00"),
+            (FilingStatus.MFJ, "200000", "0"),
+        ],
+    )
+    def test_2025_publication_970_phaseout_boundaries(
+        self,
+        status: FilingStatus,
+        magi: str,
+        expected_deduction: str,
+    ) -> None:
+        input_data = TaxInput(
+            tax_year=2025,
+            filing_status=status,
+            residence_state="TX",
+            spouse=SpouseInfo() if status == FilingStatus.MFJ else None,
+            wages=[
+                WageIncome(
+                    employer_name="Employer",
+                    employer_state="TX",
+                    gross_wages=Decimal(magi),
+                )
+            ],
+            adjustments=Adjustments(student_loan_interest=Decimal("2500")),
+        )
+        context = _run_adjustments(input_data)
+        assert context.get_decimal_result("total_adjustments") == Decimal(expected_deduction)
+
+    @pytest.mark.parametrize(
+        "status,is_dependent,warning_fragment",
+        [
+            (FilingStatus.MFS, False, "married filing separately"),
+            (FilingStatus.SINGLE, True, "claimed as a dependent"),
+        ],
+    )
+    def test_statutorily_ineligible_filers_receive_no_deduction(
+        self,
+        status: FilingStatus,
+        is_dependent: bool,
+        warning_fragment: str,
+    ) -> None:
+        context = _run_adjustments(
+            TaxInput(
+                tax_year=2025,
+                filing_status=status,
+                residence_state="TX",
+                taxpayer=TaxpayerInfo(is_dependent=is_dependent),
+                wages=[
+                    WageIncome(
+                        employer_name="Employer",
+                        employer_state="TX",
+                        gross_wages=Decimal("60000"),
+                    )
+                ],
+                adjustments=Adjustments(student_loan_interest=Decimal("2500")),
+            )
+        )
+        assert context.get_decimal_result("total_adjustments") == 0
+        assert any(warning_fragment in warning for warning in context.warnings)
+
+    def test_magi_excludes_other_adjustments_and_includes_taxable_social_security(self) -> None:
+        context = _run_adjustments(
+            TaxInput(
+                tax_year=2025,
+                filing_status=FilingStatus.SINGLE,
+                residence_state="TX",
+                wages=[
+                    WageIncome(
+                        employer_name="Employer",
+                        employer_state="TX",
+                        gross_wages=Decimal("70000"),
+                    )
+                ],
+                retirement=RetirementIncome(social_security_benefits=Decimal("20000")),
+                adjustments=Adjustments(
+                    hsa_contributions=Decimal("2000"),
+                    student_loan_interest=Decimal("2500"),
+                ),
+            )
+        )
+        # Taxable benefits are $17,000, so gross income is $87,000. Pub. 970
+        # MAGI subtracts the $2,000 HSA adjustment but not student-loan interest.
+        assert context.get_decimal_result("ss_taxable") == Decimal("17000.00")
+        assert context.get_decimal_result("total_adjustments") == Decimal("4500")
+        assert context.get_decimal_result("agi") == Decimal("82500.00")
+        assert any("Foreign-income MAGI addbacks" in warning for warning in context.warnings)
 
 
 class TestSelfEmploymentTaxDeduction:

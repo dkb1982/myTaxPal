@@ -9,10 +9,10 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from tax_estimator.calculation.stages.base import CalculationStage, StageResult
 from tax_estimator.calculation.locals.calculator import LocalCalculator
 from tax_estimator.calculation.locals.models import LocalTaxInput
 from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
+from tax_estimator.calculation.stages.base import CalculationStage, StageResult
 
 if TYPE_CHECKING:
     from tax_estimator.calculation.context import CalculationContext
@@ -50,8 +50,12 @@ class LocalTaxCalculationStage(CalculationStage):
 
         # Check if we have a ZIP code in the input
         residence_zip = getattr(input_data, "residence_zip", None)
+        explicit_jurisdiction = input_data.local_jurisdiction_id
 
-        if not residence_zip:
+        if not residence_zip and not explicit_jurisdiction:
+            context.add_warning(
+                "Local tax is not estimated without a residence ZIP or explicit city. Zero here does not establish that no local tax is due."
+            )
             # No ZIP code provided - skip local tax calculation
             context.set_result("local_results", [])
             context.set_result("total_local_tax", Decimal(0))
@@ -70,10 +74,13 @@ class LocalTaxCalculationStage(CalculationStage):
 
         # Look up local jurisdiction from ZIP
         try:
-            lookup_result = self._zip_lookup.lookup(residence_zip)
-            local_jurisdiction = lookup_result.get("local_jurisdiction")
+            lookup_result = self._zip_lookup.lookup(residence_zip) if residence_zip else {}
+            local_jurisdiction = explicit_jurisdiction or lookup_result.get("local_jurisdiction")
 
             if not local_jurisdiction:
+                context.add_warning(
+                    "The ZIP lookup has limited local-tax coverage; no covered jurisdiction was found. Check city/county obligations separately."
+                )
                 # No local tax jurisdiction for this ZIP
                 context.set_result("local_results", [])
                 context.set_result("total_local_tax", Decimal(0))
@@ -85,7 +92,7 @@ class LocalTaxCalculationStage(CalculationStage):
                     inputs={"zip": residence_zip},
                     result=Decimal(0),
                     jurisdiction="local",
-                    note="No local income tax for this location",
+                    note="No covered local jurisdiction found; local tax may still apply",
                 )
 
                 return self._success("No local tax jurisdiction")
@@ -94,7 +101,7 @@ class LocalTaxCalculationStage(CalculationStage):
             context.add_warning(f"Failed to look up local jurisdiction: {e}")
             context.set_result("local_results", [])
             context.set_result("total_local_tax", Decimal(0))
-            return self._success("Local tax skipped (lookup error)")
+            return self._error(f"Local jurisdiction lookup failed: {e}")
 
         # Get values needed for local tax calculation
         federal_agi = context.get_decimal_result("agi")
@@ -102,6 +109,14 @@ class LocalTaxCalculationStage(CalculationStage):
         total_se_income = input_data.total_self_employment_net()
         state_taxable_income = context.get_decimal_result("state_taxable_income", federal_agi)
         state_tax = context.get_decimal_result("state_tax", Decimal(0))
+        state_result = context.get_result("state_result")
+        surcharge_base = None
+        if state_result is not None:
+            surcharge_base = (
+                state_result.tax_before_credits + state_result.surtax
+                + getattr(state_result, "recapture", Decimal(0))
+                - getattr(state_result, "nonrefundable_credits", state_result.credits)
+            )
 
         # Build local tax input
         local_input = LocalTaxInput(
@@ -114,11 +129,34 @@ class LocalTaxCalculationStage(CalculationStage):
             self_employment_income=total_se_income,
             state_taxable_income=state_taxable_income,
             state_tax=state_tax,  # Used for surcharge calculations (e.g., Yonkers)
+            state_agi=state_result.state_agi if state_result else None,
+            yonkers_surcharge_base=surcharge_base,
+            dividends=context.get_decimal_result("ordinary_dividends"),
+            qualified_dividends=context.get_decimal_result("qualified_dividends"),
+            net_short_term_gains=context.get_decimal_result("net_short_term_gain"),
+            net_long_term_gains=context.get_decimal_result("net_long_term_gain"),
+            taxpayer_age_at_year_end=input_data.taxpayer.age_at_year_end,
+            can_be_claimed_as_dependent=input_data.taxpayer.is_dependent,
+            num_dependents=len(input_data.dependents),
+            federal_earned_income_credit=context.get_result("federal_earned_income_credit"),
+            federal_eitc_eligibility_asserted=input_data.eitc_eligibility_asserted,
+            baseline_profile_supported=context.get_result("us_baseline_profile_supported", False),
+            unsupported_profile_reasons=context.get_result("us_unsupported_profile_reasons", ()),
+            philly_gains_held_six_months_or_less=input_data.us_scenario.philly_gains_held_six_months_or_less,
+            philly_first_half_wages=input_data.us_scenario.philly_first_half_wages,
         )
 
         # Calculate local tax
         try:
+            rules = self._local_calculator.loader.load_local_rules(
+                local_jurisdiction, input_data.tax_year
+            )
+            if rules.parent_state.removeprefix("US-") != input_data.residence_state.upper():
+                return self._error("Local jurisdiction/ZIP does not match residence state")
             local_result = self._local_calculator.calculate(local_input)
+            context.add_warning("Local estimate assumes full-year residence and work in the same city/county; ZIP coverage is limited.")
+            for warning in local_result.warnings + local_result.assumptions:
+                context.add_warning(warning)
 
             # Store local results
             context.set_result("local_results", [local_result])
@@ -156,4 +194,4 @@ class LocalTaxCalculationStage(CalculationStage):
                 note="Local tax calculation was skipped due to an error",
             )
 
-            return self._success("Local tax skipped (error)")
+            return self._error(f"Local tax calculation failed: {e}")

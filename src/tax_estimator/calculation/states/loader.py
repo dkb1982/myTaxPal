@@ -106,19 +106,19 @@ class StateRulesLoader:
         rules_path = self.get_rules_file_path(state_code)
 
         if not rules_path.exists():
-            raise StateRulesLoaderError(
-                f"State rules file not found: {rules_path}"
-            )
+            raise StateRulesLoaderError(f"State rules file not found: {rules_path}")
 
         try:
             with open(rules_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise StateRulesLoaderError(
-                f"Failed to parse YAML for {state_code}: {e}"
-            ) from e
+            raise StateRulesLoaderError(f"Failed to parse YAML for {state_code}: {e}") from e
 
         rules = self._parse_rules(data, state_code)
+        if rules.tax_year != tax_year:
+            raise StateRulesLoaderError(
+                f"Unsupported tax year {tax_year} for {state_code}; rules are for {rules.tax_year}"
+            )
         self._cache[cache_key] = rules
         return rules
 
@@ -227,6 +227,7 @@ class StateRulesLoader:
             personal_amount=Decimal(str(data.get("personal_exemption_amount", 0))),
             dependent_available=data.get("dependent_exemption_available", False),
             dependent_amount=Decimal(str(data.get("dependent_exemption_amount", 0))),
+            treatment=data.get("treatment", "deduction"),
         )
 
     def list_available_states(self) -> list[str]:

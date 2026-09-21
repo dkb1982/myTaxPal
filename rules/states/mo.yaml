@@ -31,44 +31,50 @@ rate_schedule:
       filing_status: "single"
       income_from: 0
       income_to: 1313
-      rate: 0.02
+      rate: 0
       base_tax: 0
     - bracket_id: "MO-2025-S-2"
       filing_status: "single"
       income_from: 1313
       income_to: 2626
-      rate: 0.025
-      base_tax: 26.26
+      rate: 0.02
+      base_tax: 0
     - bracket_id: "MO-2025-S-3"
       filing_status: "single"
       income_from: 2626
       income_to: 3939
-      rate: 0.03
-      base_tax: 59.08
+      rate: 0.025
+      base_tax: 26
     - bracket_id: "MO-2025-S-4"
       filing_status: "single"
       income_from: 3939
       income_to: 5252
-      rate: 0.035
-      base_tax: 98.47
+      rate: 0.03
+      base_tax: 59
     - bracket_id: "MO-2025-S-5"
       filing_status: "single"
       income_from: 5252
       income_to: 6565
-      rate: 0.04
-      base_tax: 144.43
+      rate: 0.035
+      base_tax: 98
     - bracket_id: "MO-2025-S-6"
       filing_status: "single"
       income_from: 6565
       income_to: 7878
-      rate: 0.045
-      base_tax: 196.95
+      rate: 0.04
+      base_tax: 144
     - bracket_id: "MO-2025-S-7"
       filing_status: "single"
       income_from: 7878
+      income_to: 9191
+      rate: 0.045
+      base_tax: 197
+    - bracket_id: "MO-2025-S-8"
+      filing_status: "single"
+      income_from: 9191
       income_to: null
       rate: 0.047
-      base_tax: 255.99
+      base_tax: 256
 
     # Married Filing Jointly
     - bracket_id: "MO-2025-MFJ-1"
@@ -254,7 +260,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 14600
+        amount: 15750
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 29200
@@ -270,8 +276,8 @@ deductions:
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: true
-    personal_exemption_amount: 1300
+    personal_exemption_available: false
+    personal_exemption_amount: 0
     dependent_exemption_available: true
     dependent_exemption_amount: 1000
 

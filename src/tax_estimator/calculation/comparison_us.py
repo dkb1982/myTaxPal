@@ -12,16 +12,14 @@ import logging
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from tax_estimator.calculation.comparison_regions import (
-    RegionType,
+    INTEREST_DIVIDENDS_ONLY_STATES,
     US_CITIES,
     US_STATES,
-    NO_INCOME_TAX_STATES,
-    INTEREST_DIVIDENDS_ONLY_STATES,
+    RegionType,
     get_local_jurisdiction_id,
-    get_state_code_for_region,
     parse_region,
 )
 from tax_estimator.models.income_breakdown import (
@@ -29,7 +27,8 @@ from tax_estimator.models.income_breakdown import (
     IncomeTypeTaxResult,
     get_income_type_display_name,
 )
-from tax_estimator.rules.loader import get_rules_for_jurisdiction, get_default_rules_path
+from tax_estimator.models.us_scenario import USScenarioFacts
+from tax_estimator.rules.loader import get_default_rules_path, get_rules_for_jurisdiction
 
 if TYPE_CHECKING:
     from tax_estimator.rules.schema import JurisdictionRules
@@ -120,6 +119,11 @@ class USJurisdictionBreakdown:
     federal_ltcg_tax: Decimal = field(default_factory=lambda: Decimal(0))
     federal_niit: Decimal = field(default_factory=lambda: Decimal(0))
 
+    employee_payroll_tax: Decimal = Decimal(0)
+    employee_payroll_effective_rate: Decimal = Decimal(0)
+    federal_self_employment_tax: Decimal = Decimal(0)
+    federal_additional_medicare_tax: Decimal = Decimal(0)
+
     # LTCG breakdown details
     ltcg_at_zero_percent: Decimal = field(default_factory=lambda: Decimal(0))
     ltcg_at_fifteen_percent: Decimal = field(default_factory=lambda: Decimal(0))
@@ -137,6 +141,8 @@ class USJurisdictionBreakdown:
     state_tax: Decimal = field(default_factory=lambda: Decimal(0))
     state_effective_rate: Decimal = field(default_factory=lambda: Decimal(0))
     has_state_income_tax: bool = True
+    state_details: dict[str, Any] = field(default_factory=dict)
+    local_details: list[dict[str, Any]] = field(default_factory=list)
 
     # Local (optional)
     local_name: str | None = None
@@ -146,12 +152,17 @@ class USJurisdictionBreakdown:
     @property
     def total_tax(self) -> Decimal:
         """Total tax across all jurisdictions."""
-        return self.federal_tax + self.state_tax + self.local_tax
+        return self.federal_tax + self.state_tax + self.local_tax + self.employee_payroll_tax
 
     @property
     def total_effective_rate(self) -> Decimal:
         """Total effective rate."""
-        return self.federal_effective_rate + self.state_effective_rate + self.local_effective_rate
+        return (
+            self.federal_effective_rate
+            + self.state_effective_rate
+            + self.local_effective_rate
+            + self.employee_payroll_effective_rate
+        )
 
 
 @dataclass
@@ -179,6 +190,8 @@ class USComparisonResult:
     total_tax: Decimal = field(default_factory=lambda: Decimal(0))
     net_income: Decimal = field(default_factory=lambda: Decimal(0))
     effective_rate: Decimal = field(default_factory=lambda: Decimal(0))
+
+    employee_payroll_tax: Decimal = Decimal(0)
 
     # Notes
     notes: list[str] = field(default_factory=list)
@@ -217,6 +230,7 @@ class USStateComparisonCalculator:
         """Lazy load state calculator."""
         if self._state_calculator is None:
             from tax_estimator.calculation.states.calculator import StateCalculator
+
             self._state_calculator = StateCalculator()
         return self._state_calculator
 
@@ -225,15 +239,14 @@ class USStateComparisonCalculator:
         """Lazy load local calculator."""
         if self._local_calculator is None:
             from tax_estimator.calculation.locals.calculator import LocalCalculator
+
             self._local_calculator = LocalCalculator()
         return self._local_calculator
 
-    def _get_federal_rules(self, tax_year: int = 2025) -> "JurisdictionRules":
+    def _get_federal_rules(self, tax_year: int = 2025) -> JurisdictionRules:
         """Load and cache federal rules from YAML (keyed by tax_year)."""
         if self._federal_rules is None or self._federal_rules.tax_year != tax_year:
-            self._federal_rules = get_rules_for_jurisdiction(
-                "US", tax_year, self._rules_dir
-            )
+            self._federal_rules = get_rules_for_jurisdiction("US", tax_year, self._rules_dir)
         return self._federal_rules
 
     def _get_brackets_for_status(
@@ -259,9 +272,7 @@ class USStateComparisonCalculator:
             for b in brackets
         ]
 
-    def _get_standard_deduction(
-        self, filing_status: str, tax_year: int = 2025
-    ) -> Decimal:
+    def _get_standard_deduction(self, filing_status: str, tax_year: int = 2025) -> Decimal:
         """Get standard deduction for a filing status from YAML."""
         rules = self._get_federal_rules(tax_year)
         for amt in rules.deductions.standard_deduction.amounts:
@@ -273,9 +284,7 @@ class USStateComparisonCalculator:
                 return Decimal(str(amt.amount))
         raise ValueError(f"No standard deduction found for '{filing_status}'")
 
-    def _get_ltcg_thresholds(
-        self, filing_status: str, tax_year: int = 2025
-    ) -> dict[str, Decimal]:
+    def _get_ltcg_thresholds(self, filing_status: str, tax_year: int = 2025) -> dict[str, Decimal]:
         """Get LTCG thresholds for a filing status from YAML."""
         rules = self._get_federal_rules(tax_year)
         for t in rules.rate_schedule.preferential_thresholds:
@@ -299,6 +308,8 @@ class USStateComparisonCalculator:
         income: IncomeBreakdown | Decimal,
         filing_status: str,
         tax_year: int = 2025,
+        us_scenario: USScenarioFacts | None = None,
+        eitc_eligibility_asserted: bool | None = None,
     ) -> USComparisonResult:
         """
         Calculate tax for a US region.
@@ -334,91 +345,128 @@ class USStateComparisonCalculator:
         else:
             raise ValueError(f"Invalid US region: {region_id}")
 
-        # Calculate federal tax
-        federal_result = self._calculate_federal_tax(
-            income_breakdown, filing_status, tax_year
+        # The standalone pipeline is the only authoritative US calculation.
+        from tax_estimator.calculation.engine import CalculationEngine
+        from tax_estimator.models.tax_input import (
+            CapitalGains,
+            InterestDividendIncome,
+            SelfEmploymentIncome,
+            SpouseInfo,
+            TaxInput,
+            TaxpayerInfo,
+            WageIncome,
         )
 
-        # Calculate state tax
-        state_result = self._calculate_state_tax(
-            state_code, income_breakdown, filing_status, tax_year
-        )
-
-        # Calculate local tax (for cities)
-        local_result = None
-        if region_type == RegionType.US_CITY:
-            local_jurisdiction_id = get_local_jurisdiction_id(region_id)
-            if local_jurisdiction_id:
-                local_result = self._calculate_local_tax(
-                    local_jurisdiction_id,
-                    income_breakdown,
-                    filing_status,
-                    tax_year,
-                    state_result.get("state_tax", Decimal(0)),
+        tax_input = TaxInput(
+            tax_year=tax_year,
+            filing_status=filing_status,
+            taxpayer=TaxpayerInfo(age_at_year_end=40),
+            us_scenario=us_scenario or USScenarioFacts(),
+            eitc_eligibility_asserted=eitc_eligibility_asserted,
+            spouse=SpouseInfo() if filing_status == "mfj" else None,
+            residence_state=state_code,
+            local_jurisdiction_id=get_local_jurisdiction_id(region_id)
+            if region_type == RegionType.US_CITY
+            else None,
+            wages=[
+                WageIncome(
+                    employer_name="Comparison scenario",
+                    employer_state=state_code,
+                    gross_wages=income_breakdown.employment_wages,
+                    social_security_wages=income_breakdown.employment_wages,
+                    medicare_wages=income_breakdown.employment_wages,
                 )
+            ]
+            if income_breakdown.employment_wages
+            else [],
+            self_employment=[SelfEmploymentIncome(gross_income=income_breakdown.self_employment)]
+            if income_breakdown.self_employment
+            else [],
+            interest_dividends=InterestDividendIncome(
+                taxable_interest=income_breakdown.interest,
+                ordinary_dividends=income_breakdown.total_dividends,
+                qualified_dividends=income_breakdown.dividends_qualified,
+            ),
+            capital_gains=CapitalGains(
+                short_term_gains=income_breakdown.capital_gains_short_term,
+                long_term_gains=income_breakdown.capital_gains_long_term,
+            ),
+            rental_income=income_breakdown.rental,
+        )
+        result = CalculationEngine(rules_dir=self._rules_dir).calculate(tax_input)
+        if not result.success or result.federal is None:
+            raise ValueError(f"US calculation failed: {result.errors}")
+        federal = result.federal
+        state = result.states[0]
+        local_tax = sum((r.total_tax for r in result.locals), Decimal(0))
 
-        # Build breakdown
+        # Preferential detail is supplied by the engine, not recomputed here.
+        def at_rate(rate: str) -> Decimal:
+            return sum(
+                (
+                    p.income_in_bracket
+                    for p in federal.preferential_rate_breakdown
+                    if p.rate == Decimal(rate)
+                ),
+                Decimal(0),
+            )
+
         breakdown = USJurisdictionBreakdown(
-            federal_taxable_income=federal_result["taxable_income"],
-            federal_tax=federal_result["tax"],
-            federal_effective_rate=federal_result["effective_rate"],
-            federal_marginal_rate=federal_result["marginal_rate"],
-            # Detailed federal breakdown
-            federal_ordinary_tax=federal_result.get("ordinary_tax", Decimal(0)),
-            federal_ltcg_tax=federal_result.get("preferential_tax", Decimal(0)),
-            federal_niit=federal_result.get("niit", Decimal(0)),
-            # LTCG bracket breakdown
-            ltcg_at_zero_percent=federal_result.get("ltcg_at_zero", Decimal(0)),
-            ltcg_at_fifteen_percent=federal_result.get("ltcg_at_fifteen", Decimal(0)),
-            ltcg_at_twenty_percent=federal_result.get("ltcg_at_twenty", Decimal(0)),
-            # NIIT details
-            niit_applicable=federal_result.get("niit_applicable", False),
-            niit_magi=federal_result.get("niit_magi", Decimal(0)),
-            niit_threshold=federal_result.get("niit_threshold", Decimal(0)),
-            niit_base=federal_result.get("niit_base", Decimal(0)),
-            # State
+            federal_taxable_income=federal.taxable_income,
+            federal_tax=federal.total_tax,
+            federal_effective_rate=federal.total_tax / gross_income if gross_income else Decimal(0),
+            federal_marginal_rate=federal.marginal_rate,
+            federal_ordinary_tax=federal.ordinary_tax,
+            federal_ltcg_tax=federal.preferential_tax,
+            federal_niit=federal.net_investment_income_tax,
+            federal_self_employment_tax=federal.self_employment_tax,
+            federal_additional_medicare_tax=federal.additional_medicare_tax,
+            employee_payroll_tax=result.employee_payroll_tax,
+            employee_payroll_effective_rate=(
+                result.employee_payroll_tax / gross_income if gross_income else Decimal(0)
+            ),
+            ltcg_at_zero_percent=at_rate("0"),
+            ltcg_at_fifteen_percent=at_rate(".15"),
+            ltcg_at_twenty_percent=at_rate(".20"),
+            niit_applicable=federal.net_investment_income_tax > 0,
+            niit_magi=federal.adjusted_gross_income,
+            niit_threshold=NIIT_THRESHOLD[filing_status],
+            niit_base=federal.net_investment_income_tax / NIIT_RATE,
             state_code=state_code,
-            state_name=state_result["state_name"],
-            state_tax=state_result["state_tax"],
-            state_effective_rate=state_result["effective_rate"],
-            has_state_income_tax=state_result["has_income_tax"],
-            # Local
-            local_name=local_result["local_name"] if local_result else None,
-            local_tax=local_result["local_tax"] if local_result else Decimal(0),
-            local_effective_rate=local_result["effective_rate"] if local_result else Decimal(0),
+            state_name=state.jurisdiction_name,
+            state_tax=state.total_state_tax,
+            state_effective_rate=state.total_state_tax / gross_income if gross_income else Decimal(0),
+            has_state_income_tax=state.has_income_tax,
+            state_details=state.model_dump(),
+            local_details=[r.model_dump() for r in result.locals],
+            local_name=", ".join(r.jurisdiction_name for r in result.locals) or None,
+            local_tax=local_tax,
+            local_effective_rate=local_tax / gross_income if gross_income else Decimal(0),
         )
-
-        # Calculate totals
-        total_tax = breakdown.total_tax
-        net_income = gross_income - total_tax
-        effective_rate = (total_tax / gross_income).quantize(Decimal("0.0001")) if gross_income > 0 else Decimal(0)
-
-        # Build notes
-        notes = []
-        if not state_result["has_income_tax"]:
-            notes.append(f"{state_result['state_name']} has no state income tax")
-        if local_result and local_result["local_tax"] > 0:
-            notes.append(f"Includes {local_result['local_name']} local tax")
-
-        # Build income type results if detailed breakdown provided
-        income_type_results = self._calculate_income_type_breakdown(
-            income_breakdown, filing_status, tax_year, federal_result
-        )
-
+        total = result.total_statutory_deductions
         return USComparisonResult(
             region_id=region_id,
             region_name=region_name,
             region_type=region_type,
             gross_income=gross_income,
             breakdown=breakdown,
-            income_type_results=income_type_results,
-            federal_tax=federal_result["tax"],
-            state_tax=state_result["state_tax"],
-            local_tax=local_result["local_tax"] if local_result else Decimal(0),
-            total_tax=total_tax,
-            net_income=net_income,
-            effective_rate=effective_rate,
-            notes=notes,
+            income_type_results=[],
+            federal_tax=federal.total_tax,
+            state_tax=state.total_state_tax,
+            local_tax=local_tax,
+            employee_payroll_tax=result.employee_payroll_tax,
+            total_tax=total,
+            net_income=gross_income - total,
+            effective_rate=(total / gross_income).quantize(Decimal("0.0001"))
+            if gross_income
+            else Decimal(0),
+            notes=result.warnings
+            + state.notes
+            + [
+                "Standard deduction; age 40 and no dependants. EITC legal eligibility is applied only when explicitly supplied. Joint wages model one earner (unvalidated state profile).",
+                "Includes employee payroll, SE and Additional Medicare taxes once; excludes employer contributions.",
+                "Tax by income category is not allocated: allowances and rate bands interact across categories.",
+            ],
         )
 
     def _calculate_federal_tax(
@@ -457,7 +505,11 @@ class USStateComparisonCalculator:
         total_tax = ordinary_tax + ltcg_result.total_ltcg_tax + niit_result.niit_tax
 
         # Effective rate
-        effective_rate = (total_tax / gross_income).quantize(Decimal("0.0001")) if gross_income > 0 else Decimal(0)
+        effective_rate = (
+            (total_tax / gross_income).quantize(Decimal("0.0001"))
+            if gross_income > 0
+            else Decimal(0)
+        )
 
         return {
             "gross_income": gross_income,
@@ -575,7 +627,11 @@ class USStateComparisonCalculator:
         tax += at_twenty_rate * Decimal("0.20")
 
         total_tax = tax.quantize(Decimal("0.01"))
-        effective_rate = (total_tax / preferential_income).quantize(Decimal("0.0001")) if preferential_income > 0 else Decimal(0)
+        effective_rate = (
+            (total_tax / preferential_income).quantize(Decimal("0.0001"))
+            if preferential_income > 0
+            else Decimal(0)
+        )
 
         return FederalLTCGResult(
             preferential_income=preferential_income,
@@ -628,10 +684,7 @@ class USStateComparisonCalculator:
         # - Rental income (net)
         # - Passive business income (not modeled separately)
         net_investment_income = (
-            income.total_capital_gains +
-            income.total_dividends +
-            income.interest +
-            income.rental
+            income.total_capital_gains + income.total_dividends + income.interest + income.rental
         )
 
         # MAGI (simplified - using AGI for comparison mode)
@@ -681,7 +734,11 @@ class USStateComparisonCalculator:
             # NH only taxes interest and dividends at 3% (PLACEHOLDER)
             taxable = income.interest + income.total_dividends
             state_tax = (taxable * Decimal("0.03")).quantize(Decimal("0.01"))
-            effective_rate = (state_tax / income.total).quantize(Decimal("0.0001")) if income.total > 0 else Decimal(0)
+            effective_rate = (
+                (state_tax / income.total).quantize(Decimal("0.0001"))
+                if income.total > 0
+                else Decimal(0)
+            )
             return {
                 "state_code": state_code,
                 "state_name": state_name,
@@ -722,13 +779,20 @@ class USStateComparisonCalculator:
             # Fallback: estimate using max rate (PLACEHOLDER)
             # Log the error so users know real calculation failed
             import logging
+
             logger = logging.getLogger(__name__)
             logger.warning(f"State calculator not available for {state_code}: {e}")
 
-            max_rate = state_info.max_rate if state_info and state_info.max_rate else Decimal("0.05")
+            max_rate = (
+                state_info.max_rate if state_info and state_info.max_rate else Decimal("0.05")
+            )
             # Apply a simplified estimate (actual would be lower due to brackets)
             estimated_tax = (income.total * max_rate * Decimal("0.7")).quantize(Decimal("0.01"))
-            effective_rate = (estimated_tax / income.total).quantize(Decimal("0.0001")) if income.total > 0 else Decimal(0)
+            effective_rate = (
+                (estimated_tax / income.total).quantize(Decimal("0.0001"))
+                if income.total > 0
+                else Decimal(0)
+            )
 
             return {
                 "state_code": state_code,
@@ -770,6 +834,7 @@ class USStateComparisonCalculator:
         except (ImportError, AttributeError) as e:
             # Fallback: no local tax - log the error
             import logging
+
             logger = logging.getLogger(__name__)
             logger.warning(f"Local calculator not available for {jurisdiction_id}: {e}")
 
@@ -826,7 +891,11 @@ class USStateComparisonCalculator:
                     # income type's share of total preferential income
                     share = amount / total_preferential_income
                     estimated_tax = (preferential_tax * share).quantize(Decimal("0.01"))
-                    effective_rate = (estimated_tax / amount).quantize(Decimal("0.0001")) if amount > 0 else Decimal(0)
+                    effective_rate = (
+                        (estimated_tax / amount).quantize(Decimal("0.0001"))
+                        if amount > 0
+                        else Decimal(0)
+                    )
                 else:
                     estimated_tax = (amount * Decimal("0.15")).quantize(Decimal("0.01"))
                     effective_rate = Decimal("0.15")
@@ -890,6 +959,8 @@ def calculate_us_comparison(
     filing_status: str = "single",
     tax_year: int = 2025,
     rules_dir: Path | None = None,
+    us_scenario: USScenarioFacts | None = None,
+    eitc_eligibility_asserted: bool | None = None,
 ) -> USComparisonResult:
     """
     Calculate US tax for comparison.
@@ -897,4 +968,5 @@ def calculate_us_comparison(
     Convenience function for quick calculations.
     """
     calculator = USStateComparisonCalculator(rules_dir=rules_dir)
-    return calculator.calculate(region_id, income, filing_status, tax_year)
+    return calculator.calculate(region_id, income, filing_status, tax_year,
+                                us_scenario=us_scenario, eitc_eligibility_asserted=eitc_eligibility_asserted)

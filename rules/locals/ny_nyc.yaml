@@ -1,17 +1,29 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Resident single/age-40 cases source-checked for 2025; other profiles unvalidated.
 # =============================================================================
 # New York City - Progressive city income tax (4 brackets)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# See policy_2025 and repair tests for the bounded validation scope.
 # =============================================================================
 
 # Identity
 jurisdiction_id: "US-NY-NYC"
 tax_year: 2025
+policy_2025:
+  school_fixed_credit: 63
+  school_fixed_income_limit: 250000
+  school_rate_income_limit: 500000
+  school_rate_threshold: 12000
+  school_lower_rate: 0.00171
+  school_upper_base_credit: 21
+  school_upper_rate: 0.00228
+  household_credit_income_limit: 12500
+  household_credit_lower_limit: 10000
+  household_credit: 15
+  household_credit_upper: 10
 
 # Metadata
 jurisdiction_type: "city"
-jurisdiction_name: "New York City (PLACEHOLDER)"
+jurisdiction_name: "New York City"
 jurisdiction_abbreviation: "NYC"
 parent_jurisdiction_id: "US-NY"
 parent_state: "NY"
@@ -44,7 +56,7 @@ effective_end_date: "2025-12-31"
 # PLACEHOLDER: All rates and thresholds need verification
 rate_schedule:
   rate_type: "graduated"
-  tax_base: "nyc_taxable_income"  # Similar to NY state taxable income
+  tax_base: "state_taxable_income"
 
   brackets:
     # Single filers - PLACEHOLDER VALUES
@@ -177,13 +189,7 @@ rate_schedule:
       rate: 0.03876
       base_tax: 3263.71
 
-# Credits
-credits:
-  school_tax_credit:
-    available: true
-    amount: 125  # PLACEHOLDER
-    income_limit: 250000  # PLACEHOLDER
-    notes: "PLACEHOLDER - NYC school tax credit for lower income residents"
+# Resident single-filer credits are defined in policy_2025 above.
 
 # Filing requirements
 filing:
@@ -202,13 +208,15 @@ local_config:
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "validated_cases_only"
+  last_verified: "2026-09-09"
+  verified_by: "source-derived repair tests"
+  notes: "Single age-40 resident profile only; includes household and school credits. EIC requires established federal eligibility."
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "NYC progressive city tax - placeholder for development"
+  - source_name: "2025 IT-201 instructions, NYC schedule and lines 48, 69, 69a"
+    url: "https://www.tax.ny.gov/forms/current-forms/it/it201i.htm"
+    retrieved_date: "2026-09-09"
+  - source_name: "2025 IT-215 instructions, NYC EIC rate worksheet"
+    url: "https://www.tax.ny.gov/forms/current-forms/it/it215i.htm"
+    retrieved_date: "2026-09-09"

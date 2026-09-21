@@ -360,6 +360,6 @@ verification:
 
 references:
   - source_name: "NY Department of Taxation"
-    url: "https://www.tax.ny.gov/pit/file/tax-tables/it201i-2025.htm"
+    url: "https://www.tax.ny.gov/pdf/2025/inc/it201i_2025.pdf"
     retrieved_date: "2025-02-20"
     notes: "Official 2025 NY tax rate schedules"

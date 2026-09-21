@@ -11,7 +11,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Tennessee (PLACEHOLDER)"
+jurisdiction_name: "Tennessee"
 jurisdiction_abbreviation: "TN"
 parent_jurisdiction_id: "US"
 
@@ -54,13 +54,13 @@ state_config:
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2026-09-09"
+  verified_by: "source-reviewed repair"
+  notes: "Hall income tax repealed; no individual income tax in 2025"
 
 references:
   - source_name: "Placeholder"
-    url: null
+    url: "https://www.tn.gov/revenue/taxes/hall-income-tax.html"
     retrieved_date: null
     notes: "No income tax state - placeholder for development"

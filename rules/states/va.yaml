@@ -164,7 +164,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 8500
+        amount: 8750
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 17000
@@ -180,8 +180,8 @@ deductions:
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 930
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 
@@ -208,6 +208,6 @@ verification:
 
 references:
   - source_name: "Virginia Department of Taxation"
-    url: "https://tax.virginia.gov/"
+    url: "https://www.tax.virginia.gov/sites/default/files/vatax-pdf/2025-760-instructions.pdf"
     retrieved_date: "2025-02-20"
     notes: "Virginia 4 brackets"

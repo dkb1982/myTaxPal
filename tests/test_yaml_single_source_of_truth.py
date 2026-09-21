@@ -201,7 +201,7 @@ class TestCrossCheckPipelineVsComparison:
         )
         pipeline_result = engine.calculate(tax_input)
         assert pipeline_result.success
-        pipeline_federal_tax = pipeline_result.federal.tax_before_credits
+        pipeline_federal_tax = pipeline_result.federal.total_tax.quantize(Decimal("0.01"))
 
         # Comparison engine
         calculator = USStateComparisonCalculator(rules_dir=rules_dir)
@@ -238,7 +238,7 @@ class TestCrossCheckPipelineVsComparison:
         )
         pipeline_result = engine.calculate(tax_input)
         assert pipeline_result.success
-        pipeline_federal_tax = pipeline_result.federal.tax_before_credits
+        pipeline_federal_tax = pipeline_result.federal.total_tax.quantize(Decimal("0.01"))
 
         calculator = USStateComparisonCalculator(rules_dir=rules_dir)
         income = IncomeBreakdown(employment_wages=Decimal("100000"))
@@ -270,35 +270,35 @@ class TestSpotCheckTaxAmounts:
             #   10% on $11,925 = $1,192.50
             #   12% on ($35,000 - $11,925 = $23,075) = $2,769.00
             #   Total = $3,961.50
-            ("single", Decimal("50000"), Decimal("3961.50"), "Single $50k"),
+            ("single", Decimal("50000"), Decimal("3871.50"), "Single $50k"),
 
             # Single, $100k wages:
             #   Taxable = $100,000 - $15,000 = $85,000
             #   base_tax at $48,475 = $5,578.50
             #   22% on ($85,000 - $48,475 = $36,525) = $8,035.50
             #   Total = $13,614.00
-            ("single", Decimal("100000"), Decimal("13614.00"), "Single $100k"),
+            ("single", Decimal("100000"), Decimal("13449.00"), "Single $100k"),
 
             # MFJ, $100k wages:
             #   Taxable = $100,000 - $30,000 = $70,000
             #   10% on $23,850 = $2,385.00
             #   12% on ($70,000 - $23,850 = $46,150) = $5,538.00
             #   Total = $7,923.00
-            ("mfj", Decimal("100000"), Decimal("7923.00"), "MFJ $100k"),
+            ("mfj", Decimal("100000"), Decimal("7743.00"), "MFJ $100k"),
 
             # Single, $200k wages:
             #   Taxable = $200,000 - $15,000 = $185,000
             #   base_tax at $103,350 = $17,651.00
             #   24% on ($185,000 - $103,350 = $81,650) = $19,596.00
             #   Total = $37,247.00
-            ("single", Decimal("200000"), Decimal("37247.00"), "Single $200k"),
+            ("single", Decimal("200000"), Decimal("37067.00"), "Single $200k"),
 
             # HOH, $75k wages:
             #   Taxable = $75,000 - $22,500 = $52,500
             #   10% on $17,000 = $1,700.00
             #   12% on ($52,500 - $17,000 = $35,500) = $4,260.00
             #   Total = $5,960.00
-            ("hoh", Decimal("75000"), Decimal("5960.00"), "HOH $75k"),
+            ("hoh", Decimal("75000"), Decimal("5825.00"), "HOH $75k"),
         ],
     )
     def test_spot_check_ordinary_income(
@@ -388,7 +388,7 @@ class TestSpotCheckTaxAmounts:
         ))
 
         assert result.success
-        assert result.federal.tax_before_credits == Decimal("16959.00"), (
+        assert result.federal.tax_before_credits == Decimal("16756.50"), (
             f"Mixed income tax: expected $16,959.00, "
             f"got ${result.federal.tax_before_credits}"
         )
@@ -447,11 +447,11 @@ class TestLTCGThresholds:
 # =============================================================================
 
 STD_DED_2025 = {
-    "single": 15000,
-    "mfj": 30000,
-    "mfs": 15000,
-    "hoh": 22500,
-    "qss": 30000,
+    "single": 15750,
+    "mfj": 31500,
+    "mfs": 15750,
+    "hoh": 23625,
+    "qss": 31500,
 }
 
 

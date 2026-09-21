@@ -104,7 +104,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 9000
+        amount: 3605
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 18000
@@ -120,8 +120,8 @@ deductions:
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 9160
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 

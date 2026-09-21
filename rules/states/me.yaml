@@ -44,7 +44,7 @@ rate_schedule:
       income_from: 63450
       income_to: null
       rate: 0.0715
-      base_tax: 4028.08
+      base_tax: 4028
 
     # Married Filing Jointly
     - bracket_id: "ME-2025-MFJ-1"

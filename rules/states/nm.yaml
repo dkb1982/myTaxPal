@@ -31,38 +31,38 @@ rate_schedule:
       filing_status: "single"
       income_from: 0
       income_to: 5500
-      rate: 0.017
+      rate: 0.015
       base_tax: 0
     - bracket_id: "NM-2025-S-2"
       filing_status: "single"
       income_from: 5500
-      income_to: 11000
+      income_to: 16500
       rate: 0.032
-      base_tax: 93.50
+      base_tax: 82.50
     - bracket_id: "NM-2025-S-3"
       filing_status: "single"
-      income_from: 11000
-      income_to: 21000
-      rate: 0.047
-      base_tax: 269.50
+      income_from: 16500
+      income_to: 33500
+      rate: 0.043
+      base_tax: 434.50
     - bracket_id: "NM-2025-S-4"
       filing_status: "single"
-      income_from: 21000
-      income_to: 32000
-      rate: 0.049
-      base_tax: 739.50
+      income_from: 33500
+      income_to: 66500
+      rate: 0.047
+      base_tax: 1165.50
     - bracket_id: "NM-2025-S-5"
       filing_status: "single"
-      income_from: 32000
-      income_to: 52000
-      rate: 0.059
-      base_tax: 1279.50
+      income_from: 66500
+      income_to: 210000
+      rate: 0.049
+      base_tax: 2716.50
     - bracket_id: "NM-2025-S-6"
       filing_status: "single"
-      income_from: 52000
+      income_from: 210000
       income_to: null
       rate: 0.059
-      base_tax: 2459.50
+      base_tax: 9748.00
 
     # Married Filing Jointly
     - bracket_id: "NM-2025-MFJ-1"
@@ -221,23 +221,8 @@ rate_schedule:
 # Deductions - 2025 values
 deductions:
   standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 8050
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfj"
-        amount: 16100
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfs"
-        amount: 8050
-        dependent_claimed_elsewhere: null
-      - filing_status: "hoh"
-        amount: 12075
-        dependent_claimed_elsewhere: null
-      - filing_status: "qss"
-        amount: 16100
-        dependent_claimed_elsewhere: null
+    available: false
+    amounts: []
     additional_amounts: []
   exemptions:
     personal_exemption_available: false
@@ -247,7 +232,7 @@ deductions:
 
 # State-specific configuration
 state_config:
-  starting_point: "federal_agi"
+  starting_point: "federal_taxable_income"
   has_local_income_tax: false
   local_tax_mandatory: false
   reciprocity_states: []
@@ -263,6 +248,6 @@ verification:
 
 references:
   - source_name: "New Mexico Taxation and Revenue Department"
-    url: "https://www.tax.newmexico.gov/"
+    url: "https://www.tax.newmexico.gov/individuals/personal-income-tax-information-overview/"
     retrieved_date: "2025-02-20"
     notes: "New Mexico 6 brackets"

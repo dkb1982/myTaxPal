@@ -30,27 +30,27 @@ rate_schedule:
     - bracket_id: "MN-2025-S-1"
       filing_status: "single"
       income_from: 0
-      income_to: 33190
+      income_to: 32570
       rate: 0.0535
       base_tax: 0
     - bracket_id: "MN-2025-S-2"
       filing_status: "single"
-      income_from: 33190
-      income_to: 109755
+      income_from: 32570
+      income_to: 106990
       rate: 0.068
-      base_tax: 1775.67
+      base_tax: 1742.50
     - bracket_id: "MN-2025-S-3"
       filing_status: "single"
-      income_from: 109755
-      income_to: 220070
+      income_from: 106990
+      income_to: 198630
       rate: 0.0785
-      base_tax: 6974.08
+      base_tax: 6803.06
     - bracket_id: "MN-2025-S-4"
       filing_status: "single"
-      income_from: 220070
+      income_from: 198630
       income_to: null
       rate: 0.0985
-      base_tax: 15637.86
+      base_tax: 13996.80
 
     # Married Filing Jointly
     - bracket_id: "MN-2025-MFJ-1"
@@ -164,7 +164,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 16430
+        amount: 14950
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 27390

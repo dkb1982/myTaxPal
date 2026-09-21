@@ -24,7 +24,7 @@ zip_prefixes:
 
 # Tax characteristics
 has_income_tax: true
-tax_type: "earned_income_tax"
+tax_type: "earnings_tax"
 applies_to: "both_residents_and_workers"
 
 # Effective dates

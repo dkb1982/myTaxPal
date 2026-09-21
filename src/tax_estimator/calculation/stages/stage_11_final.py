@@ -6,13 +6,15 @@ Calculates final tax liability and determines refund or amount owed.
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
 from tax_estimator.calculation.stages.base import CalculationStage, StageResult
-from tax_estimator.calculation.states.models import StateTaxType
 from tax_estimator.models.tax_result import (
     CalculationResult,
+    CreditDetail,
+    JurisdictionAmountDetail,
+    LocalTaxComponentDetail,
     DeductionResult,
     FederalTaxResult,
     LocalTaxResult,
@@ -107,8 +109,10 @@ class FinalCalculationStage(CalculationStage):
         )
 
         # Round final amounts to nearest dollar
-        total_tax_rounded = total_tax.quantize(Decimal("1"))
-        refund_or_owed_rounded = refund_or_owed.quantize(Decimal("1"))
+        total_tax_rounded = total_tax.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        refund_or_owed_rounded = (
+            total_tax_rounded - total_withholding - estimated_payments
+        ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
         # Build federal result
         deduction_result = context.get_result("deduction_result")
@@ -116,7 +120,9 @@ class FinalCalculationStage(CalculationStage):
             deduction_result = DeductionResult(
                 method="standard",
                 standard_deduction_available=context.get_decimal_result("standard_deduction"),
-                itemized_deduction_total=context.get_decimal_result("itemized_deduction", Decimal(0)),
+                itemized_deduction_total=context.get_decimal_result(
+                    "itemized_deduction", Decimal(0)
+                ),
                 deduction_used=context.get_decimal_result("deduction_used"),
                 additional_deduction=Decimal(0),
             )
@@ -166,7 +172,7 @@ class FinalCalculationStage(CalculationStage):
                 gross_income=state_result_data.gross_income,
                 state_agi=state_result_data.state_agi,
                 state_taxable_income=state_result_data.taxable_income,
-                starting_point="federal_agi",  # Simplified - actual varies by state
+                starting_point=getattr(state_result_data, "starting_point", "federal_agi"),
                 deduction_type=state_result_data.deduction_type,
                 deduction_amount=state_result_data.deduction_amount,
                 personal_exemption=state_result_data.personal_exemption,
@@ -175,10 +181,27 @@ class FinalCalculationStage(CalculationStage):
                 surtax=state_result_data.surtax,
                 bracket_breakdown=state_bracket_breakdown,
                 state_credits=state_result_data.credits,
+                nonrefundable_credits=state_result_data.nonrefundable_credits,
+                refundable_credits=state_result_data.refundable_credits,
+                credit_details=[CreditDetail(
+                    credit_id=c.credit_id, credit_name=c.name,
+                    credit_amount=c.amount_available, amount_used=c.amount_applied,
+                    is_refundable=c.is_refundable,
+                ) for c in state_result_data.credit_components],
+                state_additions=[JurisdictionAmountDetail(component_id=c.component_id, name=c.name, amount=c.amount)
+                                 for c in getattr(state_result_data, "additions", ())],
+                state_subtractions=[JurisdictionAmountDetail(component_id=c.component_id, name=c.name, amount=c.amount)
+                                    for c in getattr(state_result_data, "subtractions", ())],
+                ordinary_taxable_income=state_result_data.ordinary_taxable_income,
+                preferential_taxable_income=state_result_data.preferential_taxable_income,
+                ordinary_tax=state_result_data.ordinary_tax,
+                preferential_tax=state_result_data.preferential_tax,
+                other_base_tax=state_result_data.other_base_tax,
+                recapture=state_result_data.recapture,
                 total_state_tax=state_result_data.total_tax,
                 effective_rate=state_result_data.effective_rate,
                 marginal_rate=state_result_data.marginal_rate,
-                state_withholding=Decimal(0),  # TODO: Get from input
+                state_withholding=sum((w.state_withholding for w in input_data.wages), Decimal(0)),
                 is_resident=True,
                 notes=state_result_data.notes,
             )
@@ -187,6 +210,38 @@ class FinalCalculationStage(CalculationStage):
         # Build local tax results
         local_results_data = context.get_result("local_results", [])
         local_tax_total = context.get_decimal_result("total_local_tax", Decimal(0))
+        local_results = [
+            LocalTaxResult(
+                jurisdiction_id=r.jurisdiction_id,
+                jurisdiction_name=r.jurisdiction_name,
+                parent_state=r.parent_state,
+                has_income_tax=r.has_income_tax,
+                tax_type=r.tax_type.value,
+                taxable_income=r.taxable_income,
+                rate_applied=r.rate_applied,
+                tax_before_credits=r.tax_before_credits,
+                credit_for_taxes_paid_elsewhere=r.credit_for_taxes_paid_elsewhere,
+                total_tax=r.total_tax,
+                net_tax=r.net_tax,
+                nonrefundable_credits=r.nonrefundable_credits,
+                refundable_credits=r.refundable_credits,
+                credit_details=[CreditDetail(
+                    credit_id=c.credit_id, credit_name=c.name,
+                    credit_amount=c.amount_available, amount_used=c.amount_applied,
+                    is_refundable=c.is_refundable,
+                ) for c in r.credits],
+                tax_components=[LocalTaxComponentDetail(
+                    component_id=c.component_id, name=c.name, taxable_income=c.taxable_income, tax=c.tax,
+                ) for c in r.tax_components],
+                effective_rate=r.effective_rate,
+                is_resident=r.is_resident,
+                notes=r.notes + r.warnings + r.assumptions,
+            )
+            for r in local_results_data
+        ]
+        state_withholding = sum((w.state_withholding for w in input_data.wages), Decimal(0))
+        local_withholding = sum((w.local_withholding for w in input_data.wages), Decimal(0))
+        employee_payroll = context.get_decimal_result("employee_payroll_tax", Decimal(0))
 
         # Complete the trace
         context.trace.complete()
@@ -200,8 +255,16 @@ class FinalCalculationStage(CalculationStage):
             tax_year=context.tax_year,
             federal=federal_result,
             states=state_results,
+            locals=local_results,
+            employee_social_security_tax=context.get_decimal_result(
+                "employee_social_security_tax", Decimal(0)
+            ),
+            employee_medicare_tax=context.get_decimal_result("employee_medicare_tax", Decimal(0)),
+            employee_payroll_tax=employee_payroll,
+            total_statutory_deductions=total_tax_liability + employee_payroll,
+            total_local_withholding=local_withholding,
             total_tax_liability=total_tax_liability,
-            total_withholding=total_withholding,
+            total_withholding=total_withholding + state_withholding + local_withholding,
             total_payments=estimated_payments,
             trace=context.trace.to_dict(),
             warnings=context.warnings,

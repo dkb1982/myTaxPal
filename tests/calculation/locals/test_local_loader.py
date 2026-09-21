@@ -6,7 +6,6 @@ All tests use PLACEHOLDER tax data.
 
 import pytest
 from decimal import Decimal
-from pathlib import Path
 
 from tax_estimator.calculation.locals.loader import (
     LocalRulesLoader,
@@ -42,7 +41,7 @@ class TestLocalRulesLoader:
     @pytest.mark.parametrize("jurisdiction_id", [
         "ny_nyc", "pa_philadelphia", "mi_detroit", "md_baltimore",
         "oh_cleveland", "oh_columbus", "oh_cincinnati", "pa_pittsburgh",
-        "ky_louisville", "de_wilmington", "nj_newark", "ny_yonkers"
+        "ky_louisville", "de_wilmington", "ny_yonkers", "al_birmingham", "in_marion_county"
     ])
     def test_load_local_rules_success(
         self, loader: LocalRulesLoader, jurisdiction_id: str
@@ -52,6 +51,33 @@ class TestLocalRulesLoader:
         # jurisdiction_id in rules is the canonical US-XX-XXX format
         assert rules.jurisdiction_id is not None
         assert rules.tax_year == 2025
+
+    def test_employer_payroll_rule_is_not_employee_income_tax(self, loader):
+        with pytest.raises(LocalRulesLoaderError, match="Employer payroll tax"):
+            loader.load_local_rules("nj_newark")
+
+    @pytest.mark.parametrize("jurisdiction", ["../ny_nyc", "/ny_nyc", "US-NY-../NYC"])
+    def test_local_identifier_cannot_escape_rules_directory(self, loader, jurisdiction):
+        with pytest.raises(LocalRulesLoaderError, match="Invalid local jurisdiction"):
+            loader.load_local_rules(jurisdiction)
+
+    def test_city_rule_identity_cannot_be_substituted(self, loader, monkeypatch):
+        parsed = loader.load_local_rules("US-NY-NYC")
+        parsed.jurisdiction_id = "US-NY-YNK"
+        loader.clear_cache()
+        monkeypatch.setattr(loader, "_parse_rules", lambda *_: parsed)
+        with pytest.raises(LocalRulesLoaderError, match="identity"):
+            loader.load_local_rules("US-NY-NYC")
+
+    def test_bracket_gaps_fail_instead_of_omitting_income(self, loader):
+        data = {"has_income_tax": True, "tax_type": "city_income_tax",
+                "applies_to": "residents_only", "rate_schedule": {
+                    "tax_base": "state_taxable_income", "rate_type": "graduated", "brackets": [
+                        {"income_from": 0, "income_to": 100, "rate": .02},
+                        {"income_from": 101, "income_to": None, "rate": .03},
+                    ]}}
+        with pytest.raises(LocalRulesLoaderError, match="gaps or overlaps"):
+            loader._parse_rules(data, "US-NY-NYC")
 
     def test_load_nonexistent_jurisdiction_fails(
         self, loader: LocalRulesLoader
@@ -211,7 +237,7 @@ class TestBaltimoreRules:
         """Test Baltimore piggyback rate is percentage of state taxable income."""
         rules = loader.load_local_rules("md_baltimore")
         assert rules.flat_rates is not None
-        assert rules.flat_rates.rate == Decimal("0.033")
+        assert rules.flat_rates.rate == Decimal("0.032")
 
 
 class TestYonkersRules:

@@ -226,10 +226,8 @@ class TestMultistateTaxation:
         }
         response = client.post("/v1/estimates", json=request)
 
-        assert response.status_code == 201
-        data = response.json()
-        # Should include state tax results
-        assert "states" in data
+        assert response.status_code == 422
+        assert "error" in response.json()
 
     def test_remote_worker_different_state(self, client: TestClient):
         """Test estimate for remote worker in different state from employer."""
@@ -258,7 +256,7 @@ class TestMultistateTaxation:
         }
         response = client.post("/v1/estimates", json=request)
 
-        assert response.status_code == 201
+        assert response.status_code == 422
 
 
 class TestAPIVersionHeaderConsistency:

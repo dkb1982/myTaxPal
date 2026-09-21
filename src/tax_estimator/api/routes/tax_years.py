@@ -7,7 +7,7 @@ Based on the API specification in 09-api-specifications.md.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter
@@ -23,7 +23,7 @@ from tax_estimator.api.schemas import (
     TaxYearListResponse,
     TaxYearSummary,
 )
-from tax_estimator.rules.loader import get_rules_for_jurisdiction, RulesLoadError
+from tax_estimator.rules.loader import RulesLoadError, get_rules_for_jurisdiction
 
 router = APIRouter()
 
@@ -35,22 +35,6 @@ router = APIRouter()
 # =============================================================================
 
 TAX_YEAR_INFO = {
-    2024: {
-        "status": "prior",
-        "filing_deadline": "2025-04-15",
-        "extension_deadline": "2025-10-15",
-        "rules_version": "2024.1.0",
-        # Standard deductions are from official IRS sources
-        "standard_deduction": {
-            "single": Decimal("14600"),
-            "mfj": Decimal("29200"),
-            "mfs": Decimal("14600"),
-            "hoh": Decimal("21900"),
-        },
-        "social_security_wage_base": Decimal("168600"),
-        "401k_limit": Decimal("23000"),
-        "ira_limit": Decimal("7000"),
-    },
     2025: {
         "status": "current",
         "filing_deadline": "2026-04-15",
@@ -58,10 +42,10 @@ TAX_YEAR_INFO = {
         "rules_version": "2025.1.0",
         # Standard deductions are from official IRS sources
         "standard_deduction": {
-            "single": Decimal("15000"),
-            "mfj": Decimal("30000"),
-            "mfs": Decimal("15000"),
-            "hoh": Decimal("22500"),
+            "single": Decimal("15750"),
+            "mfj": Decimal("31500"),
+            "mfs": Decimal("15750"),
+            "hoh": Decimal("23625"),
         },
         "social_security_wage_base": Decimal("176100"),
         "401k_limit": Decimal("23500"),
@@ -91,10 +75,10 @@ async def list_tax_years(
 ) -> TaxYearListResponse:
     """List all supported tax years."""
     # Get unique years from available rules
-    years_from_rules = set(year for _, year in available)
+    years_from_rules = {year for jurisdiction, year in available if jurisdiction == "US"}
 
     # Combine with our known years
-    all_years = years_from_rules.union(TAX_YEAR_INFO.keys())
+    all_years = years_from_rules.intersection(TAX_YEAR_INFO)
 
     # Build year summaries
     summaries = []
@@ -107,7 +91,7 @@ async def list_tax_years(
                 filing_deadline=info.get("filing_deadline", f"{year + 1}-04-15"),
                 extension_deadline=info.get("extension_deadline"),
                 rules_version=info.get("rules_version", f"{year}.1.0"),
-                last_updated=datetime.now(timezone.utc),
+                last_updated=datetime(2026, 9, 9, tzinfo=UTC),
             )
         )
 
@@ -145,12 +129,8 @@ async def get_tax_year(
     settings: SettingsDep,
 ) -> TaxYearDetails:
     """Get detailed information about a tax year."""
-    # Check if year is supported
-    if year not in TAX_YEAR_INFO:
-        # Also check if we have any rules for this year
-        years_from_rules = set(y for _, y in available)
-        if year not in years_from_rules:
-            raise NotFoundError("Tax year", str(year))
+    if year not in TAX_YEAR_INFO or ("US", year) not in available:
+        raise NotFoundError("Tax year", str(year))
 
     info = TAX_YEAR_INFO.get(year, {})
 
@@ -195,9 +175,7 @@ async def get_tax_year(
         if info:
             key_thresholds = KeyThresholdsInfo(
                 standard_deduction=info.get("standard_deduction", {}),
-                social_security_wage_base=info.get(
-                    "social_security_wage_base", Decimal("176100")
-                ),
+                social_security_wage_base=info.get("social_security_wage_base", Decimal("176100")),
                 limit_401k=info.get("401k_limit", Decimal("23500")),
                 ira_limit=info.get("ira_limit", Decimal("7000")),
             )
@@ -217,7 +195,7 @@ async def get_tax_year(
         filing_deadline=info.get("filing_deadline", f"{year + 1}-04-15"),
         extension_deadline=info.get("extension_deadline"),
         rules_version=info.get("rules_version", f"{year}.1.0"),
-        last_updated=datetime.now(timezone.utc),
+        last_updated=datetime(2026, 9, 9, tzinfo=UTC),
         key_thresholds=key_thresholds,
         supported_jurisdictions={
             "federal": federal_count,

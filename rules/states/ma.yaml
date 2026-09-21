@@ -1,5 +1,5 @@
 # =============================================================================
-# Massachusetts - Flat tax (5.0%) + 9% surtax on income over $1M
+# Massachusetts - Flat tax (5.0%) + 4% additional tax above indexed threshold
 # 2025 tax brackets verified - Millionaire's Tax
 # =============================================================================
 
@@ -30,9 +30,9 @@ rate_schedule:
     - surtax_id: "MA-MILLIONAIRE-2025"
       name: "Millionaire's Tax (Fair Share Amendment)"
       threshold: 1083150
-      rate: 0.09
+      rate: 0.04
       filing_status: "all"
-      description: "9% additional tax on income over $1,083,150 (Millionaire's Tax)"
+      description: "4% additional tax on income over the indexed $1,083,150 threshold"
 
 # Deductions - 2025 values
 deductions:
@@ -42,7 +42,7 @@ deductions:
     additional_amounts: []
   exemptions:
     personal_exemption_available: true
-    personal_exemption_amount: 4570
+    personal_exemption_amount: 4400
     dependent_exemption_available: true
     dependent_exemption_amount: 1000
 
@@ -54,7 +54,7 @@ state_config:
   reciprocity_states: []
   special_notes:
     - "Massachusetts flat 5.0% rate"
-    - "9% surtax on income over $1,083,150 (Millionaire's Tax)"
+    - "4% additional tax on income over the indexed $1,083,150 threshold"
     - "Uses personal exemptions, not standard deduction"
     - "Surtax threshold is indexed for inflation"
 
@@ -63,7 +63,7 @@ verification:
   status: "verified"
   last_verified: "2025-02-20"
   verified_by: "opencode"
-  notes: "Massachusetts flat tax rate verified - 5% + 9% surtax for 2025"
+  notes: "Massachusetts flat tax rate verified - 5% + 4% additional tax for 2025"
 
 references:
   - source_name: "Massachusetts Department of Revenue"

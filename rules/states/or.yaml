@@ -44,13 +44,13 @@ rate_schedule:
       income_from: 11100
       income_to: 125000
       rate: 0.0875
-      base_tax: 660.88
+      base_tax: 661.25
     - bracket_id: "OR-2025-S-4"
       filing_status: "single"
       income_from: 125000
       income_to: null
       rate: 0.099
-      base_tax: 10627.38
+      base_tax: 10627.50
 
     # Married Filing Jointly
     - bracket_id: "OR-2025-MFJ-1"
@@ -203,6 +203,6 @@ verification:
 
 references:
   - source_name: "Oregon Department of Revenue"
-    url: "https://www.oregon.gov/dor/"
+    url: "https://www.oregon.gov/dor/forms/FormsPubs/publication-or-17_101-431_2025.pdf"
     retrieved_date: "2025-02-20"
     notes: "Oregon 4 brackets"

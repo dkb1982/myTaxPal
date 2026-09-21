@@ -345,7 +345,7 @@ class TestUSStateComparisonCalculator:
         assert result.region_id == "US-TX"
         assert result.state_tax == Decimal(0)
         assert result.federal_tax > 0
-        assert "no state income tax" in " ".join(result.notes).lower()
+        assert result.breakdown.has_state_income_tax is False
 
     def test_calculate_simple_state_with_tax(self, calculator):
         """Test calculation for state with income tax."""
@@ -357,7 +357,9 @@ class TestUSStateComparisonCalculator:
         assert result.region_id == "US-CA"
         assert result.state_tax > 0
         assert result.federal_tax > 0
-        assert result.total_tax == result.federal_tax + result.state_tax
+        assert result.total_tax == (
+            result.federal_tax + result.state_tax + result.local_tax + result.employee_payroll_tax
+        )
 
     def test_calculate_with_income_breakdown(self, calculator):
         """Test calculation with income breakdown."""
@@ -372,7 +374,7 @@ class TestUSStateComparisonCalculator:
             filing_status="single",
         )
         assert result.gross_income == Decimal("160000")
-        assert len(result.income_type_results) > 0
+        assert result.income_type_results == []
 
     def test_calculate_city_with_local_tax(self, calculator):
         """Test calculation for city with local tax."""
@@ -919,16 +921,10 @@ class TestCurrencyConversionEdgeCases:
     def engine(self):
         return EnhancedComparisonEngine()
 
-    def test_unknown_currency_defaults_to_one(self, engine):
-        """Test that unknown currency codes default to 1.0 rate."""
-        # Unknown currency should default to 1.0 (same as USD base)
-        result = engine.convert_currency(
-            amount=Decimal("100"),
-            from_currency="USD",
-            to_currency="XYZ",  # Unknown currency
-        )
-        # Since XYZ defaults to 1.0 and USD is 1.0, result should be 100
-        assert result == Decimal("100.00")
+    def test_unknown_currency_is_rejected(self, engine):
+        """Missing rate data must not silently become a 1:1 conversion."""
+        with pytest.raises(ValueError, match="Missing exchange rate"):
+            engine.convert_currency(amount=Decimal("100"), from_currency="USD", to_currency="XYZ")
 
     def test_same_currency_no_conversion(self, engine):
         """Test that same currency returns unchanged amount."""
@@ -963,48 +959,18 @@ class TestCurrencyConversionEdgeCases:
 
     def test_invalid_exchange_rate_zero(self):
         """Test that zero exchange rate raises ValueError with currency info."""
-        engine = EnhancedComparisonEngine(
-            exchange_rates={"USD": Decimal("1.0"), "BAD": Decimal("0")}
-        )
-        with pytest.raises(ValueError) as exc_info:
-            engine.convert_currency(
-                amount=Decimal("100"),
-                from_currency="USD",
-                to_currency="BAD",
-            )
-        error_message = str(exc_info.value)
-        assert "BAD" in error_message
-        assert "Invalid exchange rate" in error_message
+        with pytest.raises(ValueError, match="finite and positive"):
+            EnhancedComparisonEngine(exchange_rates={"USD": Decimal("1.0"), "BAD": Decimal("0")})
 
     def test_invalid_exchange_rate_negative(self):
         """Test that negative exchange rate raises ValueError with currency info."""
-        engine = EnhancedComparisonEngine(
-            exchange_rates={"USD": Decimal("1.0"), "NEG": Decimal("-1.5")}
-        )
-        with pytest.raises(ValueError) as exc_info:
-            engine.convert_currency(
-                amount=Decimal("100"),
-                from_currency="USD",
-                to_currency="NEG",
-            )
-        error_message = str(exc_info.value)
-        assert "NEG" in error_message
-        assert "Invalid exchange rate" in error_message
+        with pytest.raises(ValueError, match="finite and positive"):
+            EnhancedComparisonEngine(exchange_rates={"USD": Decimal("1.0"), "NEG": Decimal("-1.5")})
 
     def test_both_currencies_invalid(self):
         """Test error message includes both currencies when both are invalid."""
-        engine = EnhancedComparisonEngine(
-            exchange_rates={"BAD1": Decimal("0"), "BAD2": Decimal("-1")}
-        )
-        with pytest.raises(ValueError) as exc_info:
-            engine.convert_currency(
-                amount=Decimal("100"),
-                from_currency="BAD1",
-                to_currency="BAD2",
-            )
-        error_message = str(exc_info.value)
-        assert "BAD1" in error_message
-        assert "BAD2" in error_message
+        with pytest.raises(ValueError, match="finite and positive"):
+            EnhancedComparisonEngine(exchange_rates={"BAD1": Decimal("0"), "BAD2": Decimal("-1")})
 
 
 # =============================================================================
@@ -1012,16 +978,12 @@ class TestCurrencyConversionEdgeCases:
 # =============================================================================
 
 
-class TestNewHampshireInterestDividendsTax:
-    """Tests for New Hampshire interest/dividends-only tax treatment."""
+class TestNewHampshireNoIncomeTax:
+    """NH's interest/dividends tax was repealed for 2025."""
 
     @pytest.fixture
     def calculator(self):
         return USStateComparisonCalculator()
-
-    def test_nh_in_interest_dividends_only_states(self):
-        """Test that NH is in the interest/dividends only states list."""
-        assert "US-NH" in INTEREST_DIVIDENDS_ONLY_STATES
 
     def test_nh_taxes_only_interest_and_dividends(self, calculator):
         """Test NH only taxes interest and dividends, not wages."""
@@ -1034,7 +996,7 @@ class TestNewHampshireInterestDividendsTax:
         )
         assert result_wages.state_tax == Decimal(0)
 
-        # Income with interest and dividends - should have state tax
+        # Interest/dividends are also untaxed after repeal.
         interest_income = IncomeBreakdown(
             employment_wages=Decimal("50000"),
             interest=Decimal("10000"),
@@ -1045,12 +1007,10 @@ class TestNewHampshireInterestDividendsTax:
             income=interest_income,
             filing_status="single",
         )
-        # NH taxes interest and dividends at 3% (PLACEHOLDER)
-        expected_tax = (Decimal("15000") * Decimal("0.03")).quantize(Decimal("0.01"))
-        assert result_interest.state_tax == expected_tax
+        assert result_interest.state_tax == Decimal(0)
 
     def test_nh_qualified_dividends_taxed(self, calculator):
-        """Test NH taxes both qualified and ordinary dividends."""
+        """Test NH dividends are not taxed in calendar year 2025."""
         income = IncomeBreakdown(
             dividends_qualified=Decimal("10000"),
             dividends_ordinary=Decimal("5000"),
@@ -1060,19 +1020,17 @@ class TestNewHampshireInterestDividendsTax:
             income=income,
             filing_status="single",
         )
-        # Both types of dividends are taxed in NH
-        expected_tax = (Decimal("15000") * Decimal("0.03")).quantize(Decimal("0.01"))
-        assert result.state_tax == expected_tax
+        assert result.state_tax == Decimal(0)
 
     def test_nh_has_income_tax_flag(self, calculator):
-        """Test NH shows as having income tax (even though limited)."""
+        """Test NH is reported as a no-income-tax state."""
         income = IncomeBreakdown(interest=Decimal("10000"))
         result = calculator.calculate(
             region_id="US-NH",
             income=income,
             filing_status="single",
         )
-        assert result.breakdown.has_state_income_tax is True
+        assert result.breakdown.has_state_income_tax is False
 
 
 # =============================================================================
@@ -1191,8 +1149,8 @@ class TestLTCGRates:
         )
         # After standard deduction ($15,000), taxable LTCG is $15,000
         # $15,000 is well within 0% threshold ($48,350), so all at 0%
-        assert result.breakdown.federal_taxable_income == Decimal("15000")
-        assert result.breakdown.ltcg_at_zero_percent == Decimal("15000")
+        assert result.breakdown.federal_taxable_income == Decimal("14250")
+        assert result.breakdown.ltcg_at_zero_percent == Decimal("14250")
         assert result.breakdown.ltcg_at_fifteen_percent == Decimal(0)
         assert result.breakdown.ltcg_at_twenty_percent == Decimal(0)
         assert result.breakdown.federal_ltcg_tax == Decimal(0)
@@ -1321,10 +1279,10 @@ class TestLTCGRates:
             income=income,
             filing_status="single",
         )
-        assert result.breakdown.federal_taxable_income == Decimal("10000")
+        assert result.breakdown.federal_taxable_income == Decimal("9250")
         assert result.breakdown.federal_ordinary_tax == Decimal(0)
         # $10,000 is within 0% LTCG bracket
-        assert result.breakdown.ltcg_at_zero_percent == Decimal("10000")
+        assert result.breakdown.ltcg_at_zero_percent == Decimal("9250")
         assert result.breakdown.federal_ltcg_tax == Decimal(0)
 
     def test_deduction_fully_absorbed_by_wages(self, calculator):
@@ -1341,7 +1299,7 @@ class TestLTCGRates:
             income=income,
             filing_status="single",
         )
-        assert result.breakdown.federal_taxable_income == Decimal("65000")
+        assert result.breakdown.federal_taxable_income == Decimal("64250")
         # LTCG should be the full $30K (no spillover needed)
         total_ltcg = (
             result.breakdown.ltcg_at_zero_percent +

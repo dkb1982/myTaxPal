@@ -11,9 +11,8 @@ tax different income types at different rates (e.g., Singapore has no CGT).
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 class IncomeBreakdown(BaseModel):
@@ -35,12 +34,12 @@ class IncomeBreakdown(BaseModel):
     capital_gains_short_term: Decimal = Field(
         default=Decimal(0),
         ge=0,
-        description="Capital gains on assets held less than 1 year"
+        description="Capital gains on assets held one year or less (US definition)"
     )
     capital_gains_long_term: Decimal = Field(
         default=Decimal(0),
         ge=0,
-        description="Capital gains on assets held 1 year or more"
+        description="Capital gains on assets held more than one year (US definition)"
     )
     dividends_qualified: Decimal = Field(
         default=Decimal(0),
@@ -50,7 +49,7 @@ class IncomeBreakdown(BaseModel):
     dividends_ordinary: Decimal = Field(
         default=Decimal(0),
         ge=0,
-        description="Ordinary dividends (taxed as ordinary income)"
+        description="Non-qualified dividends only; excludes the separate dividends_qualified amount"
     )
     interest: Decimal = Field(
         default=Decimal(0),

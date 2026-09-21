@@ -84,25 +84,25 @@ class TestCaliforniaTax:
     def calculator(self) -> StateCalculator:
         return StateCalculator()
 
-    def test_california_has_10_brackets(self, calculator: StateCalculator) -> None:
-        """Test California has 10 tax brackets."""
+    def test_california_has_9_brackets(self, calculator: StateCalculator) -> None:
+        """Test California has 9 tax brackets."""
         from tax_estimator.calculation.states.loader import StateRulesLoader
         loader = StateRulesLoader()
         rules = loader.load_state_rules("CA")
         single_brackets = rules.get_brackets_for_status("single")
-        assert len(single_brackets) == 10
+        assert len(single_brackets) == 9
 
-    def test_california_top_rate_13_3_percent(
+    def test_california_top_bracket_12_3_plus_separate_surtax(
         self, calculator: StateCalculator
     ) -> None:
-        """Test California top rate is 13.3%."""
+        """Test the 12.3% top bracket; the 1% surtax is separate."""
         result = calculator.calculate_for_state(
             state_code="CA",
             tax_year=2025,
             filing_status="single",
             federal_agi=Decimal("5000000"),  # $5M to hit top bracket
         )
-        assert result.marginal_rate == Decimal("0.133")
+        assert result.marginal_rate == Decimal("0.123")
 
     def test_california_lowest_rate_1_percent(
         self, calculator: StateCalculator

@@ -44,6 +44,13 @@ class AdjustmentsAGIStage(CalculationStage):
         gross_income = context.get_decimal_result("gross_income")
         se_net = context.get_decimal_result("self_employment_net")
 
+        employee_ss_tax, employee_medicare_tax = self._calculate_employee_payroll_tax(
+            input_data, context
+        )
+        context.set_result("employee_social_security_tax", employee_ss_tax)
+        context.set_result("employee_medicare_tax", employee_medicare_tax)
+        context.set_result("employee_payroll_tax", employee_ss_tax + employee_medicare_tax)
+
         # Track all adjustments
         total_adjustments = Decimal(0)
 
@@ -63,7 +70,10 @@ class AdjustmentsAGIStage(CalculationStage):
         # HSA contributions
         hsa = adjustments.hsa_contributions
         if hsa > 0:
-            # TODO: Validate against HSA limits
+            context.add_warning(
+                "HSA deduction eligibility and the taxpayer-specific contribution limit "
+                "were not validated from the available inputs."
+            )
             total_adjustments += hsa
             trace.add_step(
                 step_id="ADJ-002",
@@ -76,6 +86,11 @@ class AdjustmentsAGIStage(CalculationStage):
 
         # Self-employment tax deduction (half of SE tax)
         se_tax_deduction = Decimal(0)
+        if se_net > 0:
+            context.add_warning(
+                "The qualified business income deduction is not calculated; "
+                "self-employment scenarios may overstate taxable income."
+            )
         if se_net >= 400:
             se_tax = self._calculate_self_employment_tax(se_net, context)
             se_tax_deduction = (se_tax / 2).quantize(Decimal("0.01"))
@@ -97,6 +112,9 @@ class AdjustmentsAGIStage(CalculationStage):
             max(se_net, Decimal(0)),  # Cannot exceed SE net income
         )
         if se_health > 0:
+            context.add_warning(
+                "Self-employed health-insurance deduction eligibility was not fully validated."
+            )
             total_adjustments += se_health
             trace.add_step(
                 step_id="ADJ-004",
@@ -113,7 +131,10 @@ class AdjustmentsAGIStage(CalculationStage):
         # Self-employed retirement contributions
         se_retirement = adjustments.self_employed_retirement
         if se_retirement > 0:
-            # TODO: Validate against limits
+            context.add_warning(
+                "Self-employed retirement deduction eligibility and plan-specific limits "
+                "were not fully validated."
+            )
             total_adjustments += se_retirement
             trace.add_step(
                 step_id="ADJ-005",
@@ -124,31 +145,13 @@ class AdjustmentsAGIStage(CalculationStage):
                 jurisdiction="US",
             )
 
-        # Student loan interest (max $2,500, with phase-out)
-        student_loan = min(adjustments.student_loan_interest, Decimal(2500))
-        if student_loan > 0:
-            # Apply phase-out
-            student_loan = self._apply_student_loan_phaseout(
-                student_loan, gross_income, input_data.filing_status.value
-            )
-            if student_loan > 0:
-                total_adjustments += student_loan
-                trace.add_step(
-                    step_id="ADJ-006",
-                    label="Student Loan Interest",
-                    formula="Interest paid up to $2,500, subject to phase-out",
-                    inputs={
-                        "interest_paid": str(adjustments.student_loan_interest),
-                        "after_phaseout": str(student_loan),
-                    },
-                    result=student_loan,
-                    jurisdiction="US",
-                )
-
         # Traditional IRA contributions
         ira = adjustments.traditional_ira_contributions
         if ira > 0:
-            # TODO: Validate against limits and apply phase-out
+            context.add_warning(
+                "Traditional IRA deduction eligibility and workplace-plan phaseout "
+                "were not validated from the available inputs."
+            )
             total_adjustments += ira
             trace.add_step(
                 step_id="ADJ-007",
@@ -179,6 +182,73 @@ class AdjustmentsAGIStage(CalculationStage):
                 result=alimony,
                 jurisdiction="US",
             )
+
+        # Pub. 915 excludes the student-loan-interest adjustment (Schedule 1,
+        # line 21) from its worksheet, but includes the other adjustments this
+        # model exposes. Recalculate benefits now that deductible SE tax is known.
+        from tax_estimator.calculation.stages.stage_02_income_aggregation import (
+            IncomeAggregationStage,
+        )
+
+        provisional_adjustments = total_adjustments
+        ss_benefits = context.get_decimal_result("ss_benefits")
+        if ss_benefits:
+            ss_taxable = IncomeAggregationStage()._calculate_taxable_social_security(
+                benefits=ss_benefits,
+                other_income=context.get_decimal_result("gross_income_before_social_security"),
+                tax_exempt_interest=context.get_decimal_result("tax_exempt_interest"),
+                relevant_adjustments=provisional_adjustments,
+                filing_status=input_data.filing_status.value,
+                lived_with_spouse_during_year=input_data.lived_with_spouse_during_year,
+            )
+            context.set_result("ss_taxable", ss_taxable)
+            gross_income = (
+                context.get_decimal_result("gross_income_before_social_security") + ss_taxable
+            )
+            context.set_result("gross_income", gross_income)
+
+        # Publication 970 MAGI starts with AGI before this deduction, so every
+        # other Schedule 1 adjustment above is subtracted first. Student-loan
+        # interest does not feed back into the Pub. 915 benefit worksheet.
+        student_loan = Decimal(0)
+        claimed_student_loan = min(adjustments.student_loan_interest, Decimal(2500))
+        student_loan_magi = gross_income - total_adjustments
+        if claimed_student_loan > 0:
+            if input_data.filing_status.value == "mfs":
+                context.add_warning(
+                    "Student-loan-interest deduction omitted: married filing separately "
+                    "is not eligible."
+                )
+            elif input_data.taxpayer.is_dependent:
+                context.add_warning(
+                    "Student-loan-interest deduction omitted: the taxpayer is claimed "
+                    "as a dependent."
+                )
+            else:
+                context.add_warning(
+                    "Student-loan-interest estimate assumes a qualified loan, legal payment "
+                    "obligation, and no employer/QTP double benefit. Foreign-income MAGI "
+                    "addbacks are not represented by the available inputs."
+                )
+                student_loan = self._apply_student_loan_phaseout(
+                    claimed_student_loan,
+                    student_loan_magi,
+                    input_data.filing_status.value,
+                )
+                total_adjustments += student_loan
+                if student_loan > 0:
+                    trace.add_step(
+                        step_id="ADJ-006",
+                        label="Student Loan Interest",
+                        formula="2025 Publication 970 MAGI phaseout",
+                        inputs={
+                            "interest_paid": str(adjustments.student_loan_interest),
+                            "magi_before_student_loan_deduction": str(student_loan_magi),
+                            "after_phaseout": str(student_loan),
+                        },
+                        result=student_loan,
+                        jurisdiction="US",
+                    )
 
         # Calculate AGI
         agi = gross_income - total_adjustments
@@ -218,15 +288,13 @@ class AdjustmentsAGIStage(CalculationStage):
         context.set_result("agi", agi)
         context.set_result("se_tax_deduction", se_tax_deduction)
 
-        # Calculate Additional Medicare Tax (0.9% on wages over threshold)
+        # Calculate Additional Medicare Tax once across wages and SE earnings.
         additional_medicare = self._calculate_additional_medicare_tax(input_data, agi, context)
-        if additional_medicare > 0:
-            context.set_result("additional_medicare_tax", additional_medicare)
+        context.set_result("additional_medicare_tax", additional_medicare)
 
         # Calculate Net Investment Income Tax (NIIT)
         niit = self._calculate_niit(agi, context, input_data.filing_status.value)
-        if niit > 0:
-            context.set_result("niit", niit)
+        context.set_result("niit", niit)
 
         return self._success(f"AGI: ${agi:,.2f}")
 
@@ -256,34 +324,106 @@ class AdjustmentsAGIStage(CalculationStage):
                 "Ensure rules/federal/2025.yaml has payroll_taxes section."
             )
 
-        # Taxable SE income = 92.35% of net SE income
-        taxable_se = net_se_income * se_factor
+        wages_by_owner = {"taxpayer": Decimal(0), "spouse": Decimal(0)}
+        for wage in context.input.wages:
+            ss_wages = (
+                wage.social_security_wages
+                if wage.social_security_wages is not None
+                else wage.gross_wages
+            )
+            wages_by_owner[wage.owner] += ss_wages
 
-        # Social Security portion: 12.4% up to wage base
-        wages = context.get_decimal_result("wages", Decimal(0))
+        se_by_owner = {"taxpayer": Decimal(0), "spouse": Decimal(0)}
+        for business in context.input.self_employment:
+            se_by_owner[business.owner] += business.net_income
 
-        ss_remaining = max(Decimal(0), ss_wage_base - wages)
-        ss_taxable = min(taxable_se, ss_remaining)
-        ss_tax = ss_taxable * ss_rate
-
-        # Medicare portion: 2.9% on all SE income
-        medicare_tax = taxable_se * medicare_rate
-
-        total_se_tax = ss_tax + medicare_tax
+        total_se_tax = Decimal(0)
+        for owner, owner_net_se in se_by_owner.items():
+            if owner_net_se < 400:
+                continue
+            taxable_se = owner_net_se * se_factor
+            ss_remaining = max(Decimal(0), ss_wage_base - wages_by_owner[owner])
+            ss_taxable = min(taxable_se, ss_remaining)
+            total_se_tax += ss_taxable * ss_rate
+            total_se_tax += taxable_se * medicare_rate
 
         return total_se_tax.quantize(Decimal("0.01"))
+
+    def _calculate_employee_payroll_tax(
+        self, input_data, context: CalculationContext
+    ) -> tuple[Decimal, Decimal]:
+        """Annual employee Social Security and ordinary Medicare tax."""
+        payroll_config = context.get_rules("US").payroll_taxes
+        if payroll_config is None:
+            raise ValueError("Federal payroll tax configuration is required")
+
+        wage_base = Decimal(str(payroll_config.social_security_wage_base))
+        ss_rate = Decimal(str(payroll_config.social_security_rate))
+        medicare_rate = Decimal(str(payroll_config.medicare_rate))
+        ss_by_owner = {"taxpayer": Decimal(0), "spouse": Decimal(0)}
+        total_medicare_wages = Decimal(0)
+        missing_owner = False
+        missing_box3 = False
+        missing_box5 = False
+
+        for wage in input_data.wages:
+            if "owner" not in wage.model_fields_set:
+                missing_owner = True
+            if wage.social_security_wages is None:
+                missing_box3 = True
+                ss_wages = wage.gross_wages
+            else:
+                ss_wages = wage.social_security_wages
+            if wage.medicare_wages is None:
+                missing_box5 = True
+                medicare_wages = wage.gross_wages
+            else:
+                medicare_wages = wage.medicare_wages
+            ss_by_owner[wage.owner] += ss_wages
+            total_medicare_wages += medicare_wages
+
+        if missing_box3:
+            context.add_warning(
+                "W-2 Box 3 Social Security wages were omitted; "
+                "Box 1 wages were used as an estimate."
+            )
+        if missing_box5:
+            context.add_warning(
+                "W-2 Box 5 Medicare wages were omitted; Box 1 wages were used as an estimate."
+            )
+        if input_data.filing_status.value == "mfj" and missing_owner and input_data.wages:
+            context.add_warning(
+                "One or more MFJ wage owners were omitted; those jobs were treated as belonging "
+                "to the taxpayer for the annual Social Security wage base."
+            )
+        if (
+            input_data.filing_status.value == "mfj"
+            and any("owner" not in item.model_fields_set for item in input_data.self_employment)
+            and input_data.self_employment
+        ):
+            context.add_warning(
+                "One or more MFJ self-employment owners were omitted; those businesses were "
+                "treated as belonging to the taxpayer."
+            )
+
+        employee_ss_tax = sum(
+            (min(amount, wage_base) * ss_rate for amount in ss_by_owner.values()),
+            Decimal(0),
+        ).quantize(Decimal("0.01"))
+        employee_medicare_tax = (total_medicare_wages * medicare_rate).quantize(Decimal("0.01"))
+        return employee_ss_tax, employee_medicare_tax
 
     def _apply_student_loan_phaseout(
         self, amount: Decimal, income: Decimal, filing_status: str
     ) -> Decimal:
         """Apply phase-out for student loan interest deduction."""
-        # Phase-out thresholds (2025 PLACEHOLDER)
+        # 2025 Publication 970, chapter 4.
         if filing_status == "mfj":
-            start = Decimal(155000)
-            end = Decimal(185000)
+            start = Decimal(170000)
+            end = Decimal(200000)
         else:
-            start = Decimal(75000)
-            end = Decimal(90000)
+            start = Decimal(85000)
+            end = Decimal(100000)
 
         if income <= start:
             return amount
@@ -308,24 +448,32 @@ class AdjustmentsAGIStage(CalculationStage):
         - MFJ: $250,000
         - MFS: $125,000
         """
-        # Get Medicare wages from W-2 incomes
+        # Form 8959 applies the threshold first to wages, then reduces the
+        # threshold remaining for positive Schedule SE earnings.
         medicare_wages = input_data.total_medicare_wages()
-
-        if medicare_wages <= 0:
-            return Decimal(0)
+        se_factor = Decimal(str(context.get_rules("US").payroll_taxes.self_employment_factor))
+        se_by_owner = {"taxpayer": Decimal(0), "spouse": Decimal(0)}
+        for business in input_data.self_employment:
+            se_by_owner[business.owner] += business.net_income
+        medicare_se_income = sum(
+            (max(Decimal(0), amount) * se_factor for amount in se_by_owner.values()),
+            Decimal(0),
+        )
 
         # Get threshold based on filing status
         filing_status = input_data.filing_status.value
-        if filing_status in ("mfj", "qss"):
+        if filing_status == "mfj":
             threshold = Decimal(250000)
         elif filing_status == "mfs":
             threshold = Decimal(125000)
         else:  # single, hoh
             threshold = Decimal(200000)
 
-        # Calculate excess wages over threshold
+        # Calculate wage part and wages-first SE part.
         excess_wages = max(Decimal(0), medicare_wages - threshold)
-        if excess_wages <= 0:
+        remaining_threshold = max(Decimal(0), threshold - medicare_wages)
+        excess_se_income = max(Decimal(0), medicare_se_income - remaining_threshold)
+        if excess_wages <= 0 and excess_se_income <= 0:
             return Decimal(0)
 
         # Get rate from config
@@ -335,17 +483,19 @@ class AdjustmentsAGIStage(CalculationStage):
         else:
             rate = Decimal("0.009")
 
-        additional_medicare = (excess_wages * rate).quantize(Decimal("0.01"))
+        additional_medicare = ((excess_wages + excess_se_income) * rate).quantize(Decimal("0.01"))
 
         # Trace the calculation
         context.trace.add_step(
             step_id="ADD-MEDICARE",
             label="Additional Medicare Tax",
-            formula="0.9% x (Medicare Wages - Threshold)",
+            formula="0.9% x (excess Medicare wages + wages-first excess SE earnings)",
             inputs={
                 "medicare_wages": str(medicare_wages),
                 "threshold": str(threshold),
                 "excess_wages": str(excess_wages),
+                "self_employment_medicare_income": str(medicare_se_income),
+                "excess_self_employment_income": str(excess_se_income),
                 "rate": str(rate),
             },
             result=additional_medicare,
@@ -368,7 +518,7 @@ class AdjustmentsAGIStage(CalculationStage):
         - MFS: $125,000
         """
         # Get investment income from stage 02
-        investment_income = context.get_decimal_result("investment_income", Decimal(0))
+        investment_income = context.get_decimal_result("net_investment_income", Decimal(0))
 
         if investment_income <= 0:
             return Decimal(0)

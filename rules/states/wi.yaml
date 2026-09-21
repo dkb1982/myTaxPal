@@ -39,19 +39,19 @@ rate_schedule:
       income_from: 14680
       income_to: 50480
       rate: 0.044
-      base_tax: 513.8
+      base_tax: 514
     - bracket_id: "WI-2025-S-3"
       filing_status: "single"
       income_from: 50480
       income_to: 323290
       rate: 0.053
-      base_tax: 2088.6
+      base_tax: 2089
     - bracket_id: "WI-2025-S-4"
       filing_status: "single"
       income_from: 323290
       income_to: null
       rate: 0.0765
-      base_tax: 16533.83
+      base_tax: 16534
 
     # Married Filing Jointly
     - bracket_id: "WI-2025-MFJ-1"
@@ -165,7 +165,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 13700
+        amount: 13560
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 27400
@@ -181,8 +181,8 @@ deductions:
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 700
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 
@@ -208,6 +208,6 @@ verification:
 
 references:
   - source_name: "Wisconsin Department of Revenue"
-    url: null
+    url: "https://www.revenue.wi.gov/TaxForms2025/2025-Form1-Inst.pdf"
     retrieved_date: "2025-02-20"
     notes: "2025 individual income tax rate schedule"

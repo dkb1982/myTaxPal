@@ -21,7 +21,6 @@ from tax_estimator.models.international import (
     TaxComponent,
 )
 
-
 # =============================================================================
 # PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
 # =============================================================================
@@ -101,6 +100,17 @@ class HKCalculator(BaseCountryCalculator):
             is_single_parent = False
             mpf_deducted = Decimal(0)
 
+        if tax_input.income_breakdown is not None:
+            income = tax_input.income_breakdown
+            employment_income = income.employment_wages
+            notes.append(
+                "Salaries Tax/MPF apply only to employment wages; personal capital gains and dividends are not treated as salary. Trading gains and stock compensation require separate classification."
+            )
+            if income.self_employment or income.rental or income.interest:
+                notes.append(
+                    "This salaries-tax estimate excludes business, property and other non-salary tax regimes; the result is incomplete for these income categories."
+                )
+
         # Calculate MPF contribution
         mpf, mpf_breakdown = self._calculate_mpf(employment_income)
         breakdown.extend(mpf_breakdown)
@@ -121,10 +131,7 @@ class HKCalculator(BaseCountryCalculator):
         )
 
         # Net chargeable income (for progressive rates)
-        net_chargeable_income = max(
-            Decimal(0),
-            employment_income - mpf - total_allowances
-        )
+        net_chargeable_income = max(Decimal(0), employment_income - mpf - total_allowances)
 
         # Net income (for standard rate - no allowances deducted)
         net_income_for_standard = max(Decimal(0), employment_income - mpf)
@@ -215,9 +222,7 @@ class HKCalculator(BaseCountryCalculator):
 
         return allowances
 
-    def _calculate_mpf(
-        self, income: Decimal
-    ) -> tuple[Decimal, list[TaxComponent]]:
+    def _calculate_mpf(self, income: Decimal) -> tuple[Decimal, list[TaxComponent]]:
         """Calculate MPF contribution."""
         # Monthly income (assume 12 months)
         monthly_income = income / 12
@@ -226,10 +231,7 @@ class HKCalculator(BaseCountryCalculator):
             return Decimal(0), []
 
         # Calculate monthly contribution
-        monthly_contribution = min(
-            monthly_income * MPF_RATE,
-            MPF_MAX_MONTHLY
-        )
+        monthly_contribution = min(monthly_income * MPF_RATE, MPF_MAX_MONTHLY)
 
         # Annual contribution
         mpf = (monthly_contribution * 12).quantize(Decimal("0.01"))

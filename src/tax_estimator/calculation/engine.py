@@ -15,7 +15,7 @@ from tax_estimator.calculation.context import CalculationContext
 from tax_estimator.calculation.pipeline import CalculationPipeline, PipelineError
 from tax_estimator.calculation.trace import CalculationTrace
 from tax_estimator.models.tax_result import CalculationResult
-from tax_estimator.rules.loader import get_rules_for_jurisdiction, RulesLoadError
+from tax_estimator.rules.loader import RulesLoadError, get_rules_for_jurisdiction
 
 if TYPE_CHECKING:
     from tax_estimator.models.tax_input import TaxInput
@@ -46,7 +46,7 @@ class CalculationEngine:
         self._include_trace = include_trace
         self._pipeline = CalculationPipeline()
 
-    def calculate(self, tax_input: "TaxInput") -> CalculationResult:
+    def calculate(self, tax_input: TaxInput) -> CalculationResult:
         """
         Perform a complete tax calculation.
 
@@ -116,24 +116,8 @@ class CalculationEngine:
                 errors=[f"Failed to load tax rules: {e}"],
             )
 
-        # Load state rules if residence state has income tax
-        residence_state = tax_input.residence_state.upper()
-        state_jurisdiction = f"US-{residence_state}"
-
-        try:
-            state_rules = get_rules_for_jurisdiction(
-                state_jurisdiction,
-                tax_input.tax_year,
-                self._rules_dir,
-            )
-            context.jurisdiction_rules[state_jurisdiction] = state_rules
-        except RulesLoadError:
-            # State rules not available - this is OK for MVP
-            # Just add a warning
-            context.add_warning(
-                f"State tax rules for {residence_state} not available. "
-                "Only federal tax will be calculated."
-            )
+        # State/local stages load their own schema; the federal rules loader
+        # cannot interpret those files. Failures are handled by those stages.
 
         # Execute the pipeline
         try:
@@ -171,7 +155,7 @@ class CalculationEngine:
                 errors=[str(e)],
             )
 
-    def calculate_federal_only(self, tax_input: "TaxInput") -> CalculationResult:
+    def calculate_federal_only(self, tax_input: TaxInput) -> CalculationResult:
         """
         Calculate federal tax only, ignoring state.
 

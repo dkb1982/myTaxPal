@@ -56,19 +56,19 @@ rate_schedule:
       income_from: 75000
       income_to: 500000
       rate: 0.0637
-      base_tax: 2652.50
+      base_tax: 2651.25
     - bracket_id: "NJ-2025-S-6"
       filing_status: "single"
       income_from: 500000
       income_to: 1000000
       rate: 0.0897
-      base_tax: 34750
+      base_tax: 29723.75
     - bracket_id: "NJ-2025-S-7"
       filing_status: "single"
       income_from: 1000000
       income_to: null
       rate: 0.1075
-      base_tax: 79675
+      base_tax: 74623.75
 
     # Married Filing Jointly
     - bracket_id: "NJ-2025-MFJ-1"
@@ -144,19 +144,19 @@ rate_schedule:
       income_from: 75000
       income_to: 500000
       rate: 0.0637
-      base_tax: 2652.50
+      base_tax: 2651.25
     - bracket_id: "NJ-2025-MFS-6"
       filing_status: "mfs"
       income_from: 500000
       income_to: 1000000
       rate: 0.0897
-      base_tax: 34750
+      base_tax: 29723.75
     - bracket_id: "NJ-2025-MFS-7"
       filing_status: "mfs"
       income_from: 1000000
       income_to: null
       rate: 0.1075
-      base_tax: 79675
+      base_tax: 74623.75
 
     # Head of Household - Same as MFJ
     - bracket_id: "NJ-2025-HOH-1"

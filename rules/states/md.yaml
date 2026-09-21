@@ -43,57 +43,51 @@ rate_schedule:
     - bracket_id: "MD-2025-S-3"
       filing_status: "single"
       income_from: 2000
-      income_to: 3100
+      income_to: 3000
       rate: 0.04
       base_tax: 50
     - bracket_id: "MD-2025-S-4"
       filing_status: "single"
-      income_from: 3100
+      income_from: 3000
       income_to: 100000
       rate: 0.0475
-      base_tax: 94
+      base_tax: 90
     - bracket_id: "MD-2025-S-5"
       filing_status: "single"
       income_from: 100000
       income_to: 125000
       rate: 0.05
-      base_tax: 4646.75
+      base_tax: 4697.50
     - bracket_id: "MD-2025-S-6"
       filing_status: "single"
       income_from: 125000
       income_to: 150000
       rate: 0.0525
-      base_tax: 5896.75
+      base_tax: 5947.50
     - bracket_id: "MD-2025-S-7"
       filing_status: "single"
       income_from: 150000
       income_to: 250000
       rate: 0.055
-      base_tax: 7211.75
+      base_tax: 7260
     - bracket_id: "MD-2025-S-8"
       filing_status: "single"
       income_from: 250000
       income_to: 500000
       rate: 0.0575
-      base_tax: 12711.75
+      base_tax: 12760
     - bracket_id: "MD-2025-S-9"
       filing_status: "single"
       income_from: 500000
       income_to: 1000000
-      rate: 0.06
-      base_tax: 27111.75
+      rate: 0.0625
+      base_tax: 27135
     - bracket_id: "MD-2025-S-10"
       filing_status: "single"
       income_from: 1000000
-      income_to: 2000000
-      rate: 0.0625
-      base_tax: 57111.75
-    - bracket_id: "MD-2025-S-11"
-      filing_status: "single"
-      income_from: 2000000
       income_to: null
       rate: 0.065
-      base_tax: 119611.75
+      base_tax: 58385
 
     # Married Filing Jointly
     - bracket_id: "MD-2025-MFJ-1"
@@ -375,7 +369,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 12500
+        amount: 3350
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 25000
@@ -391,8 +385,8 @@ deductions:
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 3200
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 

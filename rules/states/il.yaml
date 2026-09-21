@@ -39,7 +39,7 @@ deductions:
     additional_amounts: []
   exemptions:
     personal_exemption_available: true
-    personal_exemption_amount: 2625  # PLACEHOLDER
+    personal_exemption_amount: 2850
     dependent_exemption_available: true
     dependent_exemption_amount: 2625  # PLACEHOLDER
 

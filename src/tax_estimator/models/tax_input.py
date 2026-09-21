@@ -11,7 +11,9 @@ from decimal import Decimal
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from tax_estimator.models.us_scenario import USScenarioFacts
 
 
 class FilingStatus(str, Enum):
@@ -38,11 +40,22 @@ class WageIncome(BaseModel):
     state_withholding: Decimal = Field(
         default=Decimal(0), ge=0, description="Box 17 state tax withheld"
     )
-    social_security_wages: Decimal = Field(
-        default=Decimal(0), ge=0, description="Box 3 social security wages"
+    local_withholding: Decimal = Field(
+        default=Decimal(0), ge=0, description="Local income tax withheld"
     )
-    medicare_wages: Decimal = Field(
-        default=Decimal(0), ge=0, description="Box 5 Medicare wages"
+    social_security_wages: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description="Box 3 social security wages; omitted values fall back to Box 1",
+    )
+    medicare_wages: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description="Box 5 Medicare wages; omitted values fall back to Box 1",
+    )
+    owner: Literal["taxpayer", "spouse"] = Field(
+        default="taxpayer",
+        description="Person whose annual Social Security wage base applies",
     )
 
 
@@ -52,6 +65,10 @@ class SelfEmploymentIncome(BaseModel):
     business_name: str = Field(default="", description="Name of business")
     gross_income: Decimal = Field(..., ge=0, description="Gross business income")
     expenses: Decimal = Field(default=Decimal(0), ge=0, description="Business expenses")
+    owner: Literal["taxpayer", "spouse"] = Field(
+        default="taxpayer",
+        description="Person whose Schedule SE and Social Security wage base apply",
+    )
 
     @property
     def net_income(self) -> Decimal:
@@ -77,9 +94,7 @@ class InterestDividendIncome(BaseModel):
 
     @field_validator("qualified_dividends")
     @classmethod
-    def qualified_not_exceeding_ordinary(
-        cls, v: Decimal, info
-    ) -> Decimal:
+    def qualified_not_exceeding_ordinary(cls, v: Decimal, info) -> Decimal:
         """Ensure qualified dividends don't exceed ordinary dividends."""
         ordinary = info.data.get("ordinary_dividends", Decimal(0))
         if v > ordinary:
@@ -97,8 +112,27 @@ class CapitalGains(BaseModel):
         default=Decimal(0), description="Net long-term capital gains (can be negative)"
     )
     carryover_loss: Decimal = Field(
-        default=Decimal(0), ge=0, description="Capital loss carryover from prior years"
+        default=Decimal(0),
+        ge=0,
+        description="Legacy untyped carryover; treated as long-term loss conservatively",
     )
+    short_term_carryover_loss: Decimal = Field(
+        default=Decimal(0), ge=0, description="Prior-year short-term capital loss carryover"
+    )
+    long_term_carryover_loss: Decimal = Field(
+        default=Decimal(0), ge=0, description="Prior-year long-term capital loss carryover"
+    )
+
+    @model_validator(mode="after")
+    def reject_mixed_legacy_and_typed_carryovers(self) -> CapitalGains:
+        """Avoid counting or inventing the character of a carryover twice."""
+        if self.carryover_loss and (
+            self.short_term_carryover_loss or self.long_term_carryover_loss
+        ):
+            raise ValueError(
+                "carryover_loss cannot be combined with typed short/long-term carryovers"
+            )
+        return self
 
 
 class RetirementIncome(BaseModel):
@@ -107,9 +141,7 @@ class RetirementIncome(BaseModel):
     social_security_benefits: Decimal = Field(
         default=Decimal(0), ge=0, description="Total Social Security benefits"
     )
-    pension_income: Decimal = Field(
-        default=Decimal(0), ge=0, description="Taxable pension income"
-    )
+    pension_income: Decimal = Field(default=Decimal(0), ge=0, description="Taxable pension income")
     ira_distributions: Decimal = Field(
         default=Decimal(0), ge=0, description="Traditional IRA/401k distributions"
     )
@@ -124,9 +156,7 @@ class Adjustments(BaseModel):
     educator_expenses: Decimal = Field(
         default=Decimal(0), ge=0, description="Educator expenses (max $300)"
     )
-    hsa_contributions: Decimal = Field(
-        default=Decimal(0), ge=0, description="HSA contributions"
-    )
+    hsa_contributions: Decimal = Field(default=Decimal(0), ge=0, description="HSA contributions")
     self_employed_health_insurance: Decimal = Field(
         default=Decimal(0), ge=0, description="Self-employed health insurance premiums"
     )
@@ -142,9 +172,7 @@ class Adjustments(BaseModel):
     alimony_paid: Decimal = Field(
         default=Decimal(0), ge=0, description="Alimony paid (pre-2019 divorces only)"
     )
-    alimony_divorce_year: int | None = Field(
-        default=None, description="Year of divorce decree"
-    )
+    alimony_divorce_year: int | None = Field(default=None, description="Year of divorce decree")
 
 
 class ItemizedDeductions(BaseModel):
@@ -191,26 +219,77 @@ class Dependent(BaseModel):
     has_ssn: bool = Field(default=True, description="Has valid SSN")
     is_student: bool = Field(default=False, description="Is full-time student")
     is_disabled: bool = Field(default=False, description="Is permanently disabled")
-    qualifies_for_ctc: bool = Field(
-        default=False, description="Qualifies for Child Tax Credit"
+    qualifies_for_ctc: bool = Field(default=False, description="Qualifies for Child Tax Credit")
+    qualifies_for_odc: bool = Field(
+        default=False,
+        description="Claimant assertion that all other-dependent-credit tests are met",
     )
+    qualifies_for_eitc: bool | None = Field(
+        default=None,
+        description="Claimant assertion that all EITC qualifying-child tests are met",
+    )
+
+    @model_validator(mode="after")
+    def reject_conflicting_dependent_credit_assertions(self) -> Dependent:
+        """A dependent cannot receive both CTC and ODC for the same return."""
+        if self.qualifies_for_ctc and self.qualifies_for_odc:
+            raise ValueError("a dependent cannot qualify for both CTC and ODC")
+        return self
 
 
 class TaxpayerInfo(BaseModel):
     """Information about the taxpayer."""
 
     age_65_or_older: bool = Field(default=False, description="Age 65 or older")
+    age_at_year_end: int | None = Field(
+        default=None, ge=0, le=120, description="Age on the last day of the tax year"
+    )
     is_blind: bool = Field(default=False, description="Legally blind")
     is_dependent: bool = Field(
         default=False, description="Can be claimed as dependent on another return"
     )
+    has_valid_ssn_for_ctc: bool | None = Field(
+        default=None,
+        description="Has an employment-valid SSN issued by the 2025 return due date",
+    )
+    qualifies_for_enhanced_senior_deduction: bool | None = Field(
+        default=None,
+        description="Claimant assertion that the enhanced-senior legal/SSN tests are met",
+    )
+
+    @model_validator(mode="after")
+    def reconcile_age_fields(self) -> TaxpayerInfo:
+        if self.age_at_year_end is not None:
+            if self.age_65_or_older and self.age_at_year_end < 65:
+                raise ValueError("age_65_or_older conflicts with age_at_year_end")
+            self.age_65_or_older = self.age_at_year_end >= 65
+        return self
 
 
 class SpouseInfo(BaseModel):
     """Information about spouse (for MFJ/MFS)."""
 
     age_65_or_older: bool = Field(default=False, description="Age 65 or older")
+    age_at_year_end: int | None = Field(
+        default=None, ge=0, le=120, description="Age on the last day of the tax year"
+    )
     is_blind: bool = Field(default=False, description="Legally blind")
+    has_valid_ssn_for_ctc: bool | None = Field(
+        default=None,
+        description="Has an employment-valid SSN issued by the 2025 return due date",
+    )
+    qualifies_for_enhanced_senior_deduction: bool | None = Field(
+        default=None,
+        description="Claimant assertion that the enhanced-senior legal/SSN tests are met",
+    )
+
+    @model_validator(mode="after")
+    def reconcile_age_fields(self) -> SpouseInfo:
+        if self.age_at_year_end is not None:
+            if self.age_65_or_older and self.age_at_year_end < 65:
+                raise ValueError("age_65_or_older conflicts with age_at_year_end")
+            self.age_65_or_older = self.age_at_year_end >= 65
+        return self
 
 
 class TaxInput(BaseModel):
@@ -230,7 +309,15 @@ class TaxInput(BaseModel):
         default=None,
         min_length=5,
         max_length=10,
-        description="Residence ZIP code (5-digit or ZIP+4)"
+        description="Residence ZIP code (5-digit or ZIP+4)",
+    )
+    local_jurisdiction_id: str | None = Field(
+        default=None, description="Explicit local jurisdiction for comparison scenarios"
+    )
+    us_scenario: USScenarioFacts = Field(default_factory=USScenarioFacts)
+    lived_with_spouse_during_year: bool | None = Field(
+        default=None,
+        description="For MFS Social Security benefit taxation and separated-spouse rules",
     )
 
     # Taxpayer information
@@ -240,11 +327,12 @@ class TaxInput(BaseModel):
     # Income sources
     wages: list[WageIncome] = Field(default_factory=list)
     self_employment: list[SelfEmploymentIncome] = Field(default_factory=list)
-    interest_dividends: InterestDividendIncome = Field(
-        default_factory=InterestDividendIncome
-    )
+    interest_dividends: InterestDividendIncome = Field(default_factory=InterestDividendIncome)
     capital_gains: CapitalGains = Field(default_factory=CapitalGains)
     retirement: RetirementIncome = Field(default_factory=RetirementIncome)
+    rental_income: Decimal = Field(
+        default=Decimal(0), description="Net taxable rental real-estate income or loss"
+    )
     other_income: Decimal = Field(default=Decimal(0), description="Other taxable income")
 
     # Adjustments and deductions
@@ -256,11 +344,37 @@ class TaxInput(BaseModel):
 
     # Dependents
     dependents: list[Dependent] = Field(default_factory=list)
+    eitc_eligibility_asserted: bool | None = Field(
+        default=None,
+        description="Claimant assertion that the EITC claimant-level legal tests are met",
+    )
 
     # Withholding and payments
     estimated_tax_payments: Decimal = Field(
         default=Decimal(0), ge=0, description="Estimated tax payments made"
     )
+
+    @model_validator(mode="after")
+    def require_mfs_social_security_living_fact(self) -> TaxInput:
+        """MFS benefit taxation changes materially based on living with a spouse."""
+        if (
+            self.filing_status == FilingStatus.MFS
+            and self.retirement.social_security_benefits > 0
+            and self.lived_with_spouse_during_year is None
+        ):
+            raise ValueError(
+                "lived_with_spouse_during_year is required for MFS filers with "
+                "Social Security benefits"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_us_scenario_amounts(self) -> TaxInput:
+        self.us_scenario.validate_income(
+            self.total_wages(), self.capital_gains.short_term_gains,
+            self.capital_gains.long_term_gains,
+        )
+        return self
 
     def total_wages(self) -> Decimal:
         """Sum of all W-2 wages."""
@@ -271,8 +385,32 @@ class TaxInput(BaseModel):
         return sum((w.federal_withholding for w in self.wages), Decimal(0))
 
     def total_medicare_wages(self) -> Decimal:
-        """Sum of all Medicare wages (Box 5)."""
-        return sum((w.medicare_wages for w in self.wages), Decimal(0))
+        """Sum Box 5 wages, falling back to Box 1 only when Box 5 was omitted."""
+        return sum(
+            (
+                w.medicare_wages if w.medicare_wages is not None else w.gross_wages
+                for w in self.wages
+            ),
+            Decimal(0),
+        )
+
+    def total_social_security_wages(self) -> Decimal:
+        """Sum Box 3 wages, falling back to Box 1 only when Box 3 was omitted."""
+        return sum(
+            (
+                w.social_security_wages if w.social_security_wages is not None else w.gross_wages
+                for w in self.wages
+            ),
+            Decimal(0),
+        )
+
+    def total_state_withholding(self) -> Decimal:
+        """Sum state tax withholding across wage statements."""
+        return sum((w.state_withholding for w in self.wages), Decimal(0))
+
+    def total_local_withholding(self) -> Decimal:
+        """Sum local tax withholding across wage statements."""
+        return sum((w.local_withholding for w in self.wages), Decimal(0))
 
     def total_self_employment_net(self) -> Decimal:
         """Sum of all net self-employment income."""

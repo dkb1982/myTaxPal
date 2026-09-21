@@ -1,453 +1,509 @@
-"""
-United Kingdom (GB) tax calculator.
-
-Calculates UK Income Tax, National Insurance, and Student Loan repayments.
-
-Tax rates are loaded from YAML configuration files (single source of truth).
-Tax year in UK runs April 6 to April 5.
-"""
+"""United Kingdom tax calculation for the 2025/26 tax year."""
 
 from __future__ import annotations
 
-from decimal import Decimal
-from typing import Any
+from decimal import ROUND_HALF_UP, Decimal
 
 from tax_estimator.calculation.countries.base import BaseCountryCalculator
-from tax_estimator.calculation.countries.gb_loader import (
-    GBRules,
-    get_gb_rules,
-)
+from tax_estimator.calculation.countries.gb_loader import GBRules, get_gb_rules
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
     TaxComponent,
-    UKTaxRegion,
     UKNICategory,
     UKStudentLoanPlanType,
+    UKTaxRegion,
 )
+
+ZERO = Decimal(0)
+PENNY = Decimal("0.01")
+
+
+def _money(value: Decimal) -> Decimal:
+    return value.quantize(PENNY, rounding=ROUND_HALF_UP)
 
 
 class GBCalculator(BaseCountryCalculator):
-    """
-    UK tax calculator.
-
-    Calculates:
-    - Income Tax (England/Wales/NI or Scotland rates)
-    - National Insurance Class 1
-    - Student Loan repayments
-    - Capital Gains Tax
-
-    Tax rates are loaded from YAML (single source of truth).
-    """
+    """Estimate supported UK Income Tax, employee NI, loans and CGT."""
 
     country_code = "GB"
     country_name = "United Kingdom"
     currency_code = "GBP"
 
     def __init__(self, rules: GBRules | None = None):
-        """Initialize the calculator with rules."""
         super().__init__()
         self._rules = rules
 
     @property
     def rules(self) -> GBRules:
-        """Lazy-load rules from YAML."""
         if self._rules is None:
             self._rules = get_gb_rules()
         return self._rules
 
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        """Calculate UK tax."""
-        breakdown: list[TaxComponent] = []
-        notes: list[str] = [
-            f"Tax year 2025-26 (6 April 2025 to 5 April 2026).",
-            f"Rules verified: {self.rules.last_verified or 'unknown'}.",
-        ]
-
         rules = self.rules
+        if tax_input.country_code != "GB":
+            raise ValueError("GBCalculator requires country_code GB")
+        if tax_input.tax_year != rules.tax_year:
+            raise ValueError(
+                f"GB rules are for tax year {rules.tax_year}; got {tax_input.tax_year}"
+            )
 
-        # Get UK-specific input or use defaults
         uk = tax_input.uk
-        gross_income = tax_input.gross_income
-
-        # Get income breakdown from UK input if available
-        if uk:
-            employment_income = uk.employment_income
-            self_employment = uk.self_employment_income
-            savings_interest = uk.savings_interest
-            dividend_income = uk.dividend_income
-            rental_income = uk.rental_income
-            pension_income = uk.pension_income
-            other_income = uk.other_income
-            capital_gains = Decimal(0)
-
-            if employment_income == 0 and gross_income > 0:
-                employment_income = gross_income
-
-            total_income = (
-                employment_income + self_employment + savings_interest +
-                dividend_income + rental_income + pension_income + other_income
+        region = uk.tax_region if uk else UKTaxRegion.ENGLAND
+        category = uk.ni_category if uk else UKNICategory.A
+        plan = uk.student_loan_plan if uk else UKStudentLoanPlanType.NONE
+        postgrad = uk.has_postgrad_loan if uk else False
+        pension_net = uk.pension_contributions if uk else ZERO
+        gift_net = uk.gift_aid_donations if uk else ZERO
+        if uk and uk.tax_code is not None:
+            raise ValueError("Custom UK tax codes are not supported by this annual calculator")
+        if category not in (UKNICategory.A, UKNICategory.C):
+            raise ValueError(
+                f"National Insurance category {category.value} is not supported; use A or C"
             )
-            if total_income == 0:
-                total_income = gross_income
+        if plan == UKStudentLoanPlanType.POSTGRAD and postgrad:
+            raise ValueError("Postgraduate loan was specified twice")
 
-            paye_deducted = uk.paye_deducted
-            ni_deducted = uk.ni_deducted
-            tax_region = uk.tax_region
-            ni_category = uk.ni_category
-            student_loan_plan = uk.student_loan_plan
-            pension_contributions = uk.pension_contributions
-        elif tax_input.income_breakdown:
-            bd = tax_input.income_breakdown
-            employment_income = bd.employment_wages
-            self_employment = bd.self_employment
-            savings_interest = bd.interest
-            dividend_income = bd.dividends_qualified + bd.dividends_ordinary
-            capital_gains = bd.capital_gains_short_term + bd.capital_gains_long_term
-            rental_income = bd.rental
-            pension_income = Decimal(0)
-            other_income = Decimal(0)
-            total_income = (
-                employment_income + self_employment + savings_interest +
-                dividend_income + rental_income
+        employment, se, savings, dividends, rental, pension_income, other, gains = (
+            self._resolve_income(tax_input)
+        )
+        pension_gross = pension_net / Decimal("0.8")
+        if pension_gross > employment + se:
+            raise ValueError(
+                "Relief-at-source pension payments above modelled relevant earnings "
+                "are not supported"
             )
-            paye_deducted = Decimal(0)
-            ni_deducted = Decimal(0)
-            tax_region = UKTaxRegion.ENGLAND
-            ni_category = UKNICategory.A
-            student_loan_plan = UKStudentLoanPlanType.NONE
-            pension_contributions = Decimal(0)
-        else:
-            employment_income = gross_income
-            self_employment = Decimal(0)
-            savings_interest = Decimal(0)
-            dividend_income = Decimal(0)
-            capital_gains = Decimal(0)
-            rental_income = Decimal(0)
-            pension_income = Decimal(0)
-            other_income = Decimal(0)
-            total_income = gross_income
-            paye_deducted = Decimal(0)
-            ni_deducted = Decimal(0)
-            tax_region = UKTaxRegion.ENGLAND
-            ni_category = UKNICategory.A
-            student_loan_plan = UKStudentLoanPlanType.NONE
-            pension_contributions = Decimal(0)
+        if pension_gross > Decimal("60000"):
+            raise ValueError(
+                "Pension annual-allowance carry-forward and tapered allowances are not supported"
+            )
+        if employment and se:
+            raise ValueError(
+                "Mixed employment and self-employment is not supported because the annual "
+                "Class 1/Class 4 National Insurance maximum cannot be inferred"
+            )
+        if category == UKNICategory.C and se:
+            raise ValueError("NI category C is only supported for employment income")
+        if (plan != UKStudentLoanPlanType.NONE or postgrad) and (
+            se or savings or dividends or rental or pension_income or other
+        ):
+            raise ValueError("Student-loan estimates currently support employment income only")
 
-        # Calculate personal allowance (with taper)
-        personal_allowance = self._calculate_personal_allowance(total_income)
-        breakdown.append(
+        nsnd = employment + se + rental + pension_income + other
+        income_total = nsnd + savings + dividends
+        extension = pension_gross + gift_net / Decimal("0.8")
+        allowance = self._personal_allowance(max(ZERO, income_total - extension))
+        taxable_nsnd, taxable_savings, taxable_dividends = self._allocate_allowance(
+            nsnd, savings, dividends, allowance, region, extension
+        )
+        allowance_used = income_total - taxable_nsnd - taxable_savings - taxable_dividends
+        breakdown = [
             TaxComponent(
                 component_id="GB-PA",
-                name="Personal Allowance",
-                amount=-personal_allowance,
-                notes=f"Tax-free allowance (tapered if income > {rules.taper_threshold:,.0f})",
+                name="Personal Allowance applied",
+                amount=-_money(allowance_used),
+                rate=None,
+                base=None,
                 is_deductible=True,
+                notes=f"Up to £{allowance:,.2f}, allocated to minimise supported Income Tax",
             )
-        )
-
-        # Taxable income after allowance and pension relief
-        pension_relief = pension_contributions * Decimal("0.25")
-        taxable_income = max(Decimal(0), total_income - personal_allowance - pension_relief)
-
-        if pension_contributions > 0:
-            breakdown.append(
-                TaxComponent(
-                    component_id="GB-PENSION-RELIEF",
-                    name="Pension Tax Relief",
-                    amount=-pension_relief,
-                    notes="Basic rate tax relief on pension contributions",
-                    is_deductible=True,
+        ]
+        notes = [
+            "Tax year 2025/26 (6 April 2025 to 5 April 2026).",
+            "Annualised individual-resident estimate; specialist allowances, carried losses "
+            "and relief claims are not modelled.",
+        ]
+        for cid, name, paid in (
+            ("GB-PENSION-RAS", "Relief-at-source Pension adjustment (gross)", pension_net),
+            ("GB-GIFT-AID", "Gift Aid adjustment (gross)", gift_net),
+        ):
+            if paid:
+                breakdown.append(
+                    TaxComponent(
+                        component_id=cid,
+                        name=name,
+                        amount=-_money(paid / Decimal("0.8")),
+                        rate=None,
+                        base=None,
+                        is_deductible=True,
+                        notes=(
+                            f"Net payment £{paid:,.2f}; gross amount reduces adjusted net income "
+                            "and extends rate limits, but is not deducted from taxable income"
+                        ),
+                    )
                 )
-            )
+        if pension_net:
+            notes.append("Net income shown is before the personal pension payment.")
 
-        # Calculate income tax
-        if tax_region == UKTaxRegion.SCOTLAND:
-            brackets = self._parse_scotland_brackets()
-            notes.append("Scottish income tax rates applied.")
-        else:
-            brackets = self._parse_uk_brackets()
-
-        income_tax, marginal_rate, tax_breakdown = self._calculate_income_tax(
-            taxable_income, brackets, personal_allowance
+        income_tax, marginal, parts = self._income_tax_components(
+            taxable_nsnd, taxable_savings, taxable_dividends, region, extension
         )
-        breakdown.extend(tax_breakdown)
+        breakdown.extend(parts)
+        if region == UKTaxRegion.SCOTLAND:
+            notes.append("Scottish rates apply only to non-savings, non-dividend income.")
+        if category == UKNICategory.C and employment:
+            notes.append("No employee Class 1 NI is estimated for State Pension age category C.")
+        ni, parts = self._calculate_ni(employment, se, category)
+        breakdown.extend(parts)
+        if employment or se:
+            notes.append("National Insurance is annualised; pay-period effects are not modelled.")
 
-        # Calculate National Insurance
-        ni_amount = Decimal(0)
-        if ni_category != UKNICategory.C:
-            ni_amount, ni_breakdown = self._calculate_national_insurance(
-                employment_income + self_employment
+        loans = ZERO
+        selected = []
+        if plan != UKStudentLoanPlanType.NONE:
+            selected.append(plan)
+        if postgrad:
+            selected.append(UKStudentLoanPlanType.POSTGRAD)
+        for selected_plan in selected:
+            amount, parts = self._student_loan(employment, selected_plan)
+            loans += amount
+            breakdown.extend(parts)
+        if selected:
+            notes.append(
+                "Student-loan repayment is a simplified annual estimate, separate from Income Tax."
             )
-            breakdown.extend(ni_breakdown)
-        else:
-            notes.append("No NI due - over State Pension age (Category C).")
 
-        # Calculate Student Loan
-        student_loan = Decimal(0)
-        if student_loan_plan != UKStudentLoanPlanType.NONE:
-            student_loan, sl_breakdown = self._calculate_student_loan(
-                total_income, student_loan_plan
-            )
-            breakdown.extend(sl_breakdown)
-
-        # Calculate Capital Gains Tax
-        cgt_amount = Decimal(0)
-        if capital_gains > 0:
-            cgt_amount, cgt_breakdown = self._calculate_capital_gains_tax(
-                capital_gains, taxable_income
-            )
-            breakdown.extend(cgt_breakdown)
-
-        total_withheld = paye_deducted + ni_deducted
-
+        taxable_income = taxable_nsnd + taxable_savings + taxable_dividends
+        cgt, parts = self._capital_gains(gains, taxable_income, extension)
+        breakdown.extend(parts)
+        if gift_net and income_tax + cgt < (gift_net / Decimal("0.8")) * Decimal("0.20"):
+            raise ValueError("Gift Aid requiring an additional donor tax charge is not supported")
+        withheld = (uk.paye_deducted + uk.ni_deducted) if uk else ZERO
         return self._create_result(
             tax_input=tax_input,
-            taxable_income=taxable_income,
-            income_tax=income_tax + cgt_amount,
-            social_insurance=ni_amount,
-            other_taxes=student_loan,
+            taxable_income=_money(taxable_income),
+            income_tax=_money(income_tax + cgt),
+            social_insurance=_money(ni),
+            other_taxes=_money(loans),
             breakdown=breakdown,
-            marginal_rate=marginal_rate,
-            total_withheld=total_withheld,
+            marginal_rate=marginal,
+            total_withheld=withheld,
             notes=notes,
         )
 
-    def _parse_uk_brackets(self) -> list[tuple[Decimal, Decimal | None, Decimal]]:
-        """Parse England/Wales/NI brackets from YAML."""
-        brackets = []
-        for b in self.rules.income_tax_brackets:
-            income_to = b.get("income_to")
-            brackets.append((
-                Decimal(str(b.get("income_from", 0))),
-                Decimal(str(income_to)) if income_to is not None else None,
-                Decimal(str(b.get("rate", 0))),
-            ))
-        return brackets
+    def _resolve_income(self, tax_input: InternationalTaxInput) -> tuple[Decimal, ...]:
+        if tax_input.income_breakdown is not None:
+            bd = tax_input.income_breakdown
+            return (
+                bd.employment_wages,
+                bd.self_employment,
+                bd.interest,
+                bd.total_dividends,
+                bd.rental,
+                ZERO,
+                ZERO,
+                bd.total_capital_gains,
+            )
+        if tax_input.uk is not None:
+            uk = tax_input.uk
+            amounts = (
+                uk.employment_income,
+                uk.self_employment_income,
+                uk.savings_interest,
+                uk.dividend_income,
+                uk.rental_income,
+                uk.pension_income,
+                uk.other_income,
+                uk.capital_gains,
+            )
+            if any(amounts):
+                return amounts
+        return (tax_input.gross_income, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO)
 
-    def _parse_scotland_brackets(self) -> list[tuple[Decimal, Decimal | None, Decimal]]:
-        """Parse Scotland brackets from YAML."""
-        if not self.rules.scotland_brackets:
-            return self._parse_uk_brackets()
-        
-        brackets = []
-        for b in self.rules.scotland_brackets:
-            income_to = b.get("income_to")
-            brackets.append((
-                Decimal(str(b.get("income_from", 0))),
-                Decimal(str(income_to)) if income_to is not None else None,
-                Decimal(str(b.get("rate", 0))),
-            ))
-        return brackets
-
-    def _calculate_personal_allowance(self, total_income: Decimal) -> Decimal:
-        """Calculate personal allowance with taper."""
-        rules = self.rules
-        if total_income <= rules.taper_threshold:
-            return rules.personal_allowance
-
-        excess = total_income - rules.taper_threshold
-        reduction = (excess * rules.taper_rate).quantize(Decimal("1"))
-        allowance = max(Decimal(0), rules.personal_allowance - reduction)
-        return allowance
-
-    def _calculate_income_tax(
-        self,
-        taxable_income: Decimal,
-        brackets: list[tuple[Decimal, Decimal | None, Decimal]],
-        personal_allowance: Decimal,
-    ) -> tuple[Decimal, Decimal, list[TaxComponent]]:
-        """Calculate income tax using brackets."""
-        additional_threshold = Decimal(125140)
-        
-        additional_threshold_taxable = additional_threshold - personal_allowance
-        adjusted_brackets = []
-        prev_max = Decimal(0)
-        
-        for i, (min_val, max_val, rate) in enumerate(brackets):
-            if i == 0:
-                continue
-            
-            adj_min = prev_max
-            if max_val is None:
-                adj_max = None
-            elif max_val >= additional_threshold:
-                adj_max = additional_threshold_taxable
-            else:
-                adj_max = max_val - personal_allowance
-            
-            if adj_max is not None and adj_max <= adj_min:
-                continue
-            adjusted_brackets.append((adj_min, adj_max, rate))
-            prev_max = adj_max if adj_max is not None else prev_max
-
-        return self._apply_brackets(
-            taxable_income, adjusted_brackets, component_prefix="GB-IT"
+    def _personal_allowance(self, ani: Decimal) -> Decimal:
+        if ani <= self.rules.taper_threshold:
+            return self.rules.personal_allowance
+        return max(
+            ZERO,
+            self.rules.personal_allowance
+            - (ani - self.rules.taper_threshold) * self.rules.taper_rate,
         )
 
-    def _calculate_national_insurance(
-        self, earnings: Decimal
-    ) -> tuple[Decimal, list[TaxComponent]]:
-        """Calculate National Insurance contributions."""
-        breakdown: list[TaxComponent] = []
-        total_ni = Decimal(0)
+    @staticmethod
+    def _parse(raw: list[dict[str, object]]) -> list[tuple[Decimal, Decimal | None, Decimal]]:
+        return [
+            (
+                Decimal(str(x.get("income_from", 0))),
+                Decimal(str(x["income_to"])) if x.get("income_to") is not None else None,
+                Decimal(str(x.get("rate", 0))),
+            )
+            for x in raw
+        ]
 
-        rules = self.rules
-        
-        ni_main = None
-        ni_employer = None
-        
-        for ni in rules.ni_components:
-            if ni.employee_rate is not None and ni.primary_threshold is not None:
-                ni_main = ni
-            elif ni.employer_rate is not None:
-                ni_employer = ni
+    def _uk_limits(self, extension: Decimal) -> tuple[Decimal, Decimal]:
+        brackets = self._parse(self.rules.income_tax_brackets)
+        assert brackets[0][1] is not None and brackets[1][1] is not None
+        return brackets[0][1] + extension, brackets[1][1] + extension
 
-        if ni_main and ni_main.primary_threshold is not None:
-            pt = ni_main.primary_threshold
-            
-            if earnings > pt:
-                uel = ni_main.upper_limit
-                main_rate = ni_main.employee_rate
-                
-                if uel is not None:
-                    main_earnings = min(earnings, uel) - pt
-                else:
-                    main_earnings = earnings - pt
-                    
-                main_ni = (main_earnings * main_rate).quantize(Decimal("0.01"))
-                total_ni += main_ni
-                
-                uel_str = f"{uel:,.0f}" if uel else "N/A"
-                breakdown.append(
+    def _nsnd_brackets(
+        self, region: UKTaxRegion, extension: Decimal
+    ) -> list[tuple[Decimal, Decimal | None, Decimal]]:
+        raw = (
+            self.rules.scotland_brackets
+            if region == UKTaxRegion.SCOTLAND and self.rules.scotland_brackets
+            else self.rules.income_tax_brackets
+        )
+        parsed = self._parse(raw)
+        result = []
+        previous = ZERO
+        for index, (_, upper, rate) in enumerate(parsed):
+            add = extension if region != UKTaxRegion.SCOTLAND or index > 0 else ZERO
+            adjusted = upper + add if upper is not None else None
+            result.append((previous, adjusted, rate))
+            if adjusted is not None:
+                previous = adjusted
+        return result
+
+    @staticmethod
+    def _tax_interval(
+        start: Decimal, end: Decimal, brackets: list[tuple[Decimal, Decimal | None, Decimal]]
+    ) -> tuple[Decimal, Decimal]:
+        tax = marginal = ZERO
+        for lower, upper, rate in brackets:
+            slice_end = end if upper is None else min(end, upper)
+            base = max(ZERO, slice_end - max(start, lower))
+            if base:
+                tax += base * rate
+                marginal = rate
+        return tax, marginal
+
+    def _psa(self, total: Decimal, extension: Decimal) -> Decimal:
+        """Return the PSA from notional UK higher/additional-rate income.
+
+        ITA 2007 s12B(8) tests a Scottish taxpayer as though they were not a
+        Scottish taxpayer, so Scottish NSND thresholds do not reduce the PSA.
+        """
+        basic, additional = self._uk_limits(extension)
+        if total > additional:
+            return ZERO
+        return Decimal("500") if total > basic else Decimal("1000")
+
+    def _raw_income_tax(
+        self,
+        nsnd: Decimal,
+        savings: Decimal,
+        dividends: Decimal,
+        region: UKTaxRegion,
+        extension: Decimal,
+    ) -> tuple[Decimal, ...]:
+        ns_tax, ns_rate = self._tax_interval(ZERO, nsnd, self._nsnd_brackets(region, extension))
+        basic, additional = self._uk_limits(extension)
+        ordinary = [
+            (ZERO, basic, Decimal(".20")),
+            (basic, additional, Decimal(".40")),
+            (additional, None, Decimal(".45")),
+        ]
+        starting = min(savings, max(ZERO, Decimal("5000") - nsnd))
+        psa_used = min(
+            max(ZERO, savings - starting),
+            self._psa(nsnd + savings + dividends, extension),
+        )
+        savings_tax, savings_rate = self._tax_interval(
+            nsnd + starting + psa_used, nsnd + savings, ordinary
+        )
+        dividend_rates = [
+            (ZERO, basic, Decimal(".0875")),
+            (basic, additional, Decimal(".3375")),
+            (additional, None, Decimal(".3935")),
+        ]
+        da = min(dividends, Decimal("500"))
+        dividend_tax, dividend_rate = self._tax_interval(
+            nsnd + savings + da, nsnd + savings + dividends, dividend_rates
+        )
+        return (
+            ns_tax + savings_tax + dividend_tax,
+            ns_tax,
+            savings_tax,
+            dividend_tax,
+            max(ns_rate, savings_rate, dividend_rate),
+        )
+
+    def _allocate_allowance(
+        self,
+        nsnd: Decimal,
+        savings: Decimal,
+        dividends: Decimal,
+        allowance: Decimal,
+        region: UKTaxRegion,
+        extension: Decimal,
+    ) -> tuple[Decimal, Decimal, Decimal]:
+        total = nsnd + savings + dividends
+        taxable = max(ZERO, total - min(total, allowance))
+        nlo, nhi = max(ZERO, taxable - savings - dividends), min(nsnd, taxable)
+        basic, additional = self._uk_limits(extension)
+        qbreaks = {
+            ZERO,
+            taxable,
+            Decimal("5000"),
+            Decimal("5500"),
+            Decimal("6000"),
+            basic,
+            additional,
+            basic - Decimal("500"),
+            additional - Decimal("500"),
+            taxable - dividends,
+        }
+        ncandidates = {nlo, nhi, Decimal("5000")}
+        for _, upper, _ in self._nsnd_brackets(region, extension):
+            if upper is not None:
+                ncandidates.add(upper)
+        for q in qbreaks:
+            ncandidates.update((q, q - savings))
+        best = None
+        best_tax = None
+        for nvalue in ncandidates:
+            n = min(nhi, max(nlo, nvalue))
+            qlo, qhi = max(n, taxable - dividends), min(n + savings, taxable)
+            for qvalue in qbreaks | {
+                qlo,
+                qhi,
+                n,
+                n + savings,
+                n + Decimal("500"),
+                n + Decimal("1000"),
+            }:
+                q = min(qhi, max(qlo, qvalue))
+                candidate = (n, q - n, taxable - q)
+                tax = self._raw_income_tax(*candidate, region, extension)[0]
+                if best_tax is None or tax < best_tax:
+                    best_tax, best = tax, candidate
+        assert best is not None
+        return best
+
+    def _income_tax_components(
+        self,
+        nsnd: Decimal,
+        savings: Decimal,
+        dividends: Decimal,
+        region: UKTaxRegion,
+        extension: Decimal,
+    ) -> tuple[Decimal, Decimal, list[TaxComponent]]:
+        _, ns_tax, sav_tax, div_tax, marginal = self._raw_income_tax(
+            nsnd, savings, dividends, region, extension
+        )
+        parts = []
+        for cid, name, amount, base in (
+            ("GB-IT-NSND", "Income Tax — non-savings income", ns_tax, nsnd),
+            ("GB-IT-SAVINGS", "Income Tax — savings", sav_tax, savings),
+            ("GB-IT-DIVIDENDS", "Income Tax — dividends", div_tax, dividends),
+        ):
+            if base:
+                parts.append(
                     TaxComponent(
-                        component_id="GB-NI-MAIN",
-                        name="National Insurance (Main Rate)",
-                        amount=main_ni,
-                        rate=main_rate,
-                        base=main_earnings,
-                        notes=f"{float(main_rate)*100:.0f}% on earnings {pt:,.0f} to {uel_str}",
+                        component_id=cid,
+                        name=name,
+                        amount=_money(amount),
+                        rate=None,
+                        base=_money(base),
+                        notes="Zero-rate allowances consume rate-band capacity",
                     )
                 )
+        return sum((x.amount for x in parts), ZERO), marginal, parts
 
-                if ni_main.additional_rate and uel is not None and earnings > uel:
-                    additional_earnings = earnings - uel
-                    additional_ni = (additional_earnings * ni_main.additional_rate).quantize(Decimal("0.01"))
-                    total_ni += additional_ni
-                    breakdown.append(
-                        TaxComponent(
-                            component_id="GB-NI-ADDITIONAL",
-                            name="National Insurance (Additional Rate)",
-                            amount=additional_ni,
-                            rate=ni_main.additional_rate,
-                            base=additional_earnings,
-                            notes=f"{float(ni_main.additional_rate)*100:.0f}% on earnings above {uel:,.0f}",
-                        )
-                    )
+    def _calculate_ni(
+        self, employment: Decimal, se: Decimal, category: UKNICategory
+    ) -> tuple[Decimal, list[TaxComponent]]:
+        if employment:
+            if category == UKNICategory.C:
+                return ZERO, []
+            rule = next(
+                x
+                for x in self.rules.ni_components
+                if x.employee_rate is not None and x.primary_threshold is not None
+            )
+            assert (
+                rule.upper_limit is not None
+                and rule.primary_threshold is not None
+                and rule.employee_rate is not None
+                and rule.additional_rate is not None
+            )
+            main_base = max(ZERO, min(employment, rule.upper_limit) - rule.primary_threshold)
+            upper_base = max(ZERO, employment - rule.upper_limit)
+            values = (
+                ("GB-NI-CLASS1-MAIN", main_base, rule.employee_rate),
+                ("GB-NI-CLASS1-UPPER", upper_base, rule.additional_rate),
+            )
+            label = "Class 1 National Insurance"
+        elif se:
+            rule4 = self.rules.class_4_ni
+            main_base = max(ZERO, min(se, rule4.upper_profits_limit) - rule4.lower_profits_limit)
+            upper_base = max(ZERO, se - rule4.upper_profits_limit)
+            values = (
+                ("GB-NI-CLASS4-MAIN", main_base, rule4.main_rate),
+                ("GB-NI-CLASS4-UPPER", upper_base, rule4.additional_rate),
+            )
+            label = "Class 4 National Insurance"
+        else:
+            return ZERO, []
+        parts = [
+            TaxComponent(
+                component_id=cid,
+                name=label,
+                amount=_money(base * rate),
+                rate=rate,
+                base=base,
+                notes="Annualised; no automatic Class 2 charge",
+            )
+            for cid, base, rate in values
+            if base
+        ]
+        return sum((x.amount for x in parts), ZERO), parts
 
-        return total_ni, breakdown
-
-    def _calculate_student_loan(
+    def _student_loan(
         self, income: Decimal, plan: UKStudentLoanPlanType
     ) -> tuple[Decimal, list[TaxComponent]]:
-        """Calculate student loan repayment."""
-        if plan == UKStudentLoanPlanType.NONE:
-            return Decimal(0), []
-
-        plan_map = {
-            UKStudentLoanPlanType.PLAN_1: "plan_1",
-            UKStudentLoanPlanType.PLAN_2: "plan_2",
-            UKStudentLoanPlanType.PLAN_4: "plan_4",
-            UKStudentLoanPlanType.PLAN_5: "plan_5",
-            UKStudentLoanPlanType.POSTGRAD: "postgrad",
-        }
-
-        yaml_plan_id = plan_map.get(plan)
-        if not yaml_plan_id:
-            return Decimal(0), []
-
-        plan_data = None
-        for sl in self.rules.student_loan_plans:
-            if sl.plan_id == yaml_plan_id:
-                plan_data = sl
-                break
-
-        if not plan_data:
-            return Decimal(0), []
-
-        threshold = plan_data.threshold
-        rate = plan_data.rate
-
-        if income <= threshold:
-            return Decimal(0), []
-
-        repayment = ((income - threshold) * rate).quantize(Decimal("0.01"))
-
-        breakdown = [
+        plan_id = "postgrad" if plan == UKStudentLoanPlanType.POSTGRAD else plan.value
+        rule = next((x for x in self.rules.student_loan_plans if x.plan_id == plan_id), None)
+        if rule is None or income <= rule.threshold:
+            return ZERO, []
+        amount = _money((income - rule.threshold) * rule.rate)
+        return amount, [
             TaxComponent(
-                component_id=f"GB-SL-{plan.value.upper()}",
-                name=f"Student Loan ({plan.value.replace('_', ' ').title()})",
-                amount=repayment,
-                rate=rate,
-                base=income - threshold,
-                notes=f"Repayment on income above {threshold:,.0f}",
+                component_id=f"GB-SL-{plan_id.upper()}",
+                name=f"Student Loan ({rule.name})",
+                amount=amount,
+                rate=rule.rate,
+                base=income - rule.threshold,
+                notes="Simplified annual repayment estimate",
             )
         ]
 
-        return repayment, breakdown
-
-    def _calculate_capital_gains_tax(
-        self, capital_gains: Decimal, taxable_income: Decimal
+    def _capital_gains(
+        self, gains: Decimal, taxable_income: Decimal, extension: Decimal
     ) -> tuple[Decimal, list[TaxComponent]]:
-        """Calculate Capital Gains Tax."""
-        breakdown: list[TaxComponent] = []
-        total_cgt = Decimal(0)
-
+        if not gains:
+            return ZERO, []
         cg = self.rules.capital_gains
-
-        taxable_gains = max(Decimal(0), capital_gains - cg.annual_exempt_amount)
-        if taxable_gains == 0:
-            breakdown.append(
+        taxable = max(ZERO, gains - cg.annual_exempt_amount)
+        if not taxable:
+            return ZERO, [
                 TaxComponent(
                     component_id="GB-CGT-EXEMPT",
                     name="Capital Gains Tax",
-                    amount=Decimal(0),
-                    notes=f"Gains within annual exempt amount ({cg.annual_exempt_amount:,.0f})",
+                    amount=ZERO,
+                    rate=None,
+                    base=gains,
+                    notes=f"Within £{cg.annual_exempt_amount:,.0f} annual exempt amount",
                 )
-            )
-            return Decimal(0), breakdown
-
-        basic_rate_remaining = max(Decimal(0), Decimal(37700) - taxable_income)
-
-        gains_at_basic = min(taxable_gains, basic_rate_remaining)
-        gains_at_higher = taxable_gains - gains_at_basic
-
-        if gains_at_basic > 0:
-            basic_cgt = (gains_at_basic * cg.basic_rate).quantize(Decimal("0.01"))
-            total_cgt += basic_cgt
-            breakdown.append(
-                TaxComponent(
-                    component_id="GB-CGT-BASIC",
-                    name="Capital Gains Tax (Basic Rate)",
-                    amount=basic_cgt,
-                    rate=cg.basic_rate,
-                    base=gains_at_basic,
-                    notes=f"{float(cg.basic_rate)*100:.0f}% on gains within basic rate band",
+            ]
+        basic_limit, _ = self._uk_limits(extension)
+        low_base = min(taxable, max(ZERO, basic_limit - taxable_income))
+        high_base = taxable - low_base
+        parts = []
+        for cid, name, base, rate in (
+            ("GB-CGT-BASIC", "Capital Gains Tax — Basic rate", low_base, cg.basic_rate),
+            ("GB-CGT-HIGHER", "Capital Gains Tax — higher rate", high_base, cg.higher_rate),
+        ):
+            if base:
+                parts.append(
+                    TaxComponent(
+                        component_id=cid,
+                        name=name,
+                        amount=_money(base * rate),
+                        rate=rate,
+                        base=base,
+                        notes="Ordinary gains after annual exemption",
+                    )
                 )
-            )
-
-        if gains_at_higher > 0:
-            higher_cgt = (gains_at_higher * cg.higher_rate).quantize(Decimal("0.01"))
-            total_cgt += higher_cgt
-            breakdown.append(
-                TaxComponent(
-                    component_id="GB-CGT-HIGHER",
-                    name="Capital Gains Tax (Higher Rate)",
-                    amount=higher_cgt,
-                    rate=cg.higher_rate,
-                    base=gains_at_higher,
-                    notes=f"{float(cg.higher_rate)*100:.0f}% on gains above basic rate band",
-                )
-            )
-
-        return total_cgt, breakdown
+        return sum((x.amount for x in parts), ZERO), parts

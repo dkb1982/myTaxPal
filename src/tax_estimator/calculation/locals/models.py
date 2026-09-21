@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
-from typing import Any
 
 
 class LocalTaxType(str, Enum):
@@ -109,19 +108,20 @@ class LocalRules:
 
     # Special notes
     special_notes: list[str] = field(default_factory=list)
+    policy_parameters: dict[str, Decimal] = field(default_factory=dict)
 
     def get_rate_for_residency(self, is_resident: bool) -> Decimal:
         """Get the applicable rate based on residency."""
         if not self.flat_rates:
-            return Decimal(0)
+            raise ValueError("Local flat tax has no configured rate")
 
         if self.flat_rates.rate is not None:
             return self.flat_rates.rate
 
-        if is_resident:
-            return self.flat_rates.resident_rate or Decimal(0)
-        else:
-            return self.flat_rates.nonresident_rate or Decimal(0)
+        rate = self.flat_rates.resident_rate if is_resident else self.flat_rates.nonresident_rate
+        if rate is None:
+            raise ValueError("Local flat tax has no rate for the selected residency")
+        return rate
 
     def get_brackets_for_status(self, filing_status: str) -> list[LocalBracket]:
         """Get brackets for a specific filing status."""
@@ -151,6 +151,38 @@ class LocalTaxInput:
 
     # Credits
     local_taxes_paid_elsewhere: Decimal = Decimal(0)
+    dividends: Decimal | None = None  # Inclusive of qualified dividends.
+    qualified_dividends: Decimal | None = None
+    net_short_term_gains: Decimal | None = None
+    net_long_term_gains: Decimal | None = None
+    state_agi: Decimal | None = None
+    yonkers_surcharge_base: Decimal | None = None
+    taxpayer_age_at_year_end: int | None = None
+    can_be_claimed_as_dependent: bool = False
+    num_dependents: int = 0
+    federal_earned_income_credit: Decimal | None = None
+    federal_eitc_eligibility_asserted: bool | None = None
+    baseline_profile_supported: bool = False
+    unsupported_profile_reasons: tuple[str, ...] = ()
+    philly_gains_held_six_months_or_less: Decimal | None = None
+    philly_first_half_wages: Decimal | None = None
+
+
+@dataclass(frozen=True)
+class LocalCreditComponent:
+    credit_id: str
+    name: str
+    amount_available: Decimal
+    amount_applied: Decimal
+    is_refundable: bool
+
+
+@dataclass(frozen=True)
+class LocalTaxComponent:
+    component_id: str
+    name: str
+    taxable_income: Decimal
+    tax: Decimal
 
 
 @dataclass
@@ -207,3 +239,8 @@ class LocalTaxResult:
     # Notes
     notes: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    nonrefundable_credits: Decimal = Decimal(0)
+    refundable_credits: Decimal = Decimal(0)
+    credits: list[LocalCreditComponent] = field(default_factory=list)
+    tax_components: list[LocalTaxComponent] = field(default_factory=list)
+    assumptions: list[str] = field(default_factory=list)

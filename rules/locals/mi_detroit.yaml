@@ -1,17 +1,19 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Resident single/age-40 cases source-checked for 2025; other profiles unvalidated.
 # =============================================================================
 # Detroit - City income tax (flat rate, different for residents/non-residents)
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# See policy_2025 and repair tests for the bounded validation scope.
 # =============================================================================
 
 # Identity
 jurisdiction_id: "US-MI-DET"
 tax_year: 2025
+policy_2025:
+  personal_exemption: 600
 
 # Metadata
 jurisdiction_type: "city"
-jurisdiction_name: "Detroit (PLACEHOLDER)"
+jurisdiction_name: "Detroit"
 jurisdiction_abbreviation: "DET"
 parent_jurisdiction_id: "US-MI"
 parent_state: "MI"
@@ -34,7 +36,7 @@ effective_end_date: "2025-12-31"
 # PLACEHOLDER: All rates need verification
 rate_schedule:
   rate_type: "flat"
-  tax_base: "taxable_income"  # Similar to federal taxable income
+  tax_base: "all_income"
 
   flat_rates:
     resident_rate: 0.024  # PLACEHOLDER - 2.4%
@@ -54,17 +56,16 @@ local_config:
   special_notes:
     - "PLACEHOLDER: Detroit has city income tax for residents and workers"
     - "PLACEHOLDER: Resident rate is double non-resident rate"
-    - "PLACEHOLDER: Tax base similar to federal taxable income"
+    - "Resident baseline uses federal AGI less the $600 city personal exemption, not federal taxable income"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "validated_cases_only"
+  last_verified: "2026-09-09"
+  verified_by: "source-derived repair tests"
+  notes: "Resident single/age-40 wages, dividends and personal securities profile only; nonresident calculations unvalidated."
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Detroit city income tax - placeholder for development"
+  - source_name: "2025 Detroit resident income tax instructions"
+    url: "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/City-IIT/TY2025/5313_City-Book.pdf"
+    retrieved_date: "2026-09-09"

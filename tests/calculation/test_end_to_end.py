@@ -11,13 +11,9 @@ import pytest
 from tax_estimator.calculation.engine import CalculationEngine
 from tax_estimator.models.tax_input import (
     CapitalGains,
-    Dependent,
     FilingStatus,
     InterestDividendIncome,
-    ItemizedDeductions,
-    SpouseInfo,
     TaxInput,
-    TaxpayerInfo,
     WageIncome,
 )
 
@@ -135,9 +131,9 @@ class TestWithDeductions:
         assert result.federal is not None
 
         # Should choose itemized since it exceeds standard
-        # SALT: $10,000 (capped) + Mortgage: $12,000 + Charity: $5,000 = $27,000
+        # SALT: $23,000 + Mortgage: $12,000 + Charity: $5,000 = $40,000
         assert result.federal.deduction.method == "itemized"
-        assert result.federal.deduction.deduction_used == Decimal("27000")
+        assert result.federal.deduction.deduction_used == Decimal("40000")
 
 
 class TestWithCredits:
@@ -152,8 +148,8 @@ class TestWithCredits:
         assert result.success is True
         assert result.federal is not None
 
-        # Should have CTC for 2 children ($2,000 each = $4,000)
-        assert result.federal.credits.total_credits > Decimal("0")
+        # 2025 CTC is $2,200 per child.
+        assert result.federal.credits.total_credits == Decimal("4400")
 
         # Total tax should be reduced by credits
         assert result.federal.total_tax < result.federal.tax_before_credits
@@ -162,9 +158,7 @@ class TestWithCredits:
 class TestWithholdingAndRefunds:
     """Tests for withholding and refund calculations."""
 
-    def test_refund_calculation(
-        self, calculation_engine: CalculationEngine
-    ) -> None:
+    def test_refund_calculation(self, calculation_engine: CalculationEngine) -> None:
         """Test refund when withholding exceeds tax."""
         tax_input = TaxInput(
             tax_year=2025,
@@ -193,9 +187,7 @@ class TestWithholdingAndRefunds:
         # Refund: $10,000 - $6,000 = $4,000 (shown as negative)
         assert result.federal.refund_or_owed == Decimal("-4000")
 
-    def test_balance_due_calculation(
-        self, calculation_engine: CalculationEngine
-    ) -> None:
+    def test_balance_due_calculation(self, calculation_engine: CalculationEngine) -> None:
         """Test balance due when withholding is less than tax."""
         tax_input = TaxInput(
             tax_year=2025,
@@ -217,7 +209,8 @@ class TestWithholdingAndRefunds:
         assert result.federal is not None
 
         # Taxable: $100,000 - $15,000 = $85,000
-        # Tax: 10% on $10,000 + 20% on $40,000 + 30% on $35,000 = $1,000 + $8,000 + $10,500 = $19,500
+        # Tax: 10% on $10,000 + 20% on $40,000 + 30% on $35,000
+        # = $1,000 + $8,000 + $10,500 = $19,500
         assert result.federal.tax_before_credits == Decimal("19500")
 
         # Balance due: $19,500 - $15,000 = $4,500
@@ -254,7 +247,6 @@ class TestCalculationTrace:
 
     def test_trace_can_be_excluded(self, test_rules_dir) -> None:
         """Test that trace can be excluded from result."""
-        from pathlib import Path
 
         engine = CalculationEngine(rules_dir=test_rules_dir, include_trace=False)
 
@@ -406,9 +398,7 @@ class TestEffectiveRates:
 class TestMixedIncomeCalculations:
     """End-to-end tests for mixed ordinary + preferential income."""
 
-    def test_wages_plus_ltcg_single(
-        self, calculation_engine: CalculationEngine
-    ) -> None:
+    def test_wages_plus_ltcg_single(self, calculation_engine: CalculationEngine) -> None:
         """Test $75k wages + $50k LTCG through full pipeline.
 
         Income: $75k wages + $50k LTCG = $125k gross
@@ -470,9 +460,7 @@ class TestMixedIncomeCalculations:
         # Preferential rate breakdown should have 3 entries (fixed-size)
         assert len(fed.preferential_rate_breakdown) == 3
 
-    def test_wages_plus_ltcg_low_income(
-        self, calculation_engine: CalculationEngine
-    ) -> None:
+    def test_wages_plus_ltcg_low_income(self, calculation_engine: CalculationEngine) -> None:
         """Test $30k wages + $20k LTCG — some LTCG at 0%.
 
         Taxable: $50k - $15k = $35k
@@ -515,9 +503,7 @@ class TestMixedIncomeCalculations:
         assert fed.preferential_tax == Decimal("0")
         assert fed.tax_before_credits == Decimal("2000")
 
-    def test_wages_plus_qualified_dividends(
-        self, calculation_engine: CalculationEngine
-    ) -> None:
+    def test_wages_plus_qualified_dividends(self, calculation_engine: CalculationEngine) -> None:
         """Test $80k wages + $10k qualified dividends.
 
         Taxable: $90k - $15k = $75k

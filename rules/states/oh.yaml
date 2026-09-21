@@ -31,14 +31,20 @@ rate_schedule:
       filing_status: "single"
       income_from: 0
       income_to: 26050
-      rate: 0.0275
+      rate: 0
       base_tax: 0
     - bracket_id: "OH-2025-S-2"
       filing_status: "single"
       income_from: 26050
+      income_to: 100000
+      rate: 0.0275
+      base_tax: 342
+    - bracket_id: "OH-2025-S-3"
+      filing_status: "single"
+      income_from: 100000
       income_to: null
-      rate: 0.035
-      base_tax: 716.38
+      rate: 0.03125
+      base_tax: 2394.32
 
     # Married Filing Jointly
     - bracket_id: "OH-2025-MFJ-1"
@@ -101,23 +107,8 @@ rate_schedule:
 # Deductions - 2025 values
 deductions:
   standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 29200
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfj"
-        amount: 58400
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfs"
-        amount: 29200
-        dependent_claimed_elsewhere: null
-      - filing_status: "hoh"
-        amount: 43800
-        dependent_claimed_elsewhere: null
-      - filing_status: "qss"
-        amount: 58400
-        dependent_claimed_elsewhere: null
+    available: false
+    amounts: []
     additional_amounts: []
   exemptions:
     personal_exemption_available: false
@@ -137,7 +128,7 @@ state_config:
     - "PA"
     - "WV"
   special_notes:
-    - "Ohio has 2 brackets: 2.75% up to $26,050, 3.5% above"
+    - "2025 nonbusiness schedule: zero through $26,050, 2.75% through $100,000, then 3.125%"
 
 # Verification
 verification:
@@ -148,6 +139,6 @@ verification:
 
 references:
   - source_name: "Ohio Department of Taxation"
-    url: "https://tax.ohio.gov/"
+    url: "https://dam.assets.ohio.gov/image/upload/tax.ohio.gov/forms/ohio_individual/individual/2025/it1040-booklet.pdf"
     retrieved_date: "2025-02-20"
     notes: "Ohio 2 brackets"

@@ -123,7 +123,7 @@ class TestFlatTaxStateCalculations:
         ("MI", Decimal("0.0425")),
         ("NC", Decimal("0.0425")),
         ("PA", Decimal("0.0307")),
-        ("UT", Decimal("0.0455")),
+        ("UT", Decimal("0.045")),
     ])
     def test_flat_tax_rate_correct(
         self,
@@ -423,7 +423,7 @@ class TestEdgeCases:
             federal_agi=Decimal("100000000"),  # $100M
         )
         assert result.total_tax > Decimal(0)
-        assert result.marginal_rate == Decimal("0.133")  # CA top rate
+        assert result.marginal_rate == Decimal("0.123")  # CA top rate
 
     def test_negative_income_treated_as_zero(
         self, calculator: StateCalculator
@@ -453,18 +453,10 @@ class TestEdgeCases:
         )
         assert result.state_code == "CA"
 
-    def test_invalid_filing_status_uses_fallback(
-        self, calculator: StateCalculator
-    ) -> None:
-        """Test invalid filing status falls back to single brackets."""
-        result = calculator.calculate_for_state(
-            state_code="CA",
-            tax_year=2025,
-            filing_status="invalid_status",
-            federal_agi=Decimal("100000"),
-        )
-        # Should still produce a valid result
-        assert result.total_tax >= Decimal(0)
+    def test_invalid_filing_status_is_rejected(self, calculator: StateCalculator) -> None:
+        with pytest.raises(Exception, match="Unsupported filing status"):
+            calculator.calculate_for_state(state_code="CA", tax_year=2025,
+                filing_status="invalid_status", federal_agi=Decimal("100000"))
 
 
 class TestReciprocityStates:

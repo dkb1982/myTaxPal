@@ -69,7 +69,6 @@
                 <label for="tax-year">Select Tax Year</label>
                 <select id="tax-year" name="tax_year" required>
                     <option value="2025">2025</option>
-                    <option value="2024">2024</option>
                 </select>
             </fieldset>
 
@@ -94,6 +93,8 @@
                     <option value="">-- Select State --</option>
                     <!-- Populated by JavaScript -->
                 </select>
+                <label for="residence-zip">Residence ZIP code <small>(needed for local tax coverage)</small></label>
+                <input type="text" id="residence-zip" name="residence_zip" inputmode="numeric" pattern="[0-9]{5}" placeholder="e.g. 10001">
             </fieldset>
 
             <!-- Income -->
@@ -108,6 +109,8 @@
 
                 <label for="state-withholding">State Withholding (Box 17)</label>
                 <input type="number" id="state-withholding" name="state_withholding" min="0" step="0.01" placeholder="0.00" value="0">
+                <label for="local-withholding">Local Withholding (if shown on your payslip)</label>
+                <input type="number" id="local-withholding" name="local_withholding" min="0" step="0.01" placeholder="0.00" value="0">
 
                 <details class="optional-income">
                     <summary>Additional Income Types (optional)</summary>
@@ -115,8 +118,10 @@
                     <label for="interest">Taxable Interest Income</label>
                     <input type="number" id="interest" name="interest" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
 
-                    <label for="dividends">Ordinary Dividend Income</label>
+                    <label for="dividends">Total Ordinary Dividends (including qualified)</label>
                     <input type="number" id="dividends" name="dividends" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
+                    <label for="qualified-dividends">Qualified portion of those dividends</label>
+                    <input type="number" id="qualified-dividends" min="0" step="0.01" value="0">
 
                     <label for="ltcg">
                         Long-Term Capital Gains (held > 1 year)
@@ -125,7 +130,7 @@
                     <input type="number" id="ltcg" name="ltcg" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
 
                     <label for="stcg">
-                        Short-Term Capital Gains (held &lt; 1 year)
+                        Short-Term Capital Gains (held one year or less)
                         <small class="field-hint">Taxed as ordinary income</small>
                     </label>
                     <input type="number" id="stcg" name="stcg" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="us">
@@ -137,6 +142,17 @@
                 </div>
             </fieldset>
 
+            <p class="us-scope-disclosure">US scenario assumes age 40, full-year residence and work in the same jurisdiction. Source-checked state/city scope: single, no dependants, standard deductions, wages, dividends and direct securities gains. Other profiles remain unvalidated. EITC legal eligibility is not assumed. Net income excludes unmodelled state/local payroll contributions.</p>
+            <details>
+                <summary>Arizona / Philadelphia details (only if relevant)</summary>
+                <p>Amounts in USD. Leave blank when irrelevant; enter 0 when none qualifies. These are portions of income already entered, not additional income.</p>
+                <label for="us-az-eligible-ltcg">Arizona: LT gains from securities acquired after 2011</label>
+                <input type="number" id="us-az-eligible-ltcg" min="0" step="0.01">
+                <label for="us-philly-six-month-gains">Philadelphia: ST gains held six months or less</label>
+                <input type="number" id="us-philly-six-month-gains" min="0" step="0.01">
+                <label for="us-philly-first-half-wages">Philadelphia: wages paid January–June 2025</label>
+                <input type="number" id="us-philly-first-half-wages" min="0" step="0.01">
+            </details>
             <button type="submit" id="calculate-btn">Calculate Taxes</button>
         </form>
 
@@ -147,9 +163,12 @@
                 <legend>Tax Year</legend>
                 <label for="intl-tax-year">Select Tax Year</label>
                 <select id="intl-tax-year" name="tax_year" required>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
+                    <option value="2025">2025/26 (6 Apr 2025–5 Apr 2026)</option>
                 </select>
+                <label for="intl-gb-region">UK tax region</label>
+                <select id="intl-gb-region"><option value="england">England</option><option value="scotland">Scotland</option><option value="wales">Wales</option><option value="northern_ireland">Northern Ireland</option></select>
+                <label for="intl-sg-citizen">Singapore citizen or permanent resident?</label>
+                <select id="intl-sg-citizen"><option value="true">Yes</option><option value="false">No</option></select>
             </fieldset>
 
             <!-- Country Selection -->
@@ -192,7 +211,7 @@
 
                     <label for="intl-stcg">
                         Short-Term Capital Gains
-                        <small class="field-hint">Held under 1 year - usually taxed as ordinary income</small>
+                        <small class="field-hint">Held one year or less (US definition)</small>
                     </label>
                     <input type="number" id="intl-stcg" name="capital_gains_short_term" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="intl">
 
@@ -229,7 +248,6 @@
                 <label for="compare-tax-year">Select Tax Year</label>
                 <select id="compare-tax-year" name="tax_year" required>
                     <option value="2025">2025</option>
-                    <option value="2024">2024</option>
                 </select>
             </fieldset>
 
@@ -257,14 +275,14 @@
 
                     <label for="compare-stcg">
                         Short-Term Capital Gains
-                        <small class="field-hint">Held under 1 year - usually taxed as ordinary income</small>
+                        <small class="field-hint">Held one year or less (US definition)</small>
                     </label>
                     <input type="number" id="compare-stcg" name="capital_gains_short_term" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
 
                     <label for="compare-qual-div">Qualified Dividends</label>
                     <input type="number" id="compare-qual-div" name="dividends_qualified" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
 
-                    <label for="compare-ord-div">Ordinary Dividends</label>
+                    <label for="compare-ord-div">Non-qualified Dividends (exclude qualified amount above)</label>
                     <input type="number" id="compare-ord-div" name="dividends_ordinary" min="0" step="0.01" placeholder="0.00" value="0" data-income-group="compare">
 
                     <label for="compare-interest">Interest Income</label>
@@ -295,7 +313,22 @@
                     <option value="qss">Qualifying Surviving Spouse</option>
                 </select>
             </fieldset>
+            <fieldset><legend>Country profile options</legend>
+                <label for="compare-gb-region">UK tax region</label><select id="compare-gb-region"><option value="england">England</option><option value="scotland">Scotland</option><option value="wales">Wales</option><option value="northern_ireland">Northern Ireland</option></select>
+                <label for="compare-sg-citizen">Singapore citizen or permanent resident?</label><select id="compare-sg-citizen"><option value="true">Yes</option><option value="false">No</option></select>
+            </fieldset>
 
+            <p class="us-scope-disclosure">US comparisons assume age 40, no dependants, full-year residence/work in each location and standard deductions. Only the single-filer wage/dividend/direct-securities profile is source-checked. EITC legal eligibility is not assumed. Rankings use net after modelled taxes, excluding state/local payroll contributions.</p>
+            <details>
+                <summary>Arizona / Philadelphia details (only if selected)</summary>
+                <p>Use the selected comparison currency. These portions are included in the income above. Blank means unknown; 0 means none qualifies.</p>
+                <label for="compare-az-eligible-ltcg">Arizona: LT gains from securities acquired after 2011</label>
+                <input type="number" id="compare-az-eligible-ltcg" min="0" step="0.01">
+                <label for="compare-philly-six-month-gains">Philadelphia: ST gains held six months or less</label>
+                <input type="number" id="compare-philly-six-month-gains" min="0" step="0.01">
+                <label for="compare-philly-first-half-wages">Philadelphia: wages paid January–June 2025</label>
+                <input type="number" id="compare-philly-first-half-wages" min="0" step="0.01">
+            </details>
             <!-- Region Selection -->
             <fieldset>
                 <legend>Select Regions to Compare (2-6)</legend>
@@ -305,7 +338,7 @@
 
                 <details id="us-states-section" aria-expanded="false">
                     <summary aria-controls="us-states-grid">US States <span class="region-count">(51)</span></summary>
-                    <p><small><em>No state income tax:</em> AK, FL, NV, SD, TN, TX, WA, WY</small></p>
+                    <p><small><em>No general state income tax:</em> AK, FL, NV, NH, SD, TN, TX, WA, WY. Washington separately taxes eligible capital gains.</small></p>
                     <div id="us-states-grid" class="checkbox-grid">
                         <!-- Populated by JavaScript -->
                         <span class="loading-text">Loading US states...</span>
@@ -357,7 +390,7 @@
             <div class="summary-card">
                 <div class="summary-card-badge" id="tax-status-badge"></div>
                 <div class="summary-card-amount" id="total-tax-display">$0</div>
-                <div class="summary-card-label">Total Tax Liability</div>
+                <div class="summary-card-label">Estimated taxes + employee contributions</div>
                 <div class="summary-card-rates">
                     <div class="summary-rate">
                         <div class="summary-rate-value" id="effective-rate-display">0%</div>
@@ -369,7 +402,7 @@
                     </div>
                     <div class="summary-rate">
                         <div class="summary-rate-value" id="net-income-display">$0</div>
-                        <div class="summary-rate-label">Net Income</div>
+                        <div class="summary-rate-label">Net after modelled taxes</div>
                     </div>
                 </div>
             </div>
@@ -389,7 +422,7 @@
                 <!-- Federal Income Tax Breakdown -->
                 <details class="breakdown-section" id="federal-breakdown-section" aria-expanded="false">
                     <summary aria-controls="federal-breakdown-content">
-                        <span>Federal Income Tax</span>
+                        <span>Federal tax liability (including SE/other federal taxes)</span>
                         <span>
                             <span class="breakdown-section-amount" id="federal-total-amount">$0</span>
                             <span class="breakdown-section-rate" id="federal-effective-pct">(0%)</span>
@@ -403,7 +436,7 @@
                 <!-- FICA Breakdown -->
                 <details class="breakdown-section" id="fica-breakdown-section" aria-expanded="false">
                     <summary aria-controls="fica-breakdown-content">
-                        <span>FICA (Social Security + Medicare)</span>
+                        <span>Employee Social Security + Medicare</span>
                         <span>
                             <span class="breakdown-section-amount" id="fica-total-amount">$0</span>
                             <span class="breakdown-section-rate" id="fica-effective-pct">(0%)</span>
@@ -516,7 +549,7 @@
                     </div>
                     <div class="summary-rate">
                         <div class="summary-rate-value" id="intl-net-income-display">0</div>
-                        <div class="summary-rate-label">Net Income</div>
+                        <div class="summary-rate-label">Net after modelled taxes</div>
                     </div>
                 </div>
             </div>
@@ -624,16 +657,19 @@
                 </p>
             </div>
 
+            <div id="compare-assumptions"></div>
+
             <div id="compare-cards" class="compare-cards">
                 <!-- Populated by JavaScript -->
             </div>
 
             <div id="compare-best">
                 <p><strong>Lowest Tax:</strong> <span id="lowest-tax-country"></span></p>
-                <p><strong>Highest Net Income:</strong> <span id="highest-net-country"></span></p>
+                <p><strong>Highest estimated net income under these assumptions:</strong> <span id="highest-net-country"></span></p>
             </div>
 
             <div id="compare-disclaimers">
+                <p>Rankings use historical FX and model independent full-year domestic scenarios. Defaults and assumptions—including citizenship, no treaty/home-country tax or cost-of-living model, and unvalidated country/state coverage—apply before ranking.</p>
                 <h4>Disclaimers</h4>
                 <ul id="compare-disclaimer-list">
                     <!-- Populated by JavaScript -->

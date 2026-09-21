@@ -1,0 +1,20 @@
+jurisdiction_id: "US-IN-IND"
+jurisdiction_name: "Indianapolis / Marion County"
+parent_state: "IN"
+tax_year: 2025
+has_income_tax: true
+tax_type: "county_piggyback"
+applies_to: "both_residents_and_workers"
+rate_schedule:
+  rate_type: "piggyback"
+  tax_base: "state_taxable_income"
+  piggyback:
+    rate: 0.0202
+local_config:
+  special_notes:
+    - "2025 full-year Marion County resident; county taxable base from Indiana return, no duplicate personal exemption"
+references:
+  - source_name: "Indiana 2025 county tax rates and codes"
+    url: "https://secure.in.gov/dor/files/2025-county-tax-rates-and-codes.pdf"
+  - source_name: "Indiana return line-by-line, exemptions and county base"
+    url: "https://www.in.gov/dor/i-am-a/individual/first-time-filer/your-indiana-tax-return-line-by-line/"

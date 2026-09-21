@@ -16,6 +16,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from tax_estimator.models.us_scenario import USScenarioFacts
 
 # =============================================================================
 # Enums
@@ -92,10 +93,11 @@ class FilerInfo(BaseModel):
     """Filer information for tax estimate."""
 
     filing_status: FilingStatus = Field(..., description="Tax filing status")
+    age_at_year_end: int | None = Field(None, ge=0, le=120, description="Actual or disclosed scenario age; must agree with DOB")
+    has_valid_ssn_for_ctc: bool | None = None
+    qualifies_for_enhanced_senior_deduction: bool | None = None
     date_of_birth: str | None = Field(
-        None,
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-        description="Date of birth (YYYY-MM-DD format)"
+        None, pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date of birth (YYYY-MM-DD format)"
     )
     is_blind: bool = Field(default=False, description="Whether taxpayer is legally blind")
     can_be_claimed_as_dependent: bool = Field(
@@ -113,11 +115,11 @@ class SpouseInfo(BaseModel):
     """Spouse information for MFJ/MFS."""
 
     date_of_birth: str | None = Field(
-        None,
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-        description="Date of birth (YYYY-MM-DD format)"
+        None, pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date of birth (YYYY-MM-DD format)"
     )
     is_blind: bool = Field(default=False, description="Whether spouse is legally blind")
+    has_valid_ssn_for_ctc: bool | None = None
+    qualifies_for_enhanced_senior_deduction: bool | None = None
 
     @field_validator("date_of_birth")
     @classmethod
@@ -132,9 +134,7 @@ class DependentInfo(BaseModel):
     first_name: str = Field(..., max_length=100, description="First name")
     last_name: str = Field(..., max_length=100, description="Last name")
     date_of_birth: str = Field(
-        ...,
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-        description="Date of birth (YYYY-MM-DD format)"
+        ..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date of birth (YYYY-MM-DD format)"
     )
     relationship: str = Field(..., max_length=50, description="Relationship to taxpayer")
     ssn_last_four: str | None = Field(None, pattern=r"^\d{4}$", description="Last 4 of SSN")
@@ -144,6 +144,12 @@ class DependentInfo(BaseModel):
     is_student: bool = Field(default=False, description="Full-time student")
     is_disabled: bool = Field(default=False, description="Permanently disabled")
     gross_income: Decimal | None = Field(None, ge=0, description="Dependent's gross income")
+    has_ssn: bool = Field(
+        default=False, description="Valid SSN eligibility assertion; do not supply an SSN"
+    )
+    qualifies_for_ctc: bool = False
+    qualifies_for_odc: bool = False
+    qualifies_for_eitc: bool | None = None
 
     @field_validator("date_of_birth")
     @classmethod
@@ -173,7 +179,9 @@ class ResidencyChange(BaseModel):
     """Record of residency change for part-year residents."""
 
     state: str = Field(..., pattern=r"^[A-Z]{2}$", description="State code")
-    start_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="Start date (YYYY-MM-DD)")
+    start_date: str = Field(
+        ..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="Start date (YYYY-MM-DD)"
+    )
     end_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="End date (YYYY-MM-DD)")
     type: Literal["resident", "nonresident"] = Field(..., description="Residency type")
 
@@ -212,12 +220,17 @@ class ResidencyInfo(BaseModel):
         ..., min_length=2, max_length=2, description="Primary residence state code"
     )
     residence_city: str | None = Field(None, max_length=100, description="City of residence")
+    local_jurisdiction_id: str | None = Field(
+        None, description="Explicit covered city ID, e.g. US-NY-NYC"
+    )
     residence_zip: str | None = Field(None, pattern=r"^\d{5}(-\d{4})?$", description="ZIP code")
     residence_county: str | None = Field(None, max_length=100, description="County name")
     residence_address: AddressInfo | None = Field(None, description="Full address")
     is_part_year: bool = Field(default=False, description="Part-year resident")
     residency_changes: list[ResidencyChange] | None = Field(None, description="Residency changes")
-    work_state: str | None = Field(None, min_length=2, max_length=2, description="State where work is performed")
+    work_state: str | None = Field(
+        None, min_length=2, max_length=2, description="State where work is performed"
+    )
     work_city: str | None = Field(None, max_length=100, description="City where work is performed")
     work_location_same_as_residence: bool = Field(
         default=True, description="Work location same as residence"
@@ -234,6 +247,7 @@ class WageIncomeInfo(BaseModel):
     """W-2 wage income from an employer."""
 
     employer_name: str = Field(..., max_length=200, description="Employer name")
+    owner: Literal["taxpayer", "spouse"] = "taxpayer"
     employer_state: str = Field(..., min_length=2, max_length=2, description="Employer state")
     employer_city: str | None = Field(None, max_length=100, description="Employer city")
     gross_wages: Decimal = Field(..., ge=0, description="Gross wages (Box 1)")
@@ -278,7 +292,11 @@ class CapitalGainsInfo(BaseModel):
     short_term_loss: Decimal = Field(default=Decimal(0), ge=0, description="Short-term losses")
     long_term_gain: Decimal = Field(default=Decimal(0), description="Long-term gains")
     long_term_loss: Decimal = Field(default=Decimal(0), ge=0, description="Long-term losses")
-    carryover_loss: Decimal = Field(default=Decimal(0), ge=0, description="Carryover from prior years")
+    carryover_loss: Decimal = Field(
+        default=Decimal(0), ge=0, description="Carryover from prior years"
+    )
+    short_term_carryover_loss: Decimal = Field(default=Decimal(0), ge=0)
+    long_term_carryover_loss: Decimal = Field(default=Decimal(0), ge=0)
 
 
 class EquityCompensationInfo(BaseModel):
@@ -301,9 +319,12 @@ class SelfEmploymentInfo(BaseModel):
     """Self-employment income."""
 
     business_name: str | None = Field(None, max_length=200, description="Business name")
+    owner: Literal["taxpayer", "spouse"] = "taxpayer"
     gross_income: Decimal = Field(..., ge=0, description="Gross business income")
     expenses: Decimal = Field(default=Decimal(0), ge=0, description="Business expenses")
-    state: str | None = Field(None, min_length=2, max_length=2, description="State where business operates")
+    state: str | None = Field(
+        None, min_length=2, max_length=2, description="State where business operates"
+    )
 
 
 class RentalIncomeInfo(BaseModel):
@@ -340,7 +361,9 @@ class IncomeInfo(BaseModel):
     interest: InterestIncomeInfo | None = Field(None, description="Interest income")
     dividends: DividendIncomeInfo | None = Field(None, description="Dividend income")
     capital_gains: CapitalGainsInfo | None = Field(None, description="Capital gains/losses")
-    equity_compensation: list[EquityCompensationInfo] | None = Field(None, description="Equity comp")
+    equity_compensation: list[EquityCompensationInfo] | None = Field(
+        None, description="Equity comp"
+    )
     self_employment: list[SelfEmploymentInfo] | None = Field(None, description="Self-employment")
     rental_income: list[RentalIncomeInfo] | None = Field(None, description="Rental income")
     retirement: RetirementIncomeInfo | None = Field(None, description="Retirement income")
@@ -357,7 +380,9 @@ class AdjustmentsInfo(BaseModel):
 
     hsa_contribution: Decimal = Field(default=Decimal(0), ge=0, description="HSA contributions")
     ira_contribution: Decimal = Field(default=Decimal(0), ge=0, description="IRA contributions")
-    student_loan_interest: Decimal = Field(default=Decimal(0), ge=0, description="Student loan interest")
+    student_loan_interest: Decimal = Field(
+        default=Decimal(0), ge=0, description="Student loan interest"
+    )
     educator_expenses: Decimal = Field(default=Decimal(0), ge=0, description="Educator expenses")
     self_employment_health_insurance: Decimal = Field(
         default=Decimal(0), ge=0, description="SE health insurance"
@@ -366,9 +391,7 @@ class AdjustmentsInfo(BaseModel):
         None, ge=0, description="SE tax deduction (calculated)"
     )
     alimony_paid: Decimal = Field(default=Decimal(0), ge=0, description="Alimony paid")
-    alimony_paid_pre_2019: bool = Field(
-        default=False, description="Divorce was before 2019"
-    )
+    alimony_paid_pre_2019: bool = Field(default=False, description="Divorce was before 2019")
 
 
 class ItemizedDeductionsInfo(BaseModel):
@@ -377,7 +400,9 @@ class ItemizedDeductionsInfo(BaseModel):
     medical_expenses: Decimal = Field(default=Decimal(0), ge=0, description="Medical expenses")
     state_local_taxes_paid: Decimal = Field(default=Decimal(0), ge=0, description="SALT paid")
     real_estate_taxes: Decimal = Field(default=Decimal(0), ge=0, description="Property taxes")
-    personal_property_taxes: Decimal = Field(default=Decimal(0), ge=0, description="Personal property")
+    personal_property_taxes: Decimal = Field(
+        default=Decimal(0), ge=0, description="Personal property"
+    )
     mortgage_interest: Decimal = Field(default=Decimal(0), ge=0, description="Mortgage interest")
     mortgage_points: Decimal = Field(default=Decimal(0), ge=0, description="Mortgage points")
     charitable_cash: Decimal = Field(default=Decimal(0), ge=0, description="Cash charity")
@@ -477,9 +502,15 @@ class PriorYearOverpaymentInfo(BaseModel):
 class WithholdingInfo(BaseModel):
     """Withholding and payment information."""
 
-    federal_estimated_payments: list[EstimatedPaymentInfo] | None = Field(None, description="Federal est. payments")
-    state_estimated_payments: list[StateEstimatedPaymentInfo] | None = Field(None, description="State est. payments")
-    prior_year_overpayment_applied: PriorYearOverpaymentInfo | None = Field(None, description="Prior year applied")
+    federal_estimated_payments: list[EstimatedPaymentInfo] | None = Field(
+        None, description="Federal est. payments"
+    )
+    state_estimated_payments: list[StateEstimatedPaymentInfo] | None = Field(
+        None, description="State est. payments"
+    )
+    prior_year_overpayment_applied: PriorYearOverpaymentInfo | None = Field(
+        None, description="Prior year applied"
+    )
 
 
 # =============================================================================
@@ -504,7 +535,10 @@ class EstimateRequest(BaseModel):
     This is the main API request model for POST /v1/estimates.
     """
 
-    tax_year: int = Field(..., ge=2024, le=2025, description="Tax year (2024 or 2025)")
+    tax_year: int = Field(..., ge=2025, le=2025, description="Supported calendar tax year: 2025")
+    lived_with_spouse_during_year: bool | None = None
+    eitc_eligibility_asserted: bool | None = None
+    us_scenario: USScenarioFacts = Field(default_factory=USScenarioFacts)
     save: bool = Field(default=False, description="Save estimate (requires auth)")
 
     filer: FilerInfo = Field(..., description="Filer information")
@@ -520,6 +554,14 @@ class EstimateRequest(BaseModel):
     withholding: WithholdingInfo | None = Field(None, description="Withholding information")
 
     options: CalculationOptions | None = Field(None, description="Calculation options")
+
+    @model_validator(mode="after")
+    def consistent_filer_age(self) -> EstimateRequest:
+        if self.filer.date_of_birth and self.filer.age_at_year_end is not None:
+            expected = self.tax_year - date.fromisoformat(self.filer.date_of_birth).year
+            if expected != self.filer.age_at_year_end:
+                raise ValueError("age_at_year_end conflicts with date_of_birth for the tax year")
+        return self
 
 
 # =============================================================================
@@ -578,10 +620,18 @@ class FICAConfig(BaseModel):
     """FICA tax configuration for the frontend to use instead of hardcoded values."""
 
     ss_wage_base: Decimal = Field(..., description="Social Security wage base")
-    ss_rate: Decimal = Field(default=Decimal("0.062"), description="Social Security rate (employee)")
-    medicare_rate: Decimal = Field(default=Decimal("0.0145"), description="Medicare rate (employee)")
-    additional_medicare_rate: Decimal = Field(default=Decimal("0.009"), description="Additional Medicare rate")
-    additional_medicare_threshold: Decimal = Field(default=Decimal("200000"), description="Additional Medicare threshold")
+    ss_rate: Decimal = Field(
+        default=Decimal("0.062"), description="Social Security rate (employee)"
+    )
+    medicare_rate: Decimal = Field(
+        default=Decimal("0.0145"), description="Medicare rate (employee)"
+    )
+    additional_medicare_rate: Decimal = Field(
+        default=Decimal("0.009"), description="Additional Medicare rate"
+    )
+    additional_medicare_threshold: Decimal = Field(
+        default=Decimal("200000"), description="Additional Medicare threshold"
+    )
 
 
 class EstimateSummary(BaseModel):
@@ -594,8 +644,30 @@ class EstimateSummary(BaseModel):
     total_federal_tax: Decimal = Field(..., description="Total federal tax")
     total_state_tax: Decimal = Field(default=Decimal(0), description="Total state tax")
     total_local_tax: Decimal = Field(default=Decimal(0), description="Total local tax")
-    total_fica_tax: Decimal = Field(default=Decimal(0), description="Total FICA tax")
+    total_fica_tax: Decimal = Field(
+        default=Decimal(0),
+        description=(
+            "Informational payroll subtotal: employee FICA plus SE tax and Additional Medicare. "
+            "Overlaps federal liability; do not add to total_tax. Use total_statutory_deductions."
+        ),
+    )
     total_tax: Decimal = Field(..., description="Total tax liability")
+    employee_social_security_tax: Decimal = Decimal(0)
+    employee_medicare_tax: Decimal = Decimal(0)
+    employee_payroll_tax: Decimal = Decimal(0)
+    total_statutory_deductions: Decimal = Field(
+        default=Decimal(0),
+        description="Legacy alias of total_modelled_deductions; excludes state/local employee payroll contributions",
+    )
+    total_modelled_deductions: Decimal = Decimal(0)
+    modelled_effective_rate: Decimal = Decimal(0)
+    calculation_scope: str = "Modelled income taxes and federal employee payroll only; excludes state/local employee disability, leave and unemployment contributions."
+    statutory_effective_rate: Decimal = Decimal(0)
+    net_income: Decimal = Field(
+        default=Decimal(0),
+        description="Gross less modelled taxes/contributions, before pension payments and living costs",
+    )
+    total_local_withholding: Decimal = Decimal(0)
 
     effective_rate: Decimal = Field(..., description="Effective tax rate")
     marginal_rate: Decimal = Field(..., description="Marginal tax rate")
@@ -619,11 +691,16 @@ class FederalTaxResultInfo(BaseModel):
 
     deduction_type: Literal["standard", "itemized"] = Field(..., description="Deduction method")
     deduction_amount: Decimal = Field(..., description="Deduction amount used")
+    enhanced_senior_deduction: Decimal = Decimal(0)
     qualified_business_income_deduction: Decimal | None = Field(None, description="QBI deduction")
 
     taxable_income: Decimal = Field(..., description="Taxable income")
-    ordinary_income: Decimal = Field(default=Decimal(0), description="Ordinary portion of taxable income")
-    preferential_income: Decimal = Field(default=Decimal(0), description="LTCG + qualified dividends portion")
+    ordinary_income: Decimal = Field(
+        default=Decimal(0), description="Ordinary portion of taxable income"
+    )
+    preferential_income: Decimal = Field(
+        default=Decimal(0), description="LTCG + qualified dividends portion"
+    )
 
     tax_before_credits: Decimal = Field(..., description="Tax before credits")
     ordinary_tax: Decimal = Field(default=Decimal(0), description="Tax on ordinary income")
@@ -659,6 +736,9 @@ class StateTaxResultInfo(BaseModel):
 
     jurisdiction_id: str = Field(..., description="State jurisdiction ID (e.g., US-CA)")
     jurisdiction_name: str = Field(..., description="State name")
+    has_income_tax: bool = True
+    tax_type: str = "graduated"
+    starting_point: str = "federal_agi"
 
     residency_status: Literal["full_year", "part_year", "nonresident"] = Field(
         default="full_year", description="Residency status"
@@ -669,7 +749,7 @@ class StateTaxResultInfo(BaseModel):
     state_subtractions: list[AdjustmentItemInfo] = Field(default_factory=list)
     state_agi: Decimal = Field(default=Decimal(0), description="State AGI")
 
-    deduction_type: Literal["standard", "itemized"] = Field(default="standard")
+    deduction_type: Literal["standard", "itemized", "none"] = Field(default="standard")
     deduction_amount: Decimal = Field(default=Decimal(0))
 
     exemptions: int = Field(default=0, description="Number of exemptions")
@@ -678,6 +758,15 @@ class StateTaxResultInfo(BaseModel):
     taxable_income: Decimal = Field(..., description="State taxable income")
 
     tax_before_credits: Decimal = Field(..., description="Tax before credits")
+    surtax: Decimal = Decimal(0)
+    recapture: Decimal = Decimal(0)
+    ordinary_taxable_income: Decimal = Decimal(0)
+    preferential_taxable_income: Decimal = Decimal(0)
+    ordinary_tax: Decimal = Decimal(0)
+    preferential_tax: Decimal = Decimal(0)
+    other_base_tax: Decimal = Decimal(0)
+    nonrefundable_credits: Decimal = Decimal(0)
+    refundable_credits: Decimal = Decimal(0)
     bracket_breakdown: list[BracketBreakdownInfo] | None = Field(None)
 
     credits: list[CreditBreakdownInfo] = Field(default_factory=list)
@@ -709,6 +798,9 @@ class LocalTaxResultInfo(BaseModel):
 
     credits: list[CreditBreakdownInfo] = Field(default_factory=list)
     total_credits: Decimal = Field(default=Decimal(0))
+    nonrefundable_credits: Decimal = Decimal(0)
+    refundable_credits: Decimal = Decimal(0)
+    tax_components: list[dict[str, Any]] = Field(default_factory=list)
 
     total_tax: Decimal = Field(..., description="Total local tax")
     withholding: Decimal = Field(default=Decimal(0))
@@ -807,7 +899,9 @@ class TaxSummaryInfo(BaseModel):
     brackets_count: int = Field(default=0, description="Number of brackets")
     min_rate: Decimal = Field(default=Decimal(0), description="Minimum rate")
     max_rate: Decimal = Field(default=Decimal(0), description="Maximum rate")
-    standard_deduction: dict[str, Decimal] | None = Field(None, description="Standard deductions by status")
+    standard_deduction: dict[str, Decimal] | None = Field(
+        None, description="Standard deductions by status"
+    )
 
 
 class ResidencyRulesInfo(BaseModel):
@@ -840,7 +934,9 @@ class JurisdictionDetails(BaseModel):
     reciprocity: list[str] = Field(default_factory=list, description="Reciprocity states")
     local_taxes: LocalTaxesInfo | None = Field(None, description="Local tax info")
 
-    children: list[JurisdictionSummary] = Field(default_factory=list, description="Child jurisdictions")
+    children: list[JurisdictionSummary] = Field(
+        default_factory=list, description="Child jurisdictions"
+    )
     links: dict[str, str] | None = Field(None, description="Related links")
 
 
@@ -892,7 +988,9 @@ class KeyThresholdsInfo(BaseModel):
 
     standard_deduction: dict[str, Decimal] = Field(..., description="Standard deduction by status")
     social_security_wage_base: Decimal = Field(..., description="SS wage base")
-    limit_401k: Decimal = Field(..., serialization_alias="401k_limit", description="401k contribution limit")
+    limit_401k: Decimal = Field(
+        ..., serialization_alias="401k_limit", description="401k contribution limit"
+    )
     ira_limit: Decimal = Field(..., description="IRA contribution limit")
 
 
@@ -907,7 +1005,9 @@ class TaxYearDetails(BaseModel):
     last_updated: datetime | None = Field(None, description="Last update")
 
     key_thresholds: KeyThresholdsInfo | None = Field(None, description="Key thresholds")
-    supported_jurisdictions: dict[str, int] | None = Field(None, description="Supported jurisdictions count")
+    supported_jurisdictions: dict[str, int] | None = Field(
+        None, description="Supported jurisdictions count"
+    )
     changelog: list[dict[str, Any]] | None = Field(None, description="Change history")
 
 

@@ -37,7 +37,7 @@ const REGION_NAMES = {
 const COUNTRY_NAMES = REGION_NAMES;
 
 // No income tax US states
-const NO_TAX_US_STATES = ['AK', 'FL', 'NV', 'SD', 'TN', 'TX', 'WA', 'WY'];
+const NO_TAX_US_STATES = ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'];
 
 // Maximum regions for comparison
 const MAX_COMPARISON_REGIONS = 6;
@@ -736,8 +736,11 @@ function gatherFormData() {
     const wages = parseFloat(document.getElementById('wages').value) || 0;
     const federalWithholding = parseFloat(document.getElementById('federal-withholding').value) || 0;
     const stateWithholding = parseFloat(document.getElementById('state-withholding').value) || 0;
+    const localWithholding = parseFloat(document.getElementById('local-withholding').value) || 0;
+    const residenceZip = document.getElementById('residence-zip').value.trim();
     const interest = parseFloat(document.getElementById('interest').value) || 0;
     const dividends = parseFloat(document.getElementById('dividends').value) || 0;
+    const qualifiedDividends = parseFloat(document.getElementById('qualified-dividends')?.value) || 0;
     const longTermCapGains = parseFloat(document.getElementById('ltcg').value) || 0;
     const shortTermCapGains = parseFloat(document.getElementById('stcg').value) || 0;
 
@@ -745,22 +748,26 @@ function gatherFormData() {
     const request = {
         tax_year: taxYear,
         filer: {
-            filing_status: filingStatus
+            filing_status: filingStatus,
+            age_at_year_end: 40
         },
         residency: {
-            residence_state: residenceState
+            residence_state: residenceState,
+            residence_zip: residenceZip || null
         },
-        income: {}
+        income: {},
+        us_scenario: gatherUSScenarioFacts('us')
     };
 
     // Only include wages if there's income
-    if (wages > 0 || federalWithholding > 0 || stateWithholding > 0) {
+    if (wages > 0 || federalWithholding > 0 || stateWithholding > 0 || localWithholding > 0) {
         request.income.wages = [{
             employer_name: 'Primary Employer',
             employer_state: residenceState,
             gross_wages: wages,
             federal_withholding: federalWithholding,
-            state_withholding: stateWithholding
+            state_withholding: stateWithholding,
+            local_withholding: localWithholding
         }];
     }
 
@@ -772,9 +779,10 @@ function gatherFormData() {
     }
 
     // Only include dividends if there's income
-    if (dividends > 0) {
+    if (dividends > 0 || qualifiedDividends > 0) {
         request.income.dividends = {
-            ordinary: dividends
+            ordinary: dividends,
+            qualified: qualifiedDividends
         };
     }
 
@@ -899,13 +907,16 @@ function gatherIntlFormData() {
     const incomeBreakdown = gatherIncomeBreakdown('intl');
     const totalIncome = calculateTotalIncome(incomeBreakdown);
 
-    return {
+    const request = {
         country_code: countryCode,
         tax_year: taxYear,
         gross_income: totalIncome,
         income: incomeBreakdown,
         currency_code: COUNTRY_CURRENCIES[countryCode] || 'USD'
     };
+    if (countryCode === 'GB') request.uk = { tax_region: document.getElementById('intl-gb-region').value };
+    if (countryCode === 'SG') request.sg = { is_citizen_or_pr: document.getElementById('intl-sg-citizen').value === 'true' };
+    return request;
 }
 
 async function calculateInternationalTaxes() {
@@ -965,6 +976,20 @@ async function calculateInternationalTaxes() {
 // Comparison Calculation
 // =============================================================================
 
+function gatherUSScenarioFacts(prefix) {
+    const fields = {
+        'az-eligible-ltcg': 'az_post_2011_eligible_long_term_gains',
+        'philly-six-month-gains': 'philly_gains_held_six_months_or_less',
+        'philly-first-half-wages': 'philly_first_half_wages'
+    };
+    const facts = {};
+    for (const [id, field] of Object.entries(fields)) {
+        const value = String(document.getElementById(`${prefix}-${id}`)?.value ?? '').trim();
+        if (value !== '') facts[field] = Number(value);
+    }
+    return facts;
+}
+
 function gatherCompareFormData() {
     const taxYear = parseInt(document.getElementById('compare-tax-year').value, 10);
     const baseCurrency = document.getElementById('compare-currency').value;
@@ -976,14 +1001,20 @@ function gatherCompareFormData() {
     const regionCheckboxes = document.querySelectorAll('input[name="regions"]:checked');
     const regions = Array.from(regionCheckboxes).map(cb => cb.value);
 
-    return {
+    const request = {
         base_currency: baseCurrency,
         gross_income: totalIncome,
         income: incomeBreakdown,
         regions: regions,
         tax_year: taxYear,
-        filing_status: filingStatus
+        filing_status: filingStatus,
+        us_scenario: gatherUSScenarioFacts('compare')
     };
+    const profiles = {};
+    if (regions.includes('GB')) profiles.GB = { tax_region: document.getElementById('compare-gb-region').value };
+    if (regions.includes('SG')) profiles.SG = { is_citizen_or_pr: document.getElementById('compare-sg-citizen').value === 'true' };
+    if (Object.keys(profiles).length) request.country_profiles = profiles;
+    return request;
 }
 
 async function calculateComparison() {
@@ -1146,6 +1177,12 @@ function displayResults(result) {
     updateSummaryCard(summary);
     populateFederalBreakdown(federal);
     populateFICABreakdown(result);
+    populateLocalBreakdown(result);
+    (result.warnings || []).forEach(warning => {
+        const li = document.createElement('li');
+        li.textContent = warning.message || String(warning);
+        disclaimerList.appendChild(li);
+    });
     populateStateBreakdown(result.states);
     populateNIITBreakdown(federal);
 
@@ -1253,6 +1290,13 @@ function displayIntlResults(result) {
 // Comparison Display
 // =============================================================================
 
+function buildCompareAssumptionsHtml(regions) {
+    const profiles = regions.flatMap(region => (region.notes || [])
+        .filter(note => note.startsWith('Domestic profile used'))
+        .map(note => `<li>${escapeHtml(region.region_name || region.country_code || region.region_id)}: ${escapeHtml(note)}</li>`));
+    return `<p>Independent full-year domestic estimates using historical annual-average FX, not current rates. Home-country tax, treaties and living costs are excluded. Non-UK international models remain unvalidated. US scenarios assume age 40 and no dependants; the source-checked state/city scope is single filers with standard deductions, wages, dividends and direct securities gains. EITC eligibility is not assumed. Rankings show net after modelled taxes, excluding state/local employee payroll contributions.</p>${profiles.length ? `<details><summary>Country profiles used (including default province and family settings)</summary><ul>${profiles.join('')}</ul></details>` : ''}`;
+}
+
 function displayCompareResults(result) {
     // Store result for modal access (Phase 2)
     lastCompareResult = result;
@@ -1262,7 +1306,10 @@ function displayCompareResults(result) {
     if (infoEl) {
         const symbol = CURRENCY_SYMBOLS[result.base_currency] || result.base_currency;
         const totalIncome = result.total_gross_income || result.gross_income || 0;
-        infoEl.innerHTML = `Comparing tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${escapeHtml(result.base_currency)})`;
+        const fx = result.exchange_rates || {};
+        const fxDate = fx.rate_date || 'an undisclosed historical date';
+        const fxSource = fx.source || 'the supplied exchange-rate snapshot';
+        infoEl.innerHTML = `Comparing tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${escapeHtml(result.base_currency)}). FX snapshot: ${escapeHtml(fxDate)} (${escapeHtml(fxSource)}).`;
     }
 
     // Populate comparison cards
@@ -1271,6 +1318,7 @@ function displayCompareResults(result) {
 
     // Handle both old format (countries) and new format (regions)
     const regions = result.regions || result.countries || [];
+    document.getElementById('compare-assumptions').innerHTML = buildCompareAssumptionsHtml(regions);
 
     if (regions.length > 0) {
         // Sort by net income descending
@@ -1308,7 +1356,7 @@ function displayCompareResults(result) {
 
             let badgesHtml = '';
             if (isBestNet) {
-                badgesHtml += '<span class="compare-card-badge compare-card-badge--best">Best Net Income</span>';
+                badgesHtml += '<span class="compare-card-badge compare-card-badge--best">Highest estimated net</span>';
             }
             if (isLowestTax && !isBestNet) {
                 badgesHtml += '<span class="compare-card-badge compare-card-badge--low-tax">Lowest Tax</span>';
@@ -1323,7 +1371,7 @@ function displayCompareResults(result) {
                         <span class="compare-card-stat-value">${totalTax}</span>
                     </div>
                     <div class="compare-card-stat">
-                        <span class="compare-card-stat-label">Net Income</span>
+                        <span class="compare-card-stat-label">Net after modelled taxes</span>
                         <span class="compare-card-stat-value compare-card-stat-value--net">${netIncome}</span>
                     </div>
                     <div class="compare-card-stat">
@@ -1379,6 +1427,9 @@ function showError(errorData) {
 
     if (errorData.error && errorData.error.message) {
         message = errorData.error.message;
+        const details = errorData.error.details || [];
+        const explanation = details.map(d => d.message).filter(Boolean).join('; ');
+        if (explanation) message += `: ${explanation}`;
     } else if (errorData.detail) {
         // FastAPI validation errors
         if (Array.isArray(errorData.detail)) {
@@ -1506,11 +1557,12 @@ function updateSummaryCard(summary) {
     const marginalRateEl = document.getElementById('marginal-rate-display');
     const netIncomeEl = document.getElementById('net-income-display');
 
-    if (totalTaxEl) totalTaxEl.textContent = formatCurrency(summary.total_tax);
-    if (effectiveRateEl) effectiveRateEl.textContent = formatPercent(summary.effective_rate);
+    const statutoryDeductions = summary.total_modelled_deductions ?? summary.total_statutory_deductions ?? summary.total_tax;
+    if (totalTaxEl) totalTaxEl.textContent = formatCurrency(statutoryDeductions);
+    if (effectiveRateEl) effectiveRateEl.textContent = formatPercent(summary.statutory_effective_rate ?? summary.effective_rate);
     if (marginalRateEl) marginalRateEl.textContent = formatPercent(summary.marginal_rate);
     if (netIncomeEl) {
-        const netIncome = summary.total_income - summary.total_tax;
+        const netIncome = summary.net_income ?? (summary.total_income - statutoryDeductions);
         netIncomeEl.textContent = formatCurrency(netIncome);
     }
 
@@ -1561,7 +1613,7 @@ function populateFederalBreakdown(federal) {
                 <span class="breakdown-component-amount">${formatCurrency(federal.adjusted_gross_income)}</span>
             </div>
             <div class="breakdown-component">
-                <span class="breakdown-component-name">${escapeHtml(federal.deduction_type || 'Standard')} Deduction</span>
+                <span class="breakdown-component-name">${escapeHtml(federal.deduction_type || 'Standard')} deduction + eligible enhanced senior deduction (${formatCurrency(federal.enhanced_senior_deduction || 0)} included)</span>
                 <span class="breakdown-component-amount">-${formatCurrency(federal.deduction_amount)}</span>
             </div>
             <div class="breakdown-component breakdown-component--bold">
@@ -1681,7 +1733,7 @@ function populateFederalBreakdown(federal) {
                 <div class="breakdown-component">
                     <span class="breakdown-component-name">Self-Employment Tax</span>
                     <span class="breakdown-component-amount">${formatCurrency(federal.self_employment_tax)}</span>
-                    <span class="breakdown-component-rate">(15.3%)</span>
+                    <span class="breakdown-component-rate">(wage-base and net-earnings limits applied)</span>
                 </div>
             `;
         }
@@ -1709,7 +1761,7 @@ function populateFederalBreakdown(federal) {
     // Total
     html += `
         <div class="breakdown-component breakdown-component--total">
-            <span class="breakdown-component-name">Total Federal Income Tax</span>
+            <span class="breakdown-component-name">Total Federal Tax Liability</span>
             <span class="breakdown-component-amount">${formatCurrency(federal.total_tax)}</span>
         </div>
     `;
@@ -1757,6 +1809,40 @@ function populateFederalBreakdown(federal) {
  * Populate the FICA breakdown section.
  * @param {object} result - Full API response
  */
+function populateLocalBreakdown(result) {
+    const section = document.getElementById('local-breakdown-section');
+    const content = document.getElementById('local-breakdown-content');
+    if (!section || !content) return;
+    const locals = result.local || [];
+    section.hidden = locals.length === 0;
+    if (!locals.length) { content.innerHTML = ''; return; }
+    document.getElementById('local-name-summary').textContent = locals.map(r => r.jurisdiction_name).join(', ');
+    document.getElementById('local-total-amount').textContent = formatCurrency(result.summary.total_local_tax);
+    content.innerHTML = locals.map(r => `<h4>${escapeHtml(r.jurisdiction_name)}</h4>${buildJurisdictionReconciliation(r)}<div class="breakdown-note">Local withholding: ${formatCurrency(r.withholding)}; balance due / (refund): ${formatCurrency(r.balance_due_or_refund)}</div>`).join('');
+}
+
+// Accept the public estimate and Compare detail shapes without losing refunds.
+function buildJurisdictionReconciliation(detail) {
+    const row = (label, amount) => `<div class="breakdown-component"><span>${escapeHtml(label)}</span><span>${formatCurrency(amount)}</span></div>`;
+    let html = row(detail.tax_type === 'capital_gains_excise' ? 'Capital gains excise base' : 'Taxable income', detail.taxable_income ?? detail.state_taxable_income ?? 0);
+    const components = detail.tax_components || [];
+    if (components.length) {
+        html += components.map(c => row(c.name, c.tax)).join('');
+    } else {
+        html += row('Tax before credits', detail.tax_before_credits || 0);
+    }
+    if (Number(detail.surtax)) html += row('Surtax', detail.surtax);
+    if (Number(detail.recapture)) html += row('Tax recapture', detail.recapture);
+    const credits = detail.credit_details || detail.credits || [];
+    if (credits.length) {
+        html += credits.map(c => row(`${c.credit_name || c.name}${(c.is_refundable ?? c.refundable) ? ' (refundable)' : ''}`, -Number(c.amount_used ?? c.amount_applied ?? c.amount ?? 0))).join('');
+    } else {
+        const total = detail.total_credits ?? detail.state_credits ?? (Number(detail.nonrefundable_credits || 0) + Number(detail.refundable_credits || 0));
+        if (Number(total)) html += row('Credits applied', -Number(total));
+    }
+    return html + row('Net tax / (refundable credit)', detail.total_tax ?? detail.total_state_tax ?? detail.net_tax ?? 0);
+}
+
 function populateFICABreakdown(result) {
     const sectionEl = document.getElementById('fica-breakdown-section');
     const amountEl = document.getElementById('fica-total-amount');
@@ -1765,18 +1851,10 @@ function populateFICABreakdown(result) {
 
     if (!contentEl || !sectionEl) return;
 
-    // Use API-provided FICA config if available, fall back to hardcoded constants
-    const ficaConfig = result.fica_config;
-    const taxYear = result.tax_year || 2025;
-    const ssWageBase = ficaConfig?.ss_wage_base || SS_WAGE_BASE[taxYear] || SS_WAGE_BASE[2025];
-    const ssRate = ficaConfig?.ss_rate || 0.062;
-    const medicareRate = ficaConfig?.medicare_rate || 0.0145;
-
-    const wages = result.summary?.total_income || 0;
-    const ssTaxableWages = Math.min(wages, ssWageBase);
-    const ssTax = ssTaxableWages * ssRate;
-    const medicareTax = wages * medicareRate;
-    const totalFICA = ssTax + medicareTax;
+    const wages = Number(result.summary?.total_income || 0);
+    const ssTax = Number(result.summary?.employee_social_security_tax || 0);
+    const medicareTax = Number(result.summary?.employee_medicare_tax || 0);
+    const totalFICA = Number(result.summary?.employee_payroll_tax || (ssTax + medicareTax));
 
     if (amountEl) amountEl.textContent = formatCurrency(totalFICA);
     if (pctEl && wages > 0) {
@@ -1784,22 +1862,15 @@ function populateFICABreakdown(result) {
         pctEl.textContent = `(${formatPercent(rate)})`;
     }
 
-    const ssRatePct = (ssRate * 100).toFixed(1);
-    const medicareRatePct = (medicareRate * 100).toFixed(2);
-    const formattedWageBase = formatCurrency(ssWageBase);
     let html = `
         <div class="fica-detail">
-            <span class="fica-detail-label">Social Security (${ssRatePct}%)</span>
+            <span class="fica-detail-label">Social Security (engine result)</span>
             <span class="fica-detail-value">${formatCurrency(ssTax)}</span>
-            <span class="fica-detail-label">Taxable wages (up to ${formattedWageBase})</span>
-            <span class="fica-detail-value">${formatCurrency(ssTaxableWages)}</span>
-            <span class="fica-detail-label">Medicare (${medicareRatePct}%)</span>
+            <span class="fica-detail-label">Medicare (engine result)</span>
             <span class="fica-detail-value">${formatCurrency(medicareTax)}</span>
-            <span class="fica-detail-label">Taxable wages (no limit)</span>
-            <span class="fica-detail-value">${formatCurrency(wages)}</span>
         </div>
         <div class="breakdown-note">
-            Note: FICA taxes are typically withheld by your employer. Additional Medicare Tax (0.9%) applies on wages over $200,000 for single filers.
+            Ordinary employee contributions only. Self-employment and Additional Medicare tax, where applicable, are already included in federal liability above. Employer contributions are excluded.
         </div>
     `;
 
@@ -1827,49 +1898,19 @@ function populateStateBreakdown(states) {
     sectionEl.hidden = false;
     const state = states[0]; // Primary state
 
-    if (nameSummaryEl) nameSummaryEl.textContent = escapeHtml(state.jurisdiction_name || 'State');
+    if (nameSummaryEl) nameSummaryEl.textContent = state.jurisdiction_name || 'State';
     if (amountEl) amountEl.textContent = formatCurrency(state.total_tax);
     if (pctEl && state.taxable_income > 0) {
         const rate = state.total_tax / state.taxable_income;
         pctEl.textContent = `(${formatPercent(rate)})`;
     }
 
-    let html = '';
+    let html = buildJurisdictionReconciliation(state);
 
-    if (state.total_tax === 0) {
+    if (Number(state.total_tax) === 0 && !Number(state.tax_before_credits) && !Number(state.total_credits)) {
         html = `
             <div class="not-applicable">
-                ${escapeHtml(state.jurisdiction_name)} has no state income tax.
-            </div>
-        `;
-    } else {
-        html = `
-            <div class="breakdown-component">
-                <span class="breakdown-component-name">State Taxable Income</span>
-                <span class="breakdown-component-amount">${formatCurrency(state.taxable_income)}</span>
-            </div>
-            <div class="breakdown-component">
-                <span class="breakdown-component-name">Tax Before Credits</span>
-                <span class="breakdown-component-amount">${formatCurrency(state.tax_before_credits)}</span>
-            </div>
-        `;
-
-        if (state.total_credits && state.total_credits > 0) {
-            html += `
-                <div class="breakdown-component">
-                    <span class="breakdown-component-name">State Credits</span>
-                    <span class="breakdown-component-amount">-${formatCurrency(state.total_credits)}</span>
-                </div>
-            `;
-        }
-
-        html += `
-            <div class="breakdown-component breakdown-component--bold">
-                <span class="breakdown-component-name">Total State Tax</span>
-                <span class="breakdown-component-amount">${formatCurrency(state.total_tax)}</span>
-            </div>
-            <div class="breakdown-note">
-                State tax rates vary significantly. Some states have flat rates, others have progressive brackets.
+                No state tax is calculated for this scenario. See scope limitations below.
             </div>
         `;
     }
@@ -2138,7 +2179,7 @@ function buildUSBreakdownModalContent(region, baseCurrency) {
     html += `
         <details class="breakdown-section" open>
             <summary>
-                <span>Federal Income Tax</span>
+                <span>Federal Tax Liability</span>
                 <span class="breakdown-section-amount">${formatCurrency(bd.federal_tax)}</span>
             </summary>
             <div class="breakdown-section-content">
@@ -2187,6 +2228,15 @@ function buildUSBreakdownModalContent(region, baseCurrency) {
         `;
     }
 
+    [
+        ['Self-employment tax', bd.federal_self_employment_tax],
+        ['Additional Medicare tax', bd.federal_additional_medicare_tax],
+    ].forEach(([label, amount]) => {
+        if (Number(amount) > 0) {
+            html += `<div class="breakdown-component"><span class="breakdown-component-name">${label}</span><span class="breakdown-component-amount">${formatCurrency(amount)}</span></div>`;
+        }
+    });
+
     html += `
                 <div class="breakdown-component breakdown-component--subtotal">
                     <span class="breakdown-component-name">Total Federal Tax</span>
@@ -2196,6 +2246,8 @@ function buildUSBreakdownModalContent(region, baseCurrency) {
             </div>
         </details>
     `;
+
+    html += `<details class="breakdown-section"><summary><span>Employee payroll tax (separate from federal liability)</span><span class="breakdown-section-amount">${formatCurrency(bd.employee_payroll_tax || 0)}</span></summary><div class="breakdown-section-content">Ordinary employee Social Security and Medicare; excludes employer contributions.</div></details>`;
 
     // State breakdown
     html += `
@@ -2207,10 +2259,12 @@ function buildUSBreakdownModalContent(region, baseCurrency) {
             <div class="breakdown-section-content">
     `;
 
-    if (!bd.has_state_income_tax) {
+    if (bd.state_details && Object.keys(bd.state_details).length) {
+        html += buildJurisdictionReconciliation(bd.state_details);
+    } else if (!bd.has_state_income_tax && Number(bd.state_tax) === 0) {
         html += `
                 <div class="not-applicable">
-                    ${escapeHtml(bd.state_name)} has no state income tax.
+                    ${escapeHtml(bd.state_name)} has no general state income tax; no state tax or refundable credit is calculated for this scenario.
                 </div>
         `;
     } else {
@@ -2229,7 +2283,7 @@ function buildUSBreakdownModalContent(region, baseCurrency) {
     `;
 
     // Local breakdown (if applicable)
-    if (bd.local_tax > 0 || bd.local_name) {
+    if (Number(bd.local_tax) !== 0 || bd.local_name) {
         html += `
             <details class="breakdown-section">
                 <summary>
@@ -2237,6 +2291,7 @@ function buildUSBreakdownModalContent(region, baseCurrency) {
                     <span class="breakdown-section-amount">${formatCurrency(bd.local_tax)}</span>
                 </summary>
                 <div class="breakdown-section-content">
+                    ${(bd.local_details || []).map(buildJurisdictionReconciliation).join('')}
                     <div class="breakdown-component">
                         <span class="breakdown-component-name">Local Income Tax</span>
                         <span class="breakdown-component-amount">${formatCurrency(bd.local_tax)}</span>

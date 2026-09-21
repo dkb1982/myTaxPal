@@ -5,12 +5,15 @@ These fixtures provide test data and setup for calculation tests.
 All values are FAKE and for testing only.
 """
 
+# Dense literal rule fixtures are easier to audit one bracket/parameter per line.
+# ruff: noqa: E501
+
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Generator
 from decimal import Decimal
 from pathlib import Path
-from typing import Generator
 
 import pytest
 import yaml
@@ -19,13 +22,11 @@ from tax_estimator.calculation.context import CalculationContext
 from tax_estimator.calculation.engine import CalculationEngine
 from tax_estimator.calculation.trace import CalculationTrace
 from tax_estimator.models.tax_input import (
-    Adjustments,
     CapitalGains,
     Dependent,
     FilingStatus,
     InterestDividendIncome,
     ItemizedDeductions,
-    RetirementIncome,
     SelfEmploymentIncome,
     SpouseInfo,
     TaxInput,
@@ -33,7 +34,6 @@ from tax_estimator.models.tax_input import (
     WageIncome,
 )
 from tax_estimator.rules.schema import JurisdictionRules
-
 
 # =============================================================================
 # Test Rules Fixtures
@@ -69,30 +69,170 @@ def test_federal_rules_yaml() -> dict:
             "flat_rate": None,
             "brackets": [
                 # Single
-                {"bracket_id": "S1", "filing_status": "single", "income_from": 0, "income_to": 10000, "rate": 0.10, "base_tax": 0},
-                {"bracket_id": "S2", "filing_status": "single", "income_from": 10000, "income_to": 50000, "rate": 0.20, "base_tax": 1000},
-                {"bracket_id": "S3", "filing_status": "single", "income_from": 50000, "income_to": 100000, "rate": 0.30, "base_tax": 9000},
-                {"bracket_id": "S4", "filing_status": "single", "income_from": 100000, "income_to": None, "rate": 0.40, "base_tax": 24000},
+                {
+                    "bracket_id": "S1",
+                    "filing_status": "single",
+                    "income_from": 0,
+                    "income_to": 10000,
+                    "rate": 0.10,
+                    "base_tax": 0,
+                },
+                {
+                    "bracket_id": "S2",
+                    "filing_status": "single",
+                    "income_from": 10000,
+                    "income_to": 50000,
+                    "rate": 0.20,
+                    "base_tax": 1000,
+                },
+                {
+                    "bracket_id": "S3",
+                    "filing_status": "single",
+                    "income_from": 50000,
+                    "income_to": 100000,
+                    "rate": 0.30,
+                    "base_tax": 9000,
+                },
+                {
+                    "bracket_id": "S4",
+                    "filing_status": "single",
+                    "income_from": 100000,
+                    "income_to": None,
+                    "rate": 0.40,
+                    "base_tax": 24000,
+                },
                 # MFJ
-                {"bracket_id": "MFJ1", "filing_status": "mfj", "income_from": 0, "income_to": 20000, "rate": 0.10, "base_tax": 0},
-                {"bracket_id": "MFJ2", "filing_status": "mfj", "income_from": 20000, "income_to": 100000, "rate": 0.20, "base_tax": 2000},
-                {"bracket_id": "MFJ3", "filing_status": "mfj", "income_from": 100000, "income_to": 200000, "rate": 0.30, "base_tax": 18000},
-                {"bracket_id": "MFJ4", "filing_status": "mfj", "income_from": 200000, "income_to": None, "rate": 0.40, "base_tax": 48000},
+                {
+                    "bracket_id": "MFJ1",
+                    "filing_status": "mfj",
+                    "income_from": 0,
+                    "income_to": 20000,
+                    "rate": 0.10,
+                    "base_tax": 0,
+                },
+                {
+                    "bracket_id": "MFJ2",
+                    "filing_status": "mfj",
+                    "income_from": 20000,
+                    "income_to": 100000,
+                    "rate": 0.20,
+                    "base_tax": 2000,
+                },
+                {
+                    "bracket_id": "MFJ3",
+                    "filing_status": "mfj",
+                    "income_from": 100000,
+                    "income_to": 200000,
+                    "rate": 0.30,
+                    "base_tax": 18000,
+                },
+                {
+                    "bracket_id": "MFJ4",
+                    "filing_status": "mfj",
+                    "income_from": 200000,
+                    "income_to": None,
+                    "rate": 0.40,
+                    "base_tax": 48000,
+                },
                 # MFS
-                {"bracket_id": "MFS1", "filing_status": "mfs", "income_from": 0, "income_to": 10000, "rate": 0.10, "base_tax": 0},
-                {"bracket_id": "MFS2", "filing_status": "mfs", "income_from": 10000, "income_to": 50000, "rate": 0.20, "base_tax": 1000},
-                {"bracket_id": "MFS3", "filing_status": "mfs", "income_from": 50000, "income_to": 100000, "rate": 0.30, "base_tax": 9000},
-                {"bracket_id": "MFS4", "filing_status": "mfs", "income_from": 100000, "income_to": None, "rate": 0.40, "base_tax": 24000},
+                {
+                    "bracket_id": "MFS1",
+                    "filing_status": "mfs",
+                    "income_from": 0,
+                    "income_to": 10000,
+                    "rate": 0.10,
+                    "base_tax": 0,
+                },
+                {
+                    "bracket_id": "MFS2",
+                    "filing_status": "mfs",
+                    "income_from": 10000,
+                    "income_to": 50000,
+                    "rate": 0.20,
+                    "base_tax": 1000,
+                },
+                {
+                    "bracket_id": "MFS3",
+                    "filing_status": "mfs",
+                    "income_from": 50000,
+                    "income_to": 100000,
+                    "rate": 0.30,
+                    "base_tax": 9000,
+                },
+                {
+                    "bracket_id": "MFS4",
+                    "filing_status": "mfs",
+                    "income_from": 100000,
+                    "income_to": None,
+                    "rate": 0.40,
+                    "base_tax": 24000,
+                },
                 # HOH
-                {"bracket_id": "HOH1", "filing_status": "hoh", "income_from": 0, "income_to": 15000, "rate": 0.10, "base_tax": 0},
-                {"bracket_id": "HOH2", "filing_status": "hoh", "income_from": 15000, "income_to": 75000, "rate": 0.20, "base_tax": 1500},
-                {"bracket_id": "HOH3", "filing_status": "hoh", "income_from": 75000, "income_to": 150000, "rate": 0.30, "base_tax": 13500},
-                {"bracket_id": "HOH4", "filing_status": "hoh", "income_from": 150000, "income_to": None, "rate": 0.40, "base_tax": 36000},
+                {
+                    "bracket_id": "HOH1",
+                    "filing_status": "hoh",
+                    "income_from": 0,
+                    "income_to": 15000,
+                    "rate": 0.10,
+                    "base_tax": 0,
+                },
+                {
+                    "bracket_id": "HOH2",
+                    "filing_status": "hoh",
+                    "income_from": 15000,
+                    "income_to": 75000,
+                    "rate": 0.20,
+                    "base_tax": 1500,
+                },
+                {
+                    "bracket_id": "HOH3",
+                    "filing_status": "hoh",
+                    "income_from": 75000,
+                    "income_to": 150000,
+                    "rate": 0.30,
+                    "base_tax": 13500,
+                },
+                {
+                    "bracket_id": "HOH4",
+                    "filing_status": "hoh",
+                    "income_from": 150000,
+                    "income_to": None,
+                    "rate": 0.40,
+                    "base_tax": 36000,
+                },
                 # QSS (same as MFJ)
-                {"bracket_id": "QSS1", "filing_status": "qss", "income_from": 0, "income_to": 20000, "rate": 0.10, "base_tax": 0},
-                {"bracket_id": "QSS2", "filing_status": "qss", "income_from": 20000, "income_to": 100000, "rate": 0.20, "base_tax": 2000},
-                {"bracket_id": "QSS3", "filing_status": "qss", "income_from": 100000, "income_to": 200000, "rate": 0.30, "base_tax": 18000},
-                {"bracket_id": "QSS4", "filing_status": "qss", "income_from": 200000, "income_to": None, "rate": 0.40, "base_tax": 48000},
+                {
+                    "bracket_id": "QSS1",
+                    "filing_status": "qss",
+                    "income_from": 0,
+                    "income_to": 20000,
+                    "rate": 0.10,
+                    "base_tax": 0,
+                },
+                {
+                    "bracket_id": "QSS2",
+                    "filing_status": "qss",
+                    "income_from": 20000,
+                    "income_to": 100000,
+                    "rate": 0.20,
+                    "base_tax": 2000,
+                },
+                {
+                    "bracket_id": "QSS3",
+                    "filing_status": "qss",
+                    "income_from": 100000,
+                    "income_to": 200000,
+                    "rate": 0.30,
+                    "base_tax": 18000,
+                },
+                {
+                    "bracket_id": "QSS4",
+                    "filing_status": "qss",
+                    "income_from": 200000,
+                    "income_to": None,
+                    "rate": 0.40,
+                    "base_tax": 48000,
+                },
             ],
             "surtaxes": [],
             "preferential_thresholds": [
@@ -107,7 +247,11 @@ def test_federal_rules_yaml() -> dict:
             "standard_deduction": {
                 "available": True,
                 "amounts": [
-                    {"filing_status": "single", "amount": 15000, "dependent_claimed_elsewhere": 1500},
+                    {
+                        "filing_status": "single",
+                        "amount": 15000,
+                        "dependent_claimed_elsewhere": 1500,
+                    },
                     {"filing_status": "mfj", "amount": 30000, "dependent_claimed_elsewhere": None},
                     {"filing_status": "mfs", "amount": 15000, "dependent_claimed_elsewhere": None},
                     {"filing_status": "hoh", "amount": 22500, "dependent_claimed_elsewhere": None},
@@ -132,14 +276,90 @@ def test_federal_rules_yaml() -> dict:
                 "dependent_exemption_available": False,
                 "dependent_exemption_amount": 0,
             },
+            "salt": {
+                "ceiling": 40000,
+                "mfs_ceiling": 20000,
+                "phaseout_threshold": 500000,
+                "mfs_phaseout_threshold": 250000,
+                "phaseout_rate": 0.30,
+                "mfs_phaseout_rate": 0.15,
+                "floor": 10000,
+                "mfs_floor": 5000,
+            },
+            "enhanced_senior": {
+                "amount_per_eligible_person": 6000,
+                "phaseout_threshold": 75000,
+                "mfj_phaseout_threshold": 150000,
+                "phaseout_rate": 0.06,
+            },
         },
         "payroll_taxes": {
-            "social_security_wage_base": 168600,
+            "social_security_wage_base": 176100,
             "social_security_rate": 0.062,
             "medicare_rate": 0.0145,
             "additional_medicare_threshold": 200000,
             "additional_medicare_rate": 0.009,
             "self_employment_factor": 0.9235,
+        },
+        "federal_credits": {
+            "child_tax_credit": {
+                "amount_per_child": 2200,
+                "other_dependent_amount": 500,
+                "phaseout_threshold": 200000,
+                "mfj_phaseout_threshold": 400000,
+                "phaseout_increment": 1000,
+                "reduction_per_increment": 50,
+                "refundable_amount_per_child": 1700,
+                "refundable_earned_income_threshold": 2500,
+                "refundable_rate": 0.15,
+            },
+            "eitc_investment_income_limit": 11950,
+            "eitc_parameters": [
+                {
+                    "qualifying_children": 0,
+                    "credit_rate": 0.0765,
+                    "phaseout_rate": 0.0765,
+                    "earned_income_amount": 8490,
+                    "maximum_credit": 649,
+                    "phaseout_start": 10620,
+                    "phaseout_end": 19104,
+                    "mfj_phaseout_start": 17730,
+                    "mfj_phaseout_end": 26214,
+                },
+                {
+                    "qualifying_children": 1,
+                    "credit_rate": 0.34,
+                    "phaseout_rate": 0.1598,
+                    "earned_income_amount": 12730,
+                    "maximum_credit": 4328,
+                    "phaseout_start": 23350,
+                    "phaseout_end": 50434,
+                    "mfj_phaseout_start": 30470,
+                    "mfj_phaseout_end": 57554,
+                },
+                {
+                    "qualifying_children": 2,
+                    "credit_rate": 0.40,
+                    "phaseout_rate": 0.2106,
+                    "earned_income_amount": 17880,
+                    "maximum_credit": 7152,
+                    "phaseout_start": 23350,
+                    "phaseout_end": 57310,
+                    "mfj_phaseout_start": 30470,
+                    "mfj_phaseout_end": 64430,
+                },
+                {
+                    "qualifying_children": 3,
+                    "credit_rate": 0.45,
+                    "phaseout_rate": 0.2106,
+                    "earned_income_amount": 17880,
+                    "maximum_credit": 8046,
+                    "phaseout_start": 23350,
+                    "phaseout_end": 61555,
+                    "mfj_phaseout_start": 30470,
+                    "mfj_phaseout_end": 68675,
+                },
+            ],
         },
         "verification": {
             "status": "placeholder",
@@ -281,6 +501,7 @@ def family_with_children_input() -> TaxInput:
         tax_year=2025,
         filing_status=FilingStatus.MFJ,
         residence_state="CA",
+        taxpayer=TaxpayerInfo(has_valid_ssn_for_ctc=True),
         spouse=SpouseInfo(),
         wages=[
             WageIncome(

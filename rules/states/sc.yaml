@@ -45,7 +45,7 @@ rate_schedule:
       income_from: 17830
       income_to: null
       rate: 0.06
-      base_tax: 428.1
+      base_tax: 427.8
 
     # Married Filing Jointly
     - bracket_id: "SC-2025-MFJ-1"
@@ -132,23 +132,8 @@ rate_schedule:
 # Deductions
 deductions:
   standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 8750
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfj"
-        amount: 17500
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfs"
-        amount: 8750
-        dependent_claimed_elsewhere: null
-      - filing_status: "hoh"
-        amount: 13125
-        dependent_claimed_elsewhere: null
-      - filing_status: "qss"
-        amount: 17500
-        dependent_claimed_elsewhere: null
+    available: false
+    amounts: []
     additional_amounts: []
   exemptions:
     personal_exemption_available: false
@@ -158,7 +143,7 @@ deductions:
 
 # State-specific configuration
 state_config:
-  starting_point: "federal_agi"
+  starting_point: "federal_taxable_income"
   has_local_income_tax: false
   local_tax_mandatory: false
   reciprocity_states: []
@@ -174,6 +159,6 @@ verification:
 
 references:
   - source_name: "South Carolina Department of Revenue"
-    url: null
+    url: "https://dor.sc.gov/sites/dor/files/forms/SC1040Instr_2025.pdf"
     retrieved_date: "2025-02-20"
     notes: "2025 individual income tax rate schedule"

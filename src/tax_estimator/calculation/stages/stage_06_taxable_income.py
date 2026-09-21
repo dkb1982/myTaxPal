@@ -74,13 +74,12 @@ class TaxableIncomeStage(CalculationStage):
 
         # Break out preferentially-taxed income for federal
         qualified_dividends = context.get_decimal_result("qualified_dividends", Decimal(0))
-        lt_gains = context.get_decimal_result("long_term_gains", Decimal(0))
+        preferential_capital_gain = context.get_decimal_result(
+            "preferential_capital_gain", Decimal(0)
+        )
 
         # Preferential income cannot exceed taxable income
-        preferential_income = min(
-            qualified_dividends + max(Decimal(0), lt_gains),
-            taxable_income
-        )
+        preferential_income = min(qualified_dividends + preferential_capital_gain, taxable_income)
 
         # Ordinary income is the remainder
         ordinary_income = max(Decimal(0), taxable_income - preferential_income)
@@ -92,7 +91,7 @@ class TaxableIncomeStage(CalculationStage):
             inputs={
                 "taxable_income": str(taxable_income),
                 "qualified_dividends": str(qualified_dividends),
-                "long_term_gains": str(lt_gains),
+                "net_preferential_capital_gain": str(preferential_capital_gain),
             },
             result=ordinary_income,
             jurisdiction="US",

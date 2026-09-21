@@ -111,10 +111,11 @@ class CalculationPipeline:
                         "MISSING_DEPENDENCY",
                     )
                 if dep_result.status == StageStatus.ERROR:
-                    # Skip this stage if a dependency failed
-                    result = stage.skipped(f"Skipped due to failed dependency: {dep_id}")
-                    self._stage_results[stage.stage_id] = result
-                    continue
+                    raise PipelineError(
+                        stage.stage_id,
+                        f"Failed required dependency: {dep_id}",
+                        "FAILED_DEPENDENCY",
+                    )
 
             # Execute the stage
             try:
@@ -130,13 +131,13 @@ class CalculationPipeline:
                         stage=stage.stage_id,
                     )
 
-                    # For validation stage, this is a critical error
-                    if stage.stage_id == "validation":
-                        raise PipelineError(
-                            stage.stage_id,
-                            result.message or "Validation failed",
-                            result.error_code,
-                        )
+                    # A selected component is required for a complete estimate.
+                    # Never publish a successful total after silently omitting it.
+                    raise PipelineError(
+                        stage.stage_id,
+                        result.message or "Calculation stage failed",
+                        result.error_code,
+                    )
 
             except PipelineError:
                 raise

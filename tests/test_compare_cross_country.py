@@ -16,7 +16,7 @@ from tax_estimator.calculation.countries.base import BaseCountryCalculator
 from tax_estimator.calculation.countries import (
     gb, de, fr, sg, hk, ae, jp, au, ca, it, es, pt,
 )
-from tax_estimator.models.international import InternationalTaxInput
+from tax_estimator.models.international import InternationalTaxInput, get_currency_for_country
 
 
 CALCULATORS: dict[str, BaseCountryCalculator] = {
@@ -41,7 +41,7 @@ def _effective_rate(country_code: str, income: Decimal) -> Decimal:
     tax_input = InternationalTaxInput(
         country_code=country_code,
         tax_year=2025,
-        currency_code="USD",
+        currency_code=get_currency_for_country(country_code),
         gross_income=income,
     )
     result = calc.calculate(tax_input)
@@ -54,7 +54,7 @@ def _total_tax(country_code: str, income: Decimal) -> Decimal:
     tax_input = InternationalTaxInput(
         country_code=country_code,
         tax_year=2025,
-        currency_code="USD",
+        currency_code=get_currency_for_country(country_code),
         gross_income=income,
     )
     result = calc.calculate(tax_input)

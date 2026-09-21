@@ -38,7 +38,7 @@ rate_schedule:
       income_from: 21100
       income_to: null
       rate: 0.059
-      base_tax: 991.70
+      base_tax: 991.90
 
     # Married Filing Jointly
     - bracket_id: "MT-2025-MFJ-1"
@@ -127,7 +127,7 @@ deductions:
 
 # State-specific configuration
 state_config:
-  starting_point: "federal_agi"
+  starting_point: "federal_taxable_income"
   has_local_income_tax: false
   local_tax_mandatory: false
   reciprocity_states: []

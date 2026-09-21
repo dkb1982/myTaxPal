@@ -330,7 +330,7 @@ class TestEstimateEdgeCases:
                     },
                     {
                         "employer_name": "Employer C",
-                        "employer_state": "NJ",
+                        "employer_state": "NY",
                         "gross_wages": 20000,
                     },
                 ]

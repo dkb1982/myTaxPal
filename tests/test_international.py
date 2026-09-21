@@ -630,14 +630,14 @@ class TestUKPensionContributions:
     """Tests for UK pension contribution tax relief."""
 
     def test_pension_relief_reduces_tax(self):
-        """Pension contributions should reduce taxable income (basic rate relief)."""
+        """RAS pension extends the basic band but is not a taxable-income deduction."""
         base_input = InternationalTaxInput(
             country_code="GB",
             tax_year=2025,
             currency_code="GBP",
-            gross_income=Decimal("50000"),
+            gross_income=Decimal("60000"),
             uk=UKTaxInput(
-                employment_income=Decimal("50000"),
+                employment_income=Decimal("60000"),
                 pension_contributions=Decimal("0"),
             ),
         )
@@ -645,16 +645,17 @@ class TestUKPensionContributions:
             country_code="GB",
             tax_year=2025,
             currency_code="GBP",
-            gross_income=Decimal("50000"),
+            gross_income=Decimal("60000"),
             uk=UKTaxInput(
-                employment_income=Decimal("50000"),
+                employment_income=Decimal("60000"),
                 pension_contributions=Decimal("10000"),
             ),
         )
         result_base = calculate_international_tax(base_input)
         result_pension = calculate_international_tax(pension_input)
 
-        # Pension relief should reduce income tax
+        # The provider has already added basic-rate relief. Self Assessment gives
+        # higher-rate relief by extending the basic-rate limit.
         assert result_pension.income_tax < result_base.income_tax
 
     def test_pension_relief_component_in_breakdown(self):
@@ -674,7 +675,7 @@ class TestUKPensionContributions:
         assert len(pension_components) > 0
 
     def test_pension_relief_amount(self):
-        """Basic rate relief = 25% of contribution amount."""
+        """The net RAS payment is grossed up by dividing by 0.8."""
         tax_input = InternationalTaxInput(
             country_code="GB",
             tax_year=2025,
@@ -688,8 +689,7 @@ class TestUKPensionContributions:
         result = calculate_international_tax(tax_input)
         relief_components = [c for c in result.breakdown if "Pension" in c.name and c.is_deductible]
         assert len(relief_components) == 1
-        # 25% of £8,000 = £2,000 relief (shown as negative)
-        assert relief_components[0].amount == Decimal("-2000")
+        assert relief_components[0].amount == Decimal("-10000.00")
 
 
 class TestUKPersonalAllowanceTaper:
@@ -1348,28 +1348,16 @@ class TestDivisionByZeroFixes:
 
     def test_comparison_engine_zero_rate_raises_error(self):
         """Test that zero exchange rate raises an error."""
-        engine = RegionComparisonEngine(
-            exchange_rates={"USD": Decimal("1.0"), "GBP": Decimal("0.0")},
-        )
-
-        with pytest.raises(ValueError, match="rate must be positive"):
-            engine.convert_currency(
-                Decimal("100"),
-                from_currency="GBP",
-                to_currency="USD",
+        with pytest.raises(ValueError, match="finite and positive"):
+            RegionComparisonEngine(
+                exchange_rates={"USD": Decimal("1.0"), "GBP": Decimal("0.0")},
             )
 
     def test_comparison_engine_negative_rate_raises_error(self):
         """Test that negative exchange rate raises an error."""
-        engine = RegionComparisonEngine(
-            exchange_rates={"USD": Decimal("1.0"), "EUR": Decimal("-0.92")},
-        )
-
-        with pytest.raises(ValueError, match="rate must be positive"):
-            engine.convert_currency(
-                Decimal("100"),
-                from_currency="EUR",
-                to_currency="USD",
+        with pytest.raises(ValueError, match="finite and positive"):
+            RegionComparisonEngine(
+                exchange_rates={"USD": Decimal("1.0"), "EUR": Decimal("-0.92")},
             )
 
     def test_france_quotient_familial_handles_single(self):

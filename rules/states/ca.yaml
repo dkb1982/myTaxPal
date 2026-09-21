@@ -1,4 +1,4 @@
-# California - Progressive tax state (10 brackets, up to 13.3%)
+# California - Progressive tax state (9 brackets, up to 13.3%)
 # 2025 tax brackets from CA FTB official rate schedules
 # =============================================================================
 
@@ -20,7 +20,7 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Rate Schedule - PROGRESSIVE TAX with 10 brackets
+# Rate Schedule - PROGRESSIVE TAX with 9 brackets
 # PLACEHOLDER: All rates and thresholds are placeholders
 rate_schedule:
   rate_type: "graduated"
@@ -78,15 +78,9 @@ rate_schedule:
     - bracket_id: "CA-2025-S-9"
       filing_status: "single"
       income_from: 742953
-      income_to: 1000000
+      income_to: null
       rate: 0.123
       base_tax: 72219.84
-    - bracket_id: "CA-2025-S-10"
-      filing_status: "single"
-      income_from: 1000000
-      income_to: null
-      rate: 0.133
-      base_tax: 103882.95
 
     # Married Filing Jointly - 2025 CA FTB Rate Schedule Y
     - bracket_id: "CA-2025-MFJ-1"
@@ -140,15 +134,9 @@ rate_schedule:
     - bracket_id: "CA-2025-MFJ-9"
       filing_status: "mfj"
       income_from: 1485906
-      income_to: 2000000
+      income_to: null
       rate: 0.123
       base_tax: 144290.69
-    - bracket_id: "CA-2025-MFJ-10"
-      filing_status: "mfj"
-      income_from: 2000000
-      income_to: null
-      rate: 0.133
-      base_tax: 207759.47
 
     # Married Filing Separately - Same as single (Schedule X)
     - bracket_id: "CA-2025-MFS-1"
@@ -202,15 +190,9 @@ rate_schedule:
     - bracket_id: "CA-2025-MFS-9"
       filing_status: "mfs"
       income_from: 742953
-      income_to: 1000000
+      income_to: null
       rate: 0.123
       base_tax: 72219.84
-    - bracket_id: "CA-2025-MFS-10"
-      filing_status: "mfs"
-      income_from: 1000000
-      income_to: null
-      rate: 0.133
-      base_tax: 103882.95
 
     # Head of Household - 2025 CA FTB Rate Schedule Z
     - bracket_id: "CA-2025-HOH-1"
@@ -264,15 +246,9 @@ rate_schedule:
     - bracket_id: "CA-2025-HOH-9"
       filing_status: "hoh"
       income_from: 1010417
-      income_to: 1000000
+      income_to: null
       rate: 0.123
       base_tax: 97472.91
-    - bracket_id: "CA-2025-HOH-10"
-      filing_status: "hoh"
-      income_from: 1000000
-      income_to: null
-      rate: 0.133
-      base_tax: 103882.95
 
     # QSS - Same as MFJ
     - bracket_id: "CA-2025-QSS-1"
@@ -326,15 +302,9 @@ rate_schedule:
     - bracket_id: "CA-2025-QSS-9"
       filing_status: "qss"
       income_from: 1485906
-      income_to: 2000000
+      income_to: null
       rate: 0.123
       base_tax: 144290.69
-    - bracket_id: "CA-2025-QSS-10"
-      filing_status: "qss"
-      income_from: 2000000
-      income_to: null
-      rate: 0.133
-      base_tax: 207759.47
 
   surtaxes:
     - surtax_id: "CA-MENTAL-HEALTH-2025"
@@ -364,18 +334,13 @@ deductions:
       - filing_status: "qss"
         amount: 11412
         dependent_claimed_elsewhere: null
-    additional_amounts:
-      - category: "age_65_plus"
-        filing_status: "single"
-        amount: 200
-      - category: "blind"
-        filing_status: "single"
-        amount: 200
+    additional_amounts: []
   exemptions:
+    treatment: "credit"
     personal_exemption_available: true
-    personal_exemption_amount: 134
+    personal_exemption_amount: 153
     dependent_exemption_available: true
-    dependent_exemption_amount: 500
+    dependent_exemption_amount: 475
 
 # State-specific configuration
 state_config:
@@ -386,7 +351,7 @@ state_config:
   federal_conformity: "static"
   federal_conformity_date: "2015-01-01"
   special_notes:
-    - "California has 10 tax brackets (1% to 12.3%)"
+    - "California has 9 tax brackets (1% to 12.3%)"
     - "Top rate of 12.3% is highest in nation"
     - "1% Mental Health Services Tax on income over $1M"
     - "Uses exemption credits rather than exemption deductions"
@@ -394,9 +359,9 @@ state_config:
 
 # Verification
 verification:
-  status: "verified"
-  last_verified: "2025-02-20"
-  verified_by: "opencode"
+  status: "source_checked_limited_scenarios"
+  last_verified: "2026-09-09"
+  verified_by: "source arithmetic and regression tests; not professional sign-off"
   notes: "2025 CA FTB official rate schedules"
 
 references:

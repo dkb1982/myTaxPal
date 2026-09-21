@@ -7,13 +7,13 @@ Flat tax states (2025 rates):
 - IL: 4.95%
 - IN: 3.00%
 - KY: 4.0%
-- MA: 5.0% (+ 9% surtax over $1,083,150)
+- MA: 5.0% (+ 4% surtax over $1,083,150; ST gains use a separate rate)
 - MI: 4.25%
 - NC: 4.25%
 - PA: 3.07%
-- UT: 4.55%
-- GA: 5.39% (2024+)
-- IA: 3.80% (2025+)
+- UT: 4.50% (2025 TC-40 instructions)
+- GA: 5.19% (2025)
+- IA: 3.80% (2025)
 - LA: 3.00% (2025+)
 - MS: 4.40% over $10k (2023+)
 """
@@ -31,7 +31,7 @@ class TestFlatTaxStates:
     FLAT_TAX_STATES = {
         "AZ": Decimal("0.025"),
         "CO": Decimal("0.044"),
-        "ID": Decimal("0.05695"),
+        "ID": Decimal("0.053"),
         "IL": Decimal("0.0495"),
         "IN": Decimal("0.0300"),
         "KY": Decimal("0.04"),
@@ -39,7 +39,7 @@ class TestFlatTaxStates:
         "MI": Decimal("0.0425"),
         "NC": Decimal("0.0425"),
         "PA": Decimal("0.0307"),
-        "UT": Decimal("0.0455"),
+        "UT": Decimal("0.045"),
     }
 
     @pytest.fixture

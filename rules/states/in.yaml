@@ -36,7 +36,7 @@ deductions:
     additional_amounts: []
   exemptions:
     personal_exemption_available: true
-    personal_exemption_amount: 1500
+    personal_exemption_amount: 1000
     dependent_exemption_available: true
     dependent_exemption_amount: 3000
 

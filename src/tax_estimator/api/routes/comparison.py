@@ -18,7 +18,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from tax_estimator.calculation.comparison_enhanced import (
-    EnhancedComparisonEngine,
     EnhancedComparisonResult,
     compare_regions_enhanced,
     get_all_comparison_regions,
@@ -30,7 +29,7 @@ from tax_estimator.calculation.comparison_regions import (
     is_valid_region,
 )
 from tax_estimator.models.income_breakdown import IncomeBreakdown
-
+from tax_estimator.models.us_scenario import USScenarioFacts
 
 router = APIRouter(prefix="/comparison", tags=["Tax Comparison"])
 
@@ -71,46 +70,44 @@ class EnhancedCompareRequest(BaseModel):
 
     # Base parameters
     base_currency: str = Field(
-        default="USD",
-        description="Currency for comparison (e.g., USD, GBP)"
+        default="USD", description="Currency for comparison (e.g., USD, GBP)"
     )
-    tax_year: int = Field(
-        default=2025,
-        ge=2024,
-        le=2030,
-        description="Tax year"
-    )
+    tax_year: int = Field(default=2025, ge=2024, le=2030, description="Tax year")
 
     # Region selection
     regions: list[str] = Field(
         ...,
         min_length=1,
         max_length=6,
-        description="List of region IDs (e.g., ['US-CA', 'US-TX', 'SG', 'AE'])"
+        description="List of region IDs (e.g., ['US-CA', 'US-TX', 'SG', 'AE'])",
     )
 
     # Income (one of two options)
     gross_income: Decimal | None = Field(
-        None,
-        gt=0,
-        description="Simple gross income (backward compatible)"
+        None, gt=0, description="Simple gross income (backward compatible)"
     )
-    income: IncomeBreakdownRequest | None = Field(
-        None,
-        description="Detailed income breakdown"
-    )
+    income: IncomeBreakdownRequest | None = Field(None, description="Detailed income breakdown")
 
     # Filing status (for US)
     filing_status: str = Field(
         default="single",
         pattern="^(single|mfj|mfs|hoh|qss)$",
-        description="US filing status (single, mfj, mfs, hoh, qss)"
+        description="US filing status (single, mfj, mfs, hoh, qss)",
     )
+    country_profiles: dict[str, dict[str, Any]] | None = Field(
+        None,
+        description="Option-only destination profiles keyed by country code; relief amounts use destination currency",
+    )
+    us_scenario: USScenarioFacts | None = Field(None, description="US category facts; amounts use base_currency")
+    eitc_eligibility_asserted: bool | None = Field(None, description="US EITC claimant-level legal eligibility assertion; never assumed")
 
     def get_income(self) -> IncomeBreakdown | Decimal:
         """Get the income (breakdown or gross)."""
         if self.income is not None:
-            return self.income.to_income_breakdown()
+            income = self.income.to_income_breakdown()
+            if self.gross_income is not None and self.gross_income != income.total:
+                raise ValueError("gross_income must equal the income breakdown total")
+            return income
         elif self.gross_income is not None:
             return self.gross_income
         else:
@@ -237,6 +234,11 @@ async def compare_regions(
             base_currency=request.base_currency,
             filing_status=request.filing_status,
             tax_year=request.tax_year,
+            us_scenario=request.us_scenario,
+            eitc_eligibility_asserted=request.eitc_eligibility_asserted,
+            country_profiles={
+                code.upper(): profile for code, profile in (request.country_profiles or {}).items()
+            },
         )
         return result
     except ValueError as e:
@@ -294,14 +296,16 @@ async def list_us_states() -> dict[str, Any]:
     """List all US states for comparison."""
     states = []
     for state_id, info in US_STATES.items():
-        states.append({
-            "region_id": info.region_id,
-            "name": info.name,
-            "abbreviation": info.abbreviation,
-            "has_income_tax": info.has_income_tax,
-            "max_rate": str(info.max_rate) if info.max_rate else None,
-            "popular": info.popular,
-        })
+        states.append(
+            {
+                "region_id": info.region_id,
+                "name": info.name,
+                "abbreviation": info.abbreviation,
+                "has_income_tax": info.has_income_tax,
+                "max_rate": str(info.max_rate) if info.max_rate else None,
+                "popular": info.popular,
+            }
+        )
 
     # Sort by name
     states.sort(key=lambda x: x["name"])
@@ -314,7 +318,16 @@ async def list_us_states() -> dict[str, Any]:
         "popular": popular,
         "all": others,
         "total": len(states),
-        "no_income_tax_states": ["US-AK", "US-FL", "US-NV", "US-SD", "US-TN", "US-TX", "US-WA", "US-WY"],
+        "no_income_tax_states": [
+            "US-AK",
+            "US-FL",
+            "US-NV",
+            "US-SD",
+            "US-TN",
+            "US-TX",
+            "US-WA",
+            "US-WY",
+        ],
     }
 
 
@@ -323,15 +336,17 @@ async def list_us_cities() -> dict[str, Any]:
     """List US cities with local income taxes."""
     cities = []
     for city_id, info in US_CITIES.items():
-        cities.append({
-            "region_id": info.region_id,
-            "city_name": info.city_name,
-            "city_code": info.city_code,
-            "state_code": info.state_code,
-            "state_name": info.state_name,
-            "display_name": info.display_name,
-            "local_tax_type": info.local_tax_type,
-        })
+        cities.append(
+            {
+                "region_id": info.region_id,
+                "city_name": info.city_name,
+                "city_code": info.city_code,
+                "state_code": info.state_code,
+                "state_name": info.state_name,
+                "display_name": info.display_name,
+                "local_tax_type": info.local_tax_type,
+            }
+        )
 
     # Sort by display name
     cities.sort(key=lambda x: x["display_name"])
@@ -347,14 +362,16 @@ async def list_international_countries() -> dict[str, Any]:
     """List international countries for comparison."""
     countries = []
     for country_id, info in INTERNATIONAL_COUNTRIES.items():
-        countries.append({
-            "region_id": info.region_id,
-            "name": info.name,
-            "currency_code": info.currency_code,
-            "has_income_tax": info.has_income_tax,
-            "has_capital_gains_tax": info.has_capital_gains_tax,
-            "popular": info.popular,
-        })
+        countries.append(
+            {
+                "region_id": info.region_id,
+                "name": info.name,
+                "currency_code": info.currency_code,
+                "has_income_tax": info.has_income_tax,
+                "has_capital_gains_tax": info.has_capital_gains_tax,
+                "popular": info.popular,
+            }
+        )
 
     # Sort by name
     countries.sort(key=lambda x: x["name"])
@@ -392,7 +409,7 @@ async def get_region_details(region_id: str) -> dict[str, Any]:
             "max_rate": str(info.max_rate) if info.max_rate else None,
             "currency": "USD",
             "notes": [
-                f"{'No state income tax' if not info.has_income_tax else f'Max state rate: {float(info.max_rate)*100:.2f}%'}",
+                f"{'No state income tax' if not info.has_income_tax else f'Max state rate: {float(info.max_rate) * 100:.2f}%'}",
                 "Federal income tax applies to all US locations",
             ],
             "disclaimers": [

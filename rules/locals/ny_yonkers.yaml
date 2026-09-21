@@ -1,17 +1,17 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Resident single/age-40 cases source-checked for 2025; other profiles unvalidated.
 # =============================================================================
 # Yonkers - Resident surcharge (% of NY state tax) + non-resident wage tax
-# This file contains PLACEHOLDER data for development and testing purposes only.
+# Resident surcharge uses instructed NY liability before refundable state credits.
 # =============================================================================
 
 # Identity
-jurisdiction_id: "US-NY-YON"
+jurisdiction_id: "US-NY-YNK"
 tax_year: 2025
 
 # Metadata
 jurisdiction_type: "city"
-jurisdiction_name: "Yonkers (PLACEHOLDER)"
+jurisdiction_name: "Yonkers"
 jurisdiction_abbreviation: "YON"
 parent_jurisdiction_id: "US-NY"
 parent_state: "NY"
@@ -34,10 +34,11 @@ effective_end_date: "2025-12-31"
 # PLACEHOLDER: Rates need verification
 rate_schedule:
   rate_type: "mixed"
+  tax_base: "state_tax"
 
   # For residents: percentage of NY state tax
   resident_surcharge:
-    base: "ny_state_tax"
+    base: "state_tax"
     rate: 0.1675  # PLACEHOLDER - 16.75% of NY state tax
 
   # For non-residents: flat rate on wages
@@ -62,13 +63,12 @@ local_config:
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "validated_cases_only"
+  last_verified: "2026-09-09"
+  verified_by: "source-derived repair tests"
+  notes: "Resident single/age-40 cases only; nonresident tax is outside the validated scope."
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Yonkers resident surcharge - placeholder for development"
+  - source_name: "2025 IT-201 instructions, Yonkers resident surcharge"
+    url: "https://www.tax.ny.gov/forms/current-forms/it/it201i.htm"
+    retrieved_date: "2026-09-09"

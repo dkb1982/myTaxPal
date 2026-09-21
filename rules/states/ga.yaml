@@ -24,7 +24,7 @@ effective_end_date: "2025-12-31"
 # Rate Schedule - FLAT TAX (5.39%)
 rate_schedule:
   rate_type: "flat"
-  flat_rate: 0.0539
+  flat_rate: 0.0519
   brackets: []
   surtaxes: []
 

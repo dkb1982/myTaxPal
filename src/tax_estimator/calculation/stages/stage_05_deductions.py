@@ -58,6 +58,7 @@ class DeductionsStage(CalculationStage):
             input_data.spouse.age_65_or_older if input_data.spouse else False,
             input_data.spouse.is_blind if input_data.spouse else False,
             input_data.taxpayer.is_dependent,
+            context.get_decimal_result("earned_income"),
         )
 
         trace.add_step(
@@ -85,8 +86,25 @@ class DeductionsStage(CalculationStage):
             medical_deductible = max(Decimal(0), itemized.medical_expenses - medical_threshold)
             itemized_breakdown["medical"] = medical_deductible
 
-            # SALT: Capped at $10,000 ($5,000 MFS)
-            salt_limit = Decimal(5000) if filing_status == "mfs" else Decimal(10000)
+            # 2025 Schedule A line 5e, including the MAGI phase-down.
+            salt_config = federal_rules.deductions.salt
+            if salt_config is None:
+                return self._error("Federal SALT rules not loaded", "RULES_NOT_FOUND")
+            is_mfs = filing_status == "mfs"
+            salt_ceiling = Decimal(str(salt_config.mfs_ceiling if is_mfs else salt_config.ceiling))
+            phaseout_threshold = Decimal(
+                str(
+                    salt_config.mfs_phaseout_threshold if is_mfs else salt_config.phaseout_threshold
+                )
+            )
+            phaseout_rate = Decimal(
+                str(salt_config.mfs_phaseout_rate if is_mfs else salt_config.phaseout_rate)
+            )
+            salt_floor = Decimal(str(salt_config.mfs_floor if is_mfs else salt_config.floor))
+            salt_limit = max(
+                salt_floor,
+                salt_ceiling - max(Decimal(0), agi - phaseout_threshold) * phaseout_rate,
+            )
             salt_total = (
                 itemized.state_local_taxes_paid
                 + itemized.real_estate_taxes
@@ -105,18 +123,11 @@ class DeductionsStage(CalculationStage):
             itemized_breakdown["charitable"] = charitable
 
             # Other
-            other = (
-                itemized.casualty_loss
-                + itemized.other_itemized
-            )
+            other = itemized.casualty_loss + itemized.other_itemized
             itemized_breakdown["other"] = other
 
             itemized_total = (
-                medical_deductible
-                + salt_deduction
-                + mortgage_interest
-                + charitable
-                + other
+                medical_deductible + salt_deduction + mortgage_interest + charitable + other
             )
 
             trace.add_step(
@@ -139,17 +150,23 @@ class DeductionsStage(CalculationStage):
 
         # Determine which to use
         use_itemized = input_data.force_itemize or itemized_total > standard_deduction
-        deduction_used = itemized_total if use_itemized else standard_deduction
+        base_deduction_used = itemized_total if use_itemized else standard_deduction
         method = "itemized" if use_itemized else "standard"
+
+        enhanced_senior = self._calculate_enhanced_senior_deduction(
+            federal_rules, input_data, agi, context
+        )
+        deduction_used = base_deduction_used + enhanced_senior
 
         trace.add_step(
             step_id="DED-CHOICE",
             label="Deduction Method Selected",
-            formula="MAX(Standard Deduction, Itemized Deductions)",
+            formula="MAX(Standard Deduction, Itemized Deductions) + Enhanced Senior Deduction",
             inputs={
                 "standard": str(standard_deduction),
                 "itemized": str(itemized_total),
                 "force_itemize": input_data.force_itemize,
+                "enhanced_senior": str(enhanced_senior),
             },
             result=deduction_used,
             jurisdiction="US",
@@ -172,6 +189,7 @@ class DeductionsStage(CalculationStage):
             itemized_deduction_total=itemized_total,
             deduction_used=deduction_used,
             additional_deduction=additional,
+            enhanced_senior_deduction=enhanced_senior,
         )
 
         # Store results
@@ -179,6 +197,7 @@ class DeductionsStage(CalculationStage):
         context.set_result("standard_deduction", standard_deduction)
         context.set_result("itemized_deduction", itemized_total)
         context.set_result("deduction_used", deduction_used)
+        context.set_result("enhanced_senior_deduction", enhanced_senior)
         context.set_result("deduction_result", deduction_result)
         context.set_result("itemized_breakdown", itemized_breakdown)
 
@@ -186,13 +205,14 @@ class DeductionsStage(CalculationStage):
 
     def _calculate_standard_deduction(
         self,
-        rules: "JurisdictionRules",
+        rules: JurisdictionRules,
         filing_status: str,
         age_65_plus: bool,
         blind: bool,
         spouse_age_65_plus: bool,
         spouse_blind: bool,
         is_dependent: bool,
+        earned_income: Decimal,
     ) -> Decimal:
         """Calculate standard deduction amount."""
         from tax_estimator.rules.schema import FilingStatus as FSEnum
@@ -205,11 +225,10 @@ class DeductionsStage(CalculationStage):
 
         # Check if taxpayer is claimed as dependent
         if is_dependent:
-            # Reduced standard deduction for dependents
-            for amt in rules.deductions.standard_deduction.amounts:
-                if amt.filing_status == fs_enum and amt.dependent_claimed_elsewhere:
-                    base_amount = Decimal(str(amt.dependent_claimed_elsewhere))
-                    break
+            # 2025 dependent worksheet: greater of $1,350 or earned income
+            # plus $450, capped at the ordinary base deduction.
+            minimum = Decimal(1350)
+            base_amount = min(base_amount, max(minimum, earned_income + Decimal(450)))
 
         # Add additional amounts for age/blindness
         additional = self._get_additional_deduction(
@@ -220,7 +239,7 @@ class DeductionsStage(CalculationStage):
 
     def _get_additional_deduction(
         self,
-        rules: "JurisdictionRules",
+        rules: JurisdictionRules,
         filing_status: str,
         age_65_plus: bool,
         blind: bool,
@@ -262,6 +281,72 @@ class DeductionsStage(CalculationStage):
                 additional += blind_amount
 
         return additional
+
+    def _calculate_enhanced_senior_deduction(
+        self,
+        rules: JurisdictionRules,
+        input_data,
+        magi: Decimal,
+        context: CalculationContext,
+    ) -> Decimal:
+        """Calculate 2025 Schedule 1-A Part V separately from base deductions."""
+        config = rules.deductions.enhanced_senior
+        if config is None:
+            return Decimal(0)
+
+        people = [("taxpayer", input_data.taxpayer)]
+        if input_data.filing_status.value == "mfj" and input_data.spouse is not None:
+            people.append(("spouse", input_data.spouse))
+
+        if input_data.filing_status.value == "mfs":
+            if any(person.qualifies_for_enhanced_senior_deduction is True for _, person in people):
+                context.add_warning(
+                    "Enhanced senior deduction omitted: married taxpayers must file jointly."
+                )
+            return Decimal(0)
+
+        eligible_count = 0
+        for label, person in people:
+            if not person.age_65_or_older:
+                continue
+            asserted = person.qualifies_for_enhanced_senior_deduction
+            if asserted is True:
+                eligible_count += 1
+            elif asserted is None:
+                context.add_warning(
+                    f"Enhanced senior deduction omitted for {label}: legal and valid-SSN "
+                    "eligibility was not asserted."
+                )
+
+        if eligible_count == 0:
+            return Decimal(0)
+
+        threshold = Decimal(
+            str(
+                config.mfj_phaseout_threshold
+                if input_data.filing_status.value == "mfj"
+                else config.phaseout_threshold
+            )
+        )
+        per_person = max(
+            Decimal(0),
+            Decimal(str(config.amount_per_eligible_person))
+            - max(Decimal(0), magi - threshold) * Decimal(str(config.phaseout_rate)),
+        )
+        result = (per_person * eligible_count).quantize(Decimal("0.01"))
+        context.trace.add_step(
+            step_id="DED-SENIOR-ENHANCED",
+            label="Enhanced Deduction for Seniors",
+            formula="$6,000 per eligible person less 6% MAGI phaseout",
+            inputs={
+                "eligible_people": eligible_count,
+                "magi": str(magi),
+                "phaseout_threshold": str(threshold),
+            },
+            result=result,
+            jurisdiction="US",
+        )
+        return result
 
 
 # Import for type hints

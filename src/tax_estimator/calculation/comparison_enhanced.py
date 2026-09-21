@@ -11,7 +11,6 @@ IMPORTANT: All tax rates and exchange rates are PLACEHOLDERS for development.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -19,33 +18,25 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from tax_estimator.calculation.comparison import (
-    DEFAULT_EXCHANGE_RATES,
     DEFAULT_RATE_DATE,
-    RegionComparisonEngine,
     get_default_exchange_rates,
 )
 from tax_estimator.calculation.comparison_regions import (
-    INTERNATIONAL_COUNTRIES,
     NO_CGT_COUNTRIES,
     NO_TAX_COUNTRIES,
     RegionType,
-    US_CITIES,
-    US_STATES,
-    get_region_info,
-    get_region_name,
     is_valid_region,
     list_all_regions,
     parse_region,
 )
 from tax_estimator.calculation.comparison_us import (
-    USComparisonResult,
     USStateComparisonCalculator,
 )
 from tax_estimator.calculation.countries import calculate_international_tax
 from tax_estimator.calculation.countries.base import get_country_name
+from tax_estimator.calculation.profiles import comparison_profiles, profile_arguments
 from tax_estimator.models.income_breakdown import (
     IncomeBreakdown,
-    IncomeTypeTaxResult,
     get_income_type_display_name,
 )
 from tax_estimator.models.international import (
@@ -53,7 +44,7 @@ from tax_estimator.models.international import (
     InternationalTaxInput,
     get_currency_for_country,
 )
-
+from tax_estimator.models.us_scenario import USScenarioFacts
 
 # =============================================================================
 # Enhanced Response Models
@@ -85,12 +76,19 @@ class USJurisdictionBreakdownResponse(BaseModel):
     niit_threshold: Decimal = Decimal(0)
     niit_base: Decimal = Decimal(0)
 
+    # Payroll and federal surtaxes are separate from ordinary income tax.
+    employee_payroll_tax: Decimal = Decimal(0)
+    federal_self_employment_tax: Decimal = Decimal(0)
+    federal_additional_medicare_tax: Decimal = Decimal(0)
+
     # State
     state_code: str
     state_name: str
     state_tax: Decimal
     state_effective_rate: Decimal
     has_state_income_tax: bool
+    state_details: dict[str, Any] = Field(default_factory=dict)
+    local_details: list[dict[str, Any]] = Field(default_factory=list)
 
     # Local
     local_name: str | None = None
@@ -178,8 +176,9 @@ class EnhancedComparisonResult(BaseModel):
     disclaimers: list[str] = Field(
         default_factory=lambda: [
             "This comparison is for informational purposes only.",
-            "All tax rates are PLACEHOLDER values for development purposes.",
-            "Exchange rates are static estimates and may not reflect current rates.",
+            "US/UK repairs cover specified 2025 scenarios, not complete tax returns; other country/state/local rules remain unvalidated estimates.",
+            "Default FX is the published IRS 2025 annual average, not a live or transaction-date rate.",
+            "Independent full-year domestic scenarios with equal converted gross income; continuing home-country tax, treaties, immigration and cost of living are not modelled.",
             "Consult a tax professional before making relocation decisions.",
         ]
     )
@@ -209,12 +208,23 @@ class EnhancedComparisonEngine:
         exchange_rates: dict[str, Decimal] | None = None,
         rate_date: str | None = None,
         rate_source: str | None = None,
-        rules_dir: "Path | None" = None,
+        rules_dir: Path | None = None,
     ):
         """Initialize the enhanced comparison engine."""
-        self._rates = exchange_rates or get_default_exchange_rates()
+        from tax_estimator.calculation.comparison import (
+            DEFAULT_RATE_SOURCE,
+            validate_exchange_rates,
+        )
+
+        self._rates = (
+            validate_exchange_rates(exchange_rates)
+            if exchange_rates is not None
+            else get_default_exchange_rates()
+        )
         self._rate_date = rate_date or DEFAULT_RATE_DATE
-        self._rate_source = rate_source or "PLACEHOLDER - Use official rates"
+        self._rate_source = rate_source or (
+            DEFAULT_RATE_SOURCE if exchange_rates is None else "User-supplied rates"
+        )
         self._us_calculator = USStateComparisonCalculator(rules_dir=rules_dir)
 
     def convert_currency(
@@ -224,6 +234,8 @@ class EnhancedComparisonEngine:
         to_currency: str,
     ) -> Decimal:
         """Convert amount between currencies."""
+        if from_currency not in self._rates or to_currency not in self._rates:
+            raise ValueError(f"Missing exchange rate for {from_currency} or {to_currency}")
         if from_currency == to_currency:
             return amount
 
@@ -250,6 +262,9 @@ class EnhancedComparisonEngine:
         base_currency: str = "USD",
         filing_status: str = "single",
         tax_year: int = 2025,
+        country_profiles: dict[str, Any] | None = None,
+        us_scenario: USScenarioFacts | None = None,
+        eitc_eligibility_asserted: bool | None = None,
     ) -> EnhancedComparisonResult:
         """
         Compare tax across multiple regions.
@@ -264,6 +279,9 @@ class EnhancedComparisonEngine:
         Returns:
             EnhancedComparisonResult with all comparisons
         """
+        if tax_year != 2025:
+            raise ValueError("Only tax year 2025 is supported for comparison")
+
         # Convert simple income to breakdown
         if isinstance(income, Decimal):
             income_breakdown = IncomeBreakdown.from_gross_income(income)
@@ -271,11 +289,20 @@ class EnhancedComparisonEngine:
             income_breakdown = income
 
         gross_income = income_breakdown.total
+        if us_scenario is not None:
+            us_scenario.validate_income(income_breakdown.employment_wages,
+                                       income_breakdown.capital_gains_short_term,
+                                       income_breakdown.capital_gains_long_term)
 
         # Validate regions
         invalid = [r for r in regions if not is_valid_region(r)]
         if invalid:
             raise ValueError(f"Invalid regions: {invalid}")
+        country_profiles = comparison_profiles(country_profiles, regions)
+        if not regions or len(regions) != len(set(regions)):
+            raise ValueError("Supply at least one unique region")
+        if base_currency not in self._rates:
+            raise ValueError(f"Missing exchange rate for {base_currency}")
 
         # Calculate for each region
         results: list[EnhancedRegionResult] = []
@@ -286,6 +313,9 @@ class EnhancedComparisonEngine:
                 base_currency=base_currency,
                 filing_status=filing_status,
                 tax_year=tax_year,
+                country_profiles=country_profiles or {},
+                us_scenario=us_scenario,
+                eitc_eligibility_asserted=eitc_eligibility_asserted,
             )
             results.append(result)
 
@@ -335,6 +365,9 @@ class EnhancedComparisonEngine:
         base_currency: str,
         filing_status: str,
         tax_year: int,
+        country_profiles: dict[str, Any],
+        us_scenario: USScenarioFacts | None = None,
+        eitc_eligibility_asserted: bool | None = None,
     ) -> EnhancedRegionResult:
         """Calculate tax for a single region."""
         region_type, code, city_code = parse_region(region_id)
@@ -347,6 +380,8 @@ class EnhancedComparisonEngine:
                 base_currency=base_currency,
                 filing_status=filing_status,
                 tax_year=tax_year,
+                us_scenario=us_scenario,
+                eitc_eligibility_asserted=eitc_eligibility_asserted,
             )
         else:
             return self._calculate_international_region(
@@ -354,6 +389,7 @@ class EnhancedComparisonEngine:
                 income=income,
                 base_currency=base_currency,
                 tax_year=tax_year,
+                country_profiles=country_profiles,
             )
 
     def _calculate_us_region(
@@ -364,6 +400,8 @@ class EnhancedComparisonEngine:
         base_currency: str,
         filing_status: str,
         tax_year: int,
+        us_scenario: USScenarioFacts | None = None,
+        eitc_eligibility_asserted: bool | None = None,
     ) -> EnhancedRegionResult:
         """Calculate tax for a US state or city."""
         # US is always in USD
@@ -372,11 +410,21 @@ class EnhancedComparisonEngine:
         # Convert income to USD if needed
         if base_currency != "USD":
             usd_income = IncomeBreakdown(
-                employment_wages=self.convert_currency(income.employment_wages, base_currency, "USD"),
-                capital_gains_short_term=self.convert_currency(income.capital_gains_short_term, base_currency, "USD"),
-                capital_gains_long_term=self.convert_currency(income.capital_gains_long_term, base_currency, "USD"),
-                dividends_qualified=self.convert_currency(income.dividends_qualified, base_currency, "USD"),
-                dividends_ordinary=self.convert_currency(income.dividends_ordinary, base_currency, "USD"),
+                employment_wages=self.convert_currency(
+                    income.employment_wages, base_currency, "USD"
+                ),
+                capital_gains_short_term=self.convert_currency(
+                    income.capital_gains_short_term, base_currency, "USD"
+                ),
+                capital_gains_long_term=self.convert_currency(
+                    income.capital_gains_long_term, base_currency, "USD"
+                ),
+                dividends_qualified=self.convert_currency(
+                    income.dividends_qualified, base_currency, "USD"
+                ),
+                dividends_ordinary=self.convert_currency(
+                    income.dividends_ordinary, base_currency, "USD"
+                ),
                 interest=self.convert_currency(income.interest, base_currency, "USD"),
                 self_employment=self.convert_currency(income.self_employment, base_currency, "USD"),
                 rental=self.convert_currency(income.rental, base_currency, "USD"),
@@ -384,12 +432,19 @@ class EnhancedComparisonEngine:
         else:
             usd_income = income
 
+        # Category facts use the same request currency and conversion as income.
+        usd_scenario = USScenarioFacts(**{
+            key: self.convert_currency(value, base_currency, "USD") if base_currency != "USD" else value
+            for key, value in (us_scenario or USScenarioFacts()).model_dump(exclude_none=True).items()
+        })
         # Calculate using US calculator
         us_result = self._us_calculator.calculate(
             region_id=region_id,
             income=usd_income,
             filing_status=filing_status,
             tax_year=tax_year,
+            us_scenario=usd_scenario,
+            eitc_eligibility_asserted=eitc_eligibility_asserted,
         )
 
         # Build US breakdown response
@@ -414,10 +469,15 @@ class EnhancedComparisonEngine:
                 niit_magi=us_result.breakdown.niit_magi,
                 niit_threshold=us_result.breakdown.niit_threshold,
                 niit_base=us_result.breakdown.niit_base,
+                employee_payroll_tax=us_result.breakdown.employee_payroll_tax,
+                federal_self_employment_tax=us_result.breakdown.federal_self_employment_tax,
+                federal_additional_medicare_tax=us_result.breakdown.federal_additional_medicare_tax,
                 # State
                 state_code=us_result.breakdown.state_code,
                 state_name=us_result.breakdown.state_name,
                 state_tax=us_result.breakdown.state_tax,
+                state_details=us_result.breakdown.state_details,
+                local_details=us_result.breakdown.local_details,
                 state_effective_rate=us_result.breakdown.state_effective_rate,
                 has_state_income_tax=us_result.breakdown.has_state_income_tax,
                 # Local
@@ -469,6 +529,7 @@ class EnhancedComparisonEngine:
         income: IncomeBreakdown,
         base_currency: str,
         tax_year: int,
+        country_profiles: dict[str, Any],
     ) -> EnhancedRegionResult:
         """Calculate tax for an international country."""
         local_currency = get_currency_for_country(country_code)
@@ -476,13 +537,25 @@ class EnhancedComparisonEngine:
         # Convert income to local currency
         if base_currency != local_currency:
             local_income = IncomeBreakdown(
-                employment_wages=self.convert_currency(income.employment_wages, base_currency, local_currency),
-                capital_gains_short_term=self.convert_currency(income.capital_gains_short_term, base_currency, local_currency),
-                capital_gains_long_term=self.convert_currency(income.capital_gains_long_term, base_currency, local_currency),
-                dividends_qualified=self.convert_currency(income.dividends_qualified, base_currency, local_currency),
-                dividends_ordinary=self.convert_currency(income.dividends_ordinary, base_currency, local_currency),
+                employment_wages=self.convert_currency(
+                    income.employment_wages, base_currency, local_currency
+                ),
+                capital_gains_short_term=self.convert_currency(
+                    income.capital_gains_short_term, base_currency, local_currency
+                ),
+                capital_gains_long_term=self.convert_currency(
+                    income.capital_gains_long_term, base_currency, local_currency
+                ),
+                dividends_qualified=self.convert_currency(
+                    income.dividends_qualified, base_currency, local_currency
+                ),
+                dividends_ordinary=self.convert_currency(
+                    income.dividends_ordinary, base_currency, local_currency
+                ),
                 interest=self.convert_currency(income.interest, base_currency, local_currency),
-                self_employment=self.convert_currency(income.self_employment, base_currency, local_currency),
+                self_employment=self.convert_currency(
+                    income.self_employment, base_currency, local_currency
+                ),
                 rental=self.convert_currency(income.rental, base_currency, local_currency),
             )
         else:
@@ -495,39 +568,32 @@ class EnhancedComparisonEngine:
             currency_code=local_currency,
             gross_income=local_income.total,
             income_breakdown=local_income,
+            **profile_arguments(country_code, country_profiles),
         )
 
         result = calculate_international_tax(tax_input)
 
-        # Calculate income type breakdown for international
-        income_type_results = self._calculate_international_income_types(
-            country_code=country_code,
-            income=local_income,
-            tax_year=tax_year,
-        )
-
-        # Use income-type-aware total when breakdown has exempt income types
-        # (e.g., Singapore has no CGT, so LTCG should not be taxed)
+        # A country calculator is the sole authority for its liability.  The
+        # old per-category helper invented 25% rates and overwrote that result.
+        # Category tax cannot in general be allocated without changing band
+        # interactions, so leave the optional allocation empty rather than lie.
+        income_type_results: list[IncomeTypeTaxResponse] = []
         total_tax_local = result.total_tax
-        income_tax_adjusted = result.income_tax
-        if income_type_results:
-            type_aware_tax = sum(r.tax_amount for r in income_type_results)
-            if type_aware_tax < total_tax_local:
-                # Reduce income_tax component by the difference so breakdown stays consistent
-                reduction = total_tax_local - type_aware_tax
-                income_tax_adjusted = max(Decimal(0), result.income_tax - reduction)
-                total_tax_local = type_aware_tax
 
         net_income_local = local_income.total - total_tax_local
-        effective_rate = (total_tax_local / local_income.total).quantize(Decimal("0.0001")) if local_income.total > 0 else Decimal(0)
+        effective_rate = (
+            (total_tax_local / local_income.total).quantize(Decimal("0.0001"))
+            if local_income.total > 0
+            else Decimal(0)
+        )
 
         # Convert back to base currency
         total_tax_base = self.convert_currency(total_tax_local, local_currency, base_currency)
         net_income_base = income.total - total_tax_base
 
-        # Build international breakdown (adjusted to match type-aware total)
+        # Preserve the calculator's reconciled components unchanged.
         intl_breakdown = InternationalBreakdownResponse(
-            income_tax=income_tax_adjusted,
+            income_tax=result.income_tax,
             social_insurance=result.social_insurance,
             other_taxes=result.other_taxes,
         )
@@ -546,7 +612,12 @@ class EnhancedComparisonEngine:
             effective_rate=effective_rate,
             international_breakdown=intl_breakdown,
             income_type_results=income_type_results,
-            notes=result.calculation_notes,
+            notes=result.calculation_notes
+            + result.warnings
+            + [
+                "No category-specific tax allocation: allowances and rate bands interact.",
+                "Profile relief amounts, when supplied, are in destination currency.",
+            ],
         )
 
     def _calculate_international_income_types(
@@ -615,7 +686,11 @@ class EnhancedComparisonEngine:
                         notes=[f"No capital gains tax in {get_country_name(country_code)}"],
                     )
                 )
-            elif no_cgt and country_code in ("SG", "HK") and income_type in ("dividends_qualified", "dividends_ordinary"):
+            elif (
+                no_cgt
+                and country_code in ("SG", "HK")
+                and income_type in ("dividends_qualified", "dividends_ordinary")
+            ):
                 # No dividend tax in SG/HK
                 results.append(
                     IncomeTypeTaxResponse(
@@ -629,7 +704,10 @@ class EnhancedComparisonEngine:
                         notes=[f"Dividends not taxed in {get_country_name(country_code)}"],
                     )
                 )
-            elif country_code == "GB" and income_type in ("capital_gains_short_term", "capital_gains_long_term"):
+            elif country_code == "GB" and income_type in (
+                "capital_gains_short_term",
+                "capital_gains_long_term",
+            ):
                 # UK CGT with annual exempt amount (PLACEHOLDER: 6000 GBP)
                 exempt_amount = Decimal(6000)
                 taxable = max(Decimal(0), amount - exempt_amount)
@@ -645,7 +723,10 @@ class EnhancedComparisonEngine:
                         tax_amount=tax,
                         effective_rate=effective,
                         treatment="cgt_with_allowance",
-                        notes=[f"Annual exempt amount of 6,000 GBP applied", "CGT at 20% (PLACEHOLDER)"],
+                        notes=[
+                            "Annual exempt amount of 6,000 GBP applied",
+                            "CGT at 20% (PLACEHOLDER)",
+                        ],
                     )
                 )
             else:
@@ -679,6 +760,9 @@ def compare_regions_enhanced(
     base_currency: str = "USD",
     filing_status: str = "single",
     tax_year: int = 2025,
+    country_profiles: dict[str, Any] | None = None,
+    us_scenario: USScenarioFacts | None = None,
+    eitc_eligibility_asserted: bool | None = None,
 ) -> EnhancedComparisonResult:
     """
     Compare tax across multiple regions with enhanced support.
@@ -702,6 +786,9 @@ def compare_regions_enhanced(
         base_currency=base_currency,
         filing_status=filing_status,
         tax_year=tax_year,
+        country_profiles=country_profiles,
+        us_scenario=us_scenario,
+        eitc_eligibility_asserted=eitc_eligibility_asserted,
     )
 
 

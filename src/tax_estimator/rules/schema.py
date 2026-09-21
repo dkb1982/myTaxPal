@@ -69,10 +69,10 @@ class CurrencyCode(str, Enum):
 class TaxYearFormat(str, Enum):
     """How tax year is expressed in different countries."""
 
-    CALENDAR = "calendar"      # Jan 1 - Dec 31 (US, JP, CA, DE, FR, IT, ES, PT, SG)
-    UK_FISCAL = "uk_fiscal"    # Apr 6 - Apr 5 (UK)
+    CALENDAR = "calendar"  # Jan 1 - Dec 31 (US, JP, CA, DE, FR, IT, ES, PT, SG)
+    UK_FISCAL = "uk_fiscal"  # Apr 6 - Apr 5 (UK)
     AUS_FISCAL = "aus_fiscal"  # Jul 1 - Jun 30 (Australia)
-    HK_FISCAL = "hk_fiscal"    # Apr 1 - Mar 31 (Hong Kong)
+    HK_FISCAL = "hk_fiscal"  # Apr 1 - Mar 31 (Hong Kong)
 
 
 class FilingStatus(str, Enum):
@@ -126,13 +126,9 @@ class TaxBracket(BaseModel):
         ..., description="Filing status this bracket applies to, or 'all'"
     )
     income_from: float = Field(..., ge=0, description="Lower bound of bracket (inclusive)")
-    income_to: float | None = Field(
-        None, description="Upper bound of bracket (null = no limit)"
-    )
+    income_to: float | None = Field(None, description="Upper bound of bracket (null = no limit)")
     rate: float = Field(..., ge=0, le=1, description="Tax rate as decimal (e.g., 0.22 = 22%)")
-    base_tax: float = Field(
-        ..., ge=0, description="Cumulative tax on income below this bracket"
-    )
+    base_tax: float = Field(..., ge=0, description="Cumulative tax on income below this bracket")
 
     @field_validator("rate")
     @classmethod
@@ -163,7 +159,9 @@ class PreferentialRateThreshold(BaseModel):
 
     filing_status: str = Field(..., description="Filing status (single, mfj, etc.)")
     zero_rate_limit: float = Field(..., ge=0, description="Income up to which 0% rate applies")
-    fifteen_rate_limit: float = Field(..., ge=0, description="Income up to which 15% rate applies (above this: 20%)")
+    fifteen_rate_limit: float = Field(
+        ..., ge=0, description="Income up to which 15% rate applies (above this: 20%)"
+    )
 
 
 class RateSchedule(BaseModel):
@@ -174,9 +172,7 @@ class RateSchedule(BaseModel):
         default_factory=list, description="Tax brackets for graduated tax"
     )
     flat_rate: float | None = Field(None, description="Rate for flat tax jurisdictions")
-    surtaxes: list[Surtax] = Field(
-        default_factory=list, description="Additional surtaxes"
-    )
+    surtaxes: list[Surtax] = Field(default_factory=list, description="Additional surtaxes")
     preferential_thresholds: list[PreferentialRateThreshold] = Field(
         default_factory=list, description="LTCG/qualified dividend rate thresholds by filing status"
     )
@@ -242,26 +238,89 @@ class ExemptionRules(BaseModel):
     personal_exemption_available: bool = Field(
         False, description="Whether personal exemption is available"
     )
-    personal_exemption_amount: float = Field(
-        0, ge=0, description="Personal exemption amount"
-    )
+    personal_exemption_amount: float = Field(0, ge=0, description="Personal exemption amount")
     dependent_exemption_available: bool = Field(
         False, description="Whether dependent exemption is available"
     )
-    dependent_exemption_amount: float = Field(
-        0, ge=0, description="Dependent exemption amount"
-    )
+    dependent_exemption_amount: float = Field(0, ge=0, description="Dependent exemption amount")
+
+
+class SaltDeductionConfig(BaseModel):
+    """Federal state-and-local-tax itemized-deduction limits."""
+
+    ceiling: float = Field(..., ge=0)
+    mfs_ceiling: float = Field(..., ge=0)
+    phaseout_threshold: float = Field(..., ge=0)
+    mfs_phaseout_threshold: float = Field(..., ge=0)
+    phaseout_rate: float = Field(..., ge=0, le=1)
+    mfs_phaseout_rate: float = Field(..., ge=0, le=1)
+    floor: float = Field(..., ge=0)
+    mfs_floor: float = Field(..., ge=0)
+
+
+class EnhancedSeniorDeductionConfig(BaseModel):
+    """Schedule 1-A enhanced deduction for seniors."""
+
+    amount_per_eligible_person: float = Field(..., ge=0)
+    phaseout_threshold: float = Field(..., ge=0)
+    mfj_phaseout_threshold: float = Field(..., ge=0)
+    phaseout_rate: float = Field(..., ge=0, le=1)
 
 
 class DeductionRules(BaseModel):
     """All deduction rules for a jurisdiction."""
 
-    standard_deduction: StandardDeduction = Field(
-        ..., description="Standard deduction rules"
-    )
+    standard_deduction: StandardDeduction = Field(..., description="Standard deduction rules")
     exemptions: ExemptionRules = Field(
         default_factory=ExemptionRules, description="Exemption rules"
     )
+    salt: SaltDeductionConfig | None = Field(
+        default=None, description="Federal SALT limitation parameters"
+    )
+    enhanced_senior: EnhancedSeniorDeductionConfig | None = Field(
+        default=None, description="Federal enhanced-senior deduction parameters"
+    )
+
+
+# ============================================================================
+# Federal Credit Configuration Models
+# ============================================================================
+
+
+class ChildTaxCreditConfig(BaseModel):
+    """Schedule 8812 parameters for CTC, ODC, and ACTC."""
+
+    amount_per_child: float = Field(..., ge=0)
+    other_dependent_amount: float = Field(..., ge=0)
+    phaseout_threshold: float = Field(..., ge=0)
+    mfj_phaseout_threshold: float = Field(..., ge=0)
+    phaseout_increment: float = Field(..., gt=0)
+    reduction_per_increment: float = Field(..., ge=0)
+    refundable_amount_per_child: float = Field(..., ge=0)
+    refundable_earned_income_threshold: float = Field(..., ge=0)
+    refundable_rate: float = Field(..., ge=0, le=1)
+
+
+class EITCParameter(BaseModel):
+    """Continuous-formula EITC parameters for a qualifying-child count."""
+
+    qualifying_children: int = Field(..., ge=0, le=3)
+    credit_rate: float = Field(..., ge=0, le=1)
+    phaseout_rate: float = Field(..., ge=0, le=1)
+    earned_income_amount: float = Field(..., ge=0)
+    maximum_credit: float = Field(..., ge=0)
+    phaseout_start: float = Field(..., ge=0)
+    phaseout_end: float = Field(..., ge=0)
+    mfj_phaseout_start: float = Field(..., ge=0)
+    mfj_phaseout_end: float = Field(..., ge=0)
+
+
+class FederalCreditConfig(BaseModel):
+    """Federal credits implemented by the 2025 pipeline."""
+
+    child_tax_credit: ChildTaxCreditConfig
+    eitc_investment_income_limit: float = Field(..., ge=0)
+    eitc_parameters: list[EITCParameter]
 
 
 # ============================================================================
@@ -303,9 +362,7 @@ class PayrollTaxConfig(BaseModel):
     niit_threshold_mfj: float = Field(
         default=250000, ge=0, description="NIIT threshold for MFJ/QSS"
     )
-    niit_threshold_mfs: float = Field(
-        default=125000, ge=0, description="NIIT threshold for MFS"
-    )
+    niit_threshold_mfs: float = Field(default=125000, ge=0, description="NIIT threshold for MFS")
     # NIIT rate (3.8%)
     niit_rate: float = Field(
         default=0.038, ge=0, le=1, description="Net Investment Income Tax rate"
@@ -340,9 +397,7 @@ class SocialInsuranceRateSchedule(BaseModel):
 
     rate_type: Literal["flat", "banded"] = Field(..., description="Type of rate structure")
     rate: float | None = Field(None, ge=0, le=1, description="Flat rate as decimal")
-    brackets: list[TaxBracket] | None = Field(
-        None, description="Brackets for banded rates"
-    )
+    brackets: list[TaxBracket] | None = Field(None, description="Brackets for banded rates")
 
 
 class SocialInsuranceComponent(BaseModel):
@@ -424,12 +479,8 @@ class IncomeTypeRate(BaseModel):
     income_type: Literal[
         "dividends", "savings_interest", "capital_gains", "property", "employment"
     ] = Field(..., description="Type of income")
-    brackets: list[TaxBracket] | None = Field(
-        None, description="Tax brackets for this income type"
-    )
-    flat_rate: float | None = Field(
-        None, ge=0, le=1, description="Flat rate for this income type"
-    )
+    brackets: list[TaxBracket] | None = Field(None, description="Tax brackets for this income type")
+    flat_rate: float | None = Field(None, ge=0, le=1, description="Flat rate for this income type")
     allowance: float | None = Field(
         None, ge=0, description="Tax-free allowance for this income type"
     )
@@ -456,9 +507,7 @@ class PersonalAllowanceTaper(BaseModel):
     """
 
     base_amount: float = Field(..., ge=0, description="Base personal allowance")
-    taper_threshold: float = Field(
-        ..., ge=0, description="Income threshold where taper begins"
-    )
+    taper_threshold: float = Field(..., ge=0, description="Income threshold where taper begins")
     taper_rate: float = Field(
         default=0.5, ge=0, le=1, description="Rate at which allowance reduces"
     )
@@ -476,15 +525,11 @@ class FamilyQuotient(BaseModel):
     married_couple_parts: float = Field(default=2.0, description="Parts for married couple")
     first_child_parts: float = Field(default=0.5, description="Parts for first child")
     second_child_parts: float = Field(default=0.5, description="Parts for second child")
-    third_plus_child_parts: float = Field(
-        default=1.0, description="Parts for third+ children"
-    )
+    third_plus_child_parts: float = Field(default=1.0, description="Parts for third+ children")
     single_parent_bonus: float = Field(
         default=0.5, description="Additional parts for single parent"
     )
-    cap_per_half_part: float | None = Field(
-        None, ge=0, description="Maximum benefit per half-part"
-    )
+    cap_per_half_part: float | None = Field(None, ge=0, description="Maximum benefit per half-part")
 
 
 # ============================================================================
@@ -531,9 +576,7 @@ class JurisdictionRules(BaseModel):
         # The local part (-XXX) can only appear after the state part (-XX)
         pattern=r"^[A-Z]{2}(-[A-Z]{2}(-[A-Z]{3})?)?$",
     )
-    tax_year: int = Field(
-        ..., ge=2020, le=2030, description="Tax year these rules apply to"
-    )
+    tax_year: int = Field(..., ge=2020, le=2030, description="Tax year these rules apply to")
 
     # Metadata
     jurisdiction_type: JurisdictionType = Field(..., description="Type of jurisdiction")
@@ -559,14 +602,15 @@ class JurisdictionRules(BaseModel):
     payroll_taxes: PayrollTaxConfig | None = Field(
         default=None, description="Payroll tax configuration (federal only)"
     )
+    federal_credits: FederalCreditConfig | None = Field(
+        default=None, description="Federal credit parameters (federal only)"
+    )
 
     # International extensions (optional - only for international jurisdictions)
     country_code: CountryCode | None = Field(
         default=None, description="ISO 3166-1 alpha-2 country code"
     )
-    currency_code: CurrencyCode | None = Field(
-        default=None, description="ISO 4217 currency code"
-    )
+    currency_code: CurrencyCode | None = Field(default=None, description="ISO 4217 currency code")
     tax_year_format: TaxYearFormat | None = Field(
         default=None, description="How tax year is expressed"
     )
@@ -606,9 +650,7 @@ class JurisdictionRules(BaseModel):
 
     # Verification
     verification: VerificationInfo = Field(..., description="Verification status")
-    references: list[Reference] = Field(
-        default_factory=list, description="Source references"
-    )
+    references: list[Reference] = Field(default_factory=list, description="Source references")
 
     @field_validator("effective_end_date")
     @classmethod

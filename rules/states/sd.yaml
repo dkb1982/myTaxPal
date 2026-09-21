@@ -11,7 +11,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "South Dakota (PLACEHOLDER)"
+jurisdiction_name: "South Dakota"
 jurisdiction_abbreviation: "SD"
 parent_jurisdiction_id: "US"
 
@@ -53,13 +53,13 @@ state_config:
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2026-09-09"
+  verified_by: "source-reviewed repair"
+  notes: "No individual income tax"
 
 references:
   - source_name: "Placeholder"
-    url: null
+    url: "https://dor.sd.gov/individuals/"
     retrieved_date: null
     notes: "No income tax state - placeholder for development"

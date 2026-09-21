@@ -10,7 +10,6 @@ Tests the /comparison endpoints for:
 All tests use PLACEHOLDER rates for development.
 """
 
-from decimal import Decimal
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -146,6 +145,7 @@ class TestCompareEndpoint:
             json={
                 "regions": ["US-NY-NYC", "US-PA-PHL"],
                 "gross_income": 150000,
+                "us_scenario": {"philly_first_half_wages": 75000},
                 "base_currency": "USD",
                 "filing_status": "single",
             },

@@ -1,8 +1,5 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
 # Pennsylvania - Flat tax state (3.07%) - Plus extensive local taxes
-# This file contains PLACEHOLDER data for development and testing purposes only.
 # =============================================================================
 
 # Identity
@@ -11,7 +8,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "state"
-jurisdiction_name: "Pennsylvania (PLACEHOLDER)"
+jurisdiction_name: "Pennsylvania"
 jurisdiction_abbreviation: "PA"
 parent_jurisdiction_id: "US"
 
@@ -27,7 +24,7 @@ effective_end_date: "2025-12-31"
 # PLACEHOLDER: Pennsylvania flat 3.07% rate
 rate_schedule:
   rate_type: "flat"
-  flat_rate: 0.0307  # PLACEHOLDER - 3.07%
+  flat_rate: 0.0307
   brackets: []
   surtaxes: []
 
@@ -66,21 +63,21 @@ state_config:
     - "Estate or trust income"
     - "Gambling and lottery winnings"
   special_notes:
-    - "PLACEHOLDER: Pennsylvania flat 3.07% rate on all 8 income classes"
-    - "PLACEHOLDER: Local Earned Income Tax (EIT) applies in most municipalities"
-    - "PLACEHOLDER: Philadelphia has special wage tax instead of EIT"
+    - "Pennsylvania taxes eight separate income classes at 3.07%; losses may not offset other classes"
+    - "Local Earned Income Tax applies in many municipalities"
+    - "Philadelphia has special wage and school income taxes"
     - "PLACEHOLDER: Retirement income is generally exempt"
     - "IMPORTANT: PA does NOT follow federal income definitions"
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2026-09-09"
+  verified_by: "source-reviewed repair"
+  notes: "2025 PIT rate and separate-class baseline source-reviewed"
 
 references:
-  - source_name: "Placeholder"
-    url: null
-    retrieved_date: null
-    notes: "Flat tax state with extensive local taxes - placeholder for development"
+  - source_name: "Pennsylvania Department of Revenue"
+    url: "https://revenue.pa.gov/TaxTypes/PIT/Pages/default.aspx"
+    retrieved_date: "2026-09-09"
+    notes: "2025 3.07% PIT and separate income classes"

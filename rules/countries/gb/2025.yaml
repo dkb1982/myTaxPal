@@ -33,28 +33,19 @@ rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Personal Allowance (0%)
-    - bracket_id: "GB-2025-PA"
-      filing_status: "all"
-      income_from: 0
-      income_to: 12570
-      rate: 0.00
-      base_tax: 0
-    # Basic Rate
+    # Coordinates are taxable income after allowances, not gross income.
     - bracket_id: "GB-2025-BASIC"
       filing_status: "all"
-      income_from: 12570
-      income_to: 50270
+      income_from: 0
+      income_to: 37700
       rate: 0.20
       base_tax: 0
-    # Higher Rate
     - bracket_id: "GB-2025-HIGHER"
       filing_status: "all"
-      income_from: 50270
+      income_from: 37700
       income_to: 125140
       rate: 0.40
       base_tax: 7540  # 37700 * 0.20
-    # Additional Rate
     - bracket_id: "GB-2025-ADDITIONAL"
       filing_status: "all"
       income_from: 125140
@@ -69,39 +60,39 @@ scotland_brackets:
   - bracket_id: "GB-2025-SCOTLAND-STARTER"
     filing_status: "all"
     income_from: 0
-    income_to: 15397
+    income_to: 2827
     rate: 0.19
     base_tax: 0
   - bracket_id: "GB-2025-SCOTLAND-BASIC"
     filing_status: "all"
-    income_from: 15397
-    income_to: 27491
+    income_from: 2827
+    income_to: 14921
     rate: 0.20
-    base_tax: 2926  # (15397-0) * 0.19
+    base_tax: 537.13
   - bracket_id: "GB-2025-SCOTLAND-INTERMEDIATE"
     filing_status: "all"
-    income_from: 27491
-    income_to: 43662
+    income_from: 14921
+    income_to: 31092
     rate: 0.21
-    base_tax: 5345  # 2926 + (27491-15397) * 0.20
+    base_tax: 2955.93
   - bracket_id: "GB-2025-SCOTLAND-HIGHER"
     filing_status: "all"
-    income_from: 43662
-    income_to: 75000
+    income_from: 31092
+    income_to: 62430
     rate: 0.42
-    base_tax: 8731  # 5345 + (43662-27491) * 0.21
+    base_tax: 6351.84
   - bracket_id: "GB-2025-SCOTLAND-ADVANCED"
     filing_status: "all"
-    income_from: 75000
+    income_from: 62430
     income_to: 125140
     rate: 0.45
-    base_tax: 23903  # 8731 + (75000-43662) * 0.42
+    base_tax: 19513.80
   - bracket_id: "GB-2025-SCOTLAND-TOP"
     filing_status: "all"
     income_from: 125140
     income_to: null
     rate: 0.48
-    base_tax: 46466  # 23903 + (125140-75000) * 0.45
+    base_tax: 47733.30
 
 # Personal Allowance Taper (2025-26)
 personal_allowance_taper:
@@ -133,6 +124,12 @@ social_insurance:
   calculation_method: "banded"
   employer_contribution: true
   employee_contribution: true
+  class_4:
+    lower_profits_limit: 12570
+    upper_profits_limit: 50270
+    main_rate: 0.06
+    additional_rate: 0.02
+    notes: "Annualised estimate: 6% on profits £12,570 to £50,270, then 2% above"
 
 # Student Loan Repayment Thresholds (2025-26)
 student_loan_plans:
@@ -177,18 +174,26 @@ deductions:
 
 # Verification
 verification:
-  status: "verified"
-  last_verified: "2026-02-17"
-  verified_by: "external_consultant"
-  notes: "Verified against gov.uk HMRC official rates for 2025-26 tax year"
+  status: "checked_against_primary_sources"
+  last_verified: "2026-09-09"
+  notes: "Parameters checked against the cited HMRC and Scottish Government publications; supported scenarios are covered by regression tests."
 
 references:
   - source_name: "gov.uk - Income Tax rates"
-    url: "https://www.gov.uk/income-tax-rates"
-    retrieved_date: "2026-02-17"
+    url: "https://www.gov.uk/government/publications/rates-and-allowances-income-tax/income-tax-rates-and-allowances-current-and-past"
+    retrieved_date: "2026-09-09"
+  - source_name: "gov.scot - Scottish Income Tax 2025 to 2026"
+    url: "https://www.gov.scot/publications/scottish-income-tax-2025-2026-factsheet/pages/2/"
+    retrieved_date: "2026-09-09"
   - source_name: "gov.uk - National Insurance rates"
     url: "https://www.gov.uk/government/publications/rates-and-allowances-national-insurance-contributions/rates-and-allowances-national-insurance-contributions"
-    retrieved_date: "2026-02-17"
+    retrieved_date: "2026-09-09"
   - source_name: "gov.uk - Student Loan repayment"
     url: "https://www.gov.uk/repaying-your-student-loan/what-you-pay"
-    retrieved_date: "2026-02-17"
+    retrieved_date: "2026-09-09"
+  - source_name: "gov.uk - Adjusted net income"
+    url: "https://www.gov.uk/guidance/adjusted-net-income"
+    retrieved_date: "2026-09-09"
+  - source_name: "gov.uk - Capital Gains Tax rates and allowances"
+    url: "https://www.gov.uk/guidance/capital-gains-tax-rates-and-allowances"
+    retrieved_date: "2026-09-09"

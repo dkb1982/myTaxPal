@@ -46,6 +46,10 @@ class DeductionResult(BaseModel):
     additional_deduction: Decimal = Field(
         default=Decimal(0), description="Additional deduction for age/blindness"
     )
+    enhanced_senior_deduction: Decimal = Field(
+        default=Decimal(0),
+        description="Schedule 1-A enhanced deduction for eligible seniors",
+    )
 
 
 class CreditDetail(BaseModel):
@@ -73,9 +77,7 @@ class FederalTaxResult(BaseModel):
 
     # Income
     gross_income: Decimal = Field(..., description="Total gross income")
-    total_adjustments: Decimal = Field(
-        default=Decimal(0), description="Above-the-line adjustments"
-    )
+    total_adjustments: Decimal = Field(default=Decimal(0), description="Above-the-line adjustments")
     adjusted_gross_income: Decimal = Field(..., description="AGI")
 
     # Deductions
@@ -83,8 +85,12 @@ class FederalTaxResult(BaseModel):
 
     # Taxable income
     taxable_income: Decimal = Field(..., description="AGI minus deductions")
-    ordinary_income: Decimal = Field(default=Decimal(0), description="Ordinary portion of taxable income")
-    preferential_income: Decimal = Field(default=Decimal(0), description="LTCG + qualified dividends portion")
+    ordinary_income: Decimal = Field(
+        default=Decimal(0), description="Ordinary portion of taxable income"
+    )
+    preferential_income: Decimal = Field(
+        default=Decimal(0), description="LTCG + qualified dividends portion"
+    )
 
     # Tax computation
     tax_before_credits: Decimal = Field(..., description="Tax from brackets")
@@ -120,6 +126,19 @@ class FederalTaxResult(BaseModel):
     marginal_rate: Decimal = Field(default=Decimal(0), description="Marginal tax rate")
 
 
+class JurisdictionAmountDetail(BaseModel):
+    component_id: str
+    name: str
+    amount: Decimal
+
+
+class LocalTaxComponentDetail(BaseModel):
+    component_id: str
+    name: str
+    taxable_income: Decimal
+    tax: Decimal
+
+
 class StateTaxResult(BaseModel):
     """State tax calculation result."""
 
@@ -150,6 +169,17 @@ class StateTaxResult(BaseModel):
     surtax: Decimal = Field(default=Decimal(0), description="Any surtaxes (e.g., MA millionaire)")
     bracket_breakdown: list[BracketBreakdown] = Field(default_factory=list)
     state_credits: Decimal = Field(default=Decimal(0))
+    nonrefundable_credits: Decimal = Decimal(0)
+    refundable_credits: Decimal = Decimal(0)
+    credit_details: list[CreditDetail] = Field(default_factory=list)
+    state_additions: list[JurisdictionAmountDetail] = Field(default_factory=list)
+    state_subtractions: list[JurisdictionAmountDetail] = Field(default_factory=list)
+    ordinary_taxable_income: Decimal = Decimal(0)
+    preferential_taxable_income: Decimal = Decimal(0)
+    ordinary_tax: Decimal = Decimal(0)
+    preferential_tax: Decimal = Decimal(0)
+    other_base_tax: Decimal = Decimal(0)
+    recapture: Decimal = Decimal(0)
     total_state_tax: Decimal = Field(...)
 
     # Rates
@@ -182,8 +212,7 @@ class LocalTaxResult(BaseModel):
     # Tax characteristics
     has_income_tax: bool = Field(default=True, description="Whether jurisdiction has income tax")
     tax_type: str = Field(
-        default="city_income_tax",
-        description="Type: city_income_tax, wage_tax, earnings_tax, etc."
+        default="city_income_tax", description="Type: city_income_tax, wage_tax, earnings_tax, etc."
     )
 
     # Income
@@ -195,6 +224,10 @@ class LocalTaxResult(BaseModel):
     credit_for_taxes_paid_elsewhere: Decimal = Field(default=Decimal(0))
     total_tax: Decimal = Field(..., description="Total local tax")
     net_tax: Decimal = Field(..., description="Net local tax after credits")
+    nonrefundable_credits: Decimal = Decimal(0)
+    refundable_credits: Decimal = Decimal(0)
+    credit_details: list[CreditDetail] = Field(default_factory=list)
+    tax_components: list[LocalTaxComponentDetail] = Field(default_factory=list)
 
     # Rates
     effective_rate: Decimal = Field(default=Decimal(0))
@@ -261,11 +294,23 @@ class CalculationResult(BaseModel):
     # Tax results by jurisdiction
     federal: FederalTaxResult | None = Field(None, description="Federal tax result")
     states: list[StateTaxResult] = Field(default_factory=list, description="State results")
+    locals: list[LocalTaxResult] = Field(default_factory=list, description="Local tax results")
 
     # Totals
     total_tax_liability: Decimal = Field(default=Decimal(0))
     total_withholding: Decimal = Field(default=Decimal(0))
     total_payments: Decimal = Field(default=Decimal(0))
+    employee_social_security_tax: Decimal = Field(default=Decimal(0))
+    employee_medicare_tax: Decimal = Field(default=Decimal(0))
+    employee_payroll_tax: Decimal = Field(
+        default=Decimal(0),
+        description="Ordinary employee Social Security and Medicare taxes only",
+    )
+    total_statutory_deductions: Decimal = Field(
+        default=Decimal(0),
+        description="Federal, state and local liability plus ordinary employee payroll tax",
+    )
+    total_local_withholding: Decimal = Field(default=Decimal(0))
 
     @computed_field
     @property
@@ -274,9 +319,7 @@ class CalculationResult(BaseModel):
         return self.total_tax_liability - self.total_withholding - self.total_payments
 
     # Calculation metadata
-    trace: dict[str, Any] | None = Field(
-        None, description="Calculation trace for debugging"
-    )
+    trace: dict[str, Any] | None = Field(None, description="Calculation trace for debugging")
     warnings: list[str] = Field(default_factory=list, description="Calculation warnings")
     errors: list[str] = Field(default_factory=list, description="Calculation errors")
 

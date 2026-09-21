@@ -17,7 +17,7 @@ from tax_estimator.calculation.countries.base import BaseCountryCalculator
 from tax_estimator.calculation.countries import (
     gb, de, fr, sg, hk, ae, jp, au, ca, it, es, pt,
 )
-from tax_estimator.models.international import InternationalTaxInput
+from tax_estimator.models.international import InternationalTaxInput, get_currency_for_country
 from tax_estimator.models.income_breakdown import IncomeBreakdown
 
 
@@ -59,7 +59,7 @@ def _calc_with_breakdown(
     tax_input = InternationalTaxInput(
         country_code=country_code,
         tax_year=2025,
-        currency_code="USD",
+        currency_code=get_currency_for_country(country_code),
         gross_income=breakdown.total,
         income_breakdown=breakdown,
     )
@@ -72,7 +72,7 @@ def _calc_simple(country_code: str, gross_income: Decimal) -> "InternationalTaxR
     tax_input = InternationalTaxInput(
         country_code=country_code,
         tax_year=2025,
-        currency_code="USD",
+        currency_code=get_currency_for_country(country_code),
         gross_income=gross_income,
     )
     return calc.calculate(tax_input)

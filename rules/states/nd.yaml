@@ -31,14 +31,20 @@ rate_schedule:
       filing_status: "single"
       income_from: 0
       income_to: 48475
-      rate: 0.0195
+      rate: 0
       base_tax: 0
     - bracket_id: "ND-2025-S-2"
       filing_status: "single"
       income_from: 48475
+      income_to: 244825
+      rate: 0.0195
+      base_tax: 0
+    - bracket_id: "ND-2025-S-3"
+      filing_status: "single"
+      income_from: 244825
       income_to: null
       rate: 0.025
-      base_tax: 945.26
+      base_tax: 3828.83
 
     # Married Filing Jointly
     - bracket_id: "ND-2025-MFJ-1"
@@ -101,23 +107,8 @@ rate_schedule:
 # Deductions - 2025 values
 deductions:
   standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 14600
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfj"
-        amount: 29200
-        dependent_claimed_elsewhere: null
-      - filing_status: "mfs"
-        amount: 14600
-        dependent_claimed_elsewhere: null
-      - filing_status: "hoh"
-        amount: 21900
-        dependent_claimed_elsewhere: null
-      - filing_status: "qss"
-        amount: 29200
-        dependent_claimed_elsewhere: null
+    available: false
+    amounts: []
     additional_amounts: []
   exemptions:
     personal_exemption_available: false
@@ -127,7 +118,7 @@ deductions:
 
 # State-specific configuration
 state_config:
-  starting_point: "federal_agi"
+  starting_point: "federal_taxable_income"
   has_local_income_tax: false
   local_tax_mandatory: false
   reciprocity_states:
@@ -145,6 +136,6 @@ verification:
 
 references:
   - source_name: "North Dakota Office of State Tax Commissioner"
-    url: "https://www.nd.gov/tax/"
+    url: "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/2025-individual-income-tax-booklet.pdf"
     retrieved_date: "2025-02-20"
     notes: "North Dakota 2 brackets"

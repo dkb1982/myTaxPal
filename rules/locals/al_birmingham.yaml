@@ -1,0 +1,18 @@
+jurisdiction_id: "US-AL-BHM"
+jurisdiction_name: "Birmingham"
+parent_state: "AL"
+tax_year: 2025
+has_income_tax: true
+tax_type: "occupational_tax"
+applies_to: "both_residents_and_workers"
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "wages_only"
+  flat_rates:
+    rate: 0.01
+local_config:
+  special_notes:
+    - "1% on compensation for work performed in Birmingham; same residence/work-city employee baseline"
+references:
+  - source_name: "Birmingham Code, Title3 Chapter2 Occupational Tax"
+    url: "https://library.municode.com/al/birmingham/codes/code_of_ordinances?nodeId=PT1THCOGEOR_TIT3ARETA_CH2OCTA"

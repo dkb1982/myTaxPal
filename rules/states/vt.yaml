@@ -31,33 +31,27 @@ rate_schedule:
     - bracket_id: "VT-2025-S-1"
       filing_status: "single"
       income_from: 0
-      income_to: 3825
-      rate: 0.0
+      income_to: 49400
+      rate: 0.0335
       base_tax: 0
     - bracket_id: "VT-2025-S-2"
       filing_status: "single"
-      income_from: 3825
-      income_to: 53225
-      rate: 0.0335
-      base_tax: 0
+      income_from: 49400
+      income_to: 119000
+      rate: 0.066
+      base_tax: 1654.90
     - bracket_id: "VT-2025-S-3"
       filing_status: "single"
-      income_from: 53225
-      income_to: 123525
-      rate: 0.066
-      base_tax: 1655.9
+      income_from: 119000
+      income_to: 246350
+      rate: 0.076
+      base_tax: 6248.50
     - bracket_id: "VT-2025-S-4"
       filing_status: "single"
-      income_from: 123525
-      income_to: 242000
-      rate: 0.076
-      base_tax: 6283.7
-    - bracket_id: "VT-2025-S-5"
-      filing_status: "single"
-      income_from: 242000
+      income_from: 246350
       income_to: null
       rate: 0.0875
-      base_tax: 15384.7
+      base_tax: 15927.10
 
     # Married Filing Jointly
     - bracket_id: "VT-2025-MFJ-1"
@@ -195,7 +189,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 14700
+        amount: 7650
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 29400
@@ -211,8 +205,8 @@ deductions:
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 5300
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 
@@ -234,6 +228,6 @@ verification:
 
 references:
   - source_name: "Vermont Department of Taxes"
-    url: null
+    url: "https://tax.vermont.gov/document/tax-year-2025-vermont-tax-rate-schedules"
     retrieved_date: "2025-02-20"
     notes: "2025 individual income tax rate schedule"

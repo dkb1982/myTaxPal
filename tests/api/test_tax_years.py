@@ -33,15 +33,15 @@ class TestListTaxYears:
         years = [y["year"] for y in data["data"]]
         assert 2025 in years
 
-    def test_list_tax_years_includes_2024(self, client: TestClient):
-        """Test that list includes 2024 tax year."""
+    def test_list_tax_years_excludes_unsupported_2024(self, client: TestClient):
+        """Test that unavailable 2024 rules are not advertised."""
         response = client.get("/v1/tax-years")
 
         assert response.status_code == 200
         data = response.json()
 
         years = [y["year"] for y in data["data"]]
-        assert 2024 in years
+        assert 2024 not in years
 
     def test_list_tax_years_has_default_year(self, client: TestClient):
         """Test that response includes default year."""
@@ -91,14 +91,8 @@ class TestGetTaxYear:
         assert data["filing_deadline"] == "2026-04-15"
 
     def test_get_tax_year_2024(self, client: TestClient):
-        """Test getting 2024 tax year details."""
-        response = client.get("/v1/tax-years/2024")
-
-        assert response.status_code == 200
-        data = response.json()
-
-        assert data["year"] == 2024
-        assert data["filing_deadline"] == "2025-04-15"
+        """2024 is not implemented and must not be silently relabelled."""
+        assert client.get("/v1/tax-years/2024").status_code == 404
 
     def test_get_tax_year_includes_key_thresholds(self, client: TestClient):
         """Test that tax year details include key thresholds."""

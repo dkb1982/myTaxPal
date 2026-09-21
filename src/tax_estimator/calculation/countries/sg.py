@@ -18,10 +18,9 @@ from tax_estimator.calculation.countries.base import BaseCountryCalculator
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
-    TaxComponent,
     SGResidentStatus,
+    TaxComponent,
 )
-
 
 # =============================================================================
 # PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
@@ -50,7 +49,7 @@ NON_RESIDENT_RATE = Decimal("0.22")
 # CPF rates by age (employee portion) (PLACEHOLDER - YA 2025 rates)
 # Note: Monthly ceiling increases to SGD 8,000 in 2026.
 CPF_RATES_BY_AGE = {
-    "under_55": (Decimal("0.20"), Decimal(6800)),      # 20%, cap 6800/month
+    "under_55": (Decimal("0.20"), Decimal(6800)),  # 20%, cap 6800/month
     "55_to_60": (Decimal("0.15"), Decimal(6800)),
     "60_to_65": (Decimal("0.095"), Decimal(6800)),
     "65_to_70": (Decimal("0.07"), Decimal(6800)),
@@ -99,20 +98,31 @@ class SGCalculator(BaseCountryCalculator):
             cpf_relief = Decimal(0)
             notes.append("Using default age (35) for CPF calculations.")
 
+        taxable_nonwage = Decimal(0)
+        if tax_input.income_breakdown is not None:
+            income = tax_input.income_breakdown
+            employment_income = income.employment_wages
+            taxable_nonwage = income.self_employment + income.rental + income.interest
+            notes.append(
+                "Income categories preserved: CPF applies to employment wages, not investments. Gains are assumed personal capital gains; dividends are assumed eligible exempt dividends, not trading/co-operative income."
+            )
+            if taxable_nonwage:
+                notes.append(
+                    "Non-wage income treatment is simplified; interest exemptions, business reliefs and self-employed MediSave are not modelled."
+                )
+
         # Calculate CPF (for citizens/PRs)
         cpf_contribution = Decimal(0)
         if is_citizen_or_pr:
-            cpf_contribution, cpf_breakdown = self._calculate_cpf(
-                employment_income, age
-            )
+            cpf_contribution, cpf_breakdown = self._calculate_cpf(employment_income, age)
             breakdown.extend(cpf_breakdown)
 
         # Taxable income (after CPF relief)
         if cpf_relief > 0:
-            taxable_income = max(Decimal(0), employment_income - cpf_relief)
+            taxable_income = max(Decimal(0), employment_income + taxable_nonwage - cpf_relief)
         else:
             # Auto-calculate CPF relief if not specified
-            taxable_income = max(Decimal(0), employment_income - cpf_contribution)
+            taxable_income = max(Decimal(0), employment_income + taxable_nonwage - cpf_contribution)
 
         breakdown.append(
             TaxComponent(
@@ -157,9 +167,7 @@ class SGCalculator(BaseCountryCalculator):
             notes=notes,
         )
 
-    def _calculate_cpf(
-        self, income: Decimal, age: int
-    ) -> tuple[Decimal, list[TaxComponent]]:
+    def _calculate_cpf(self, income: Decimal, age: int) -> tuple[Decimal, list[TaxComponent]]:
         """Calculate CPF contributions."""
         # Determine rate based on age
         if age < 55:
@@ -187,7 +195,7 @@ class SGCalculator(BaseCountryCalculator):
                 amount=cpf,
                 rate=rate,
                 base=cpf_base,
-                notes=f"Central Provident Fund: {rate*100:.0f}% (age-based rate)",
+                notes=f"Central Provident Fund: {rate * 100:.0f}% (age-based rate)",
             )
         ]
 

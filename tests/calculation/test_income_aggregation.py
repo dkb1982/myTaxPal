@@ -6,12 +6,10 @@ These tests verify that income from various sources is correctly summed.
 
 from decimal import Decimal
 
-import pytest
-
+from tax_estimator.calculation.context import CalculationContext
 from tax_estimator.calculation.stages.stage_02_income_aggregation import (
     IncomeAggregationStage,
 )
-from tax_estimator.calculation.context import CalculationContext
 from tax_estimator.calculation.trace import CalculationTrace
 from tax_estimator.models.tax_input import (
     CapitalGains,
@@ -311,6 +309,50 @@ class TestCapitalGains:
         # Loss deduction: min(|-3000|, 3000) = $3,000
         assert context.get_decimal_result("capital_loss_deduction") == Decimal("3000")
 
+    def test_short_term_loss_cross_nets_against_long_term_gain(self) -> None:
+        tax_input = TaxInput(
+            tax_year=2025,
+            filing_status=FilingStatus.SINGLE,
+            residence_state="TX",
+            capital_gains=CapitalGains(
+                short_term_gains=Decimal("-5000"),
+                long_term_gains=Decimal("20000"),
+            ),
+        )
+        context = CalculationContext(
+            input=tax_input,
+            tax_year=2025,
+            trace=CalculationTrace(calculation_id="capital-netting", tax_year=2025),
+        )
+        IncomeAggregationStage().execute(context)
+
+        assert context.get_decimal_result("net_capital_gain") == Decimal("15000")
+        assert context.get_decimal_result("preferential_capital_gain") == Decimal("15000")
+        assert context.get_decimal_result("ordinary_capital_gain") == 0
+
+    def test_typed_short_term_carryover_retains_character(self) -> None:
+        tax_input = TaxInput(
+            tax_year=2025,
+            filing_status=FilingStatus.SINGLE,
+            residence_state="TX",
+            capital_gains=CapitalGains(
+                short_term_gains=Decimal("10000"),
+                long_term_gains=Decimal("12000"),
+                short_term_carryover_loss=Decimal("15000"),
+            ),
+        )
+        context = CalculationContext(
+            input=tax_input,
+            tax_year=2025,
+            trace=CalculationTrace(calculation_id="capital-carryover", tax_year=2025),
+        )
+        IncomeAggregationStage().execute(context)
+
+        assert context.get_decimal_result("net_short_term_gain") == Decimal("-5000")
+        assert context.get_decimal_result("net_long_term_gain") == Decimal("12000")
+        assert context.get_decimal_result("preferential_capital_gain") == Decimal("7000")
+        assert context.get_decimal_result("gross_income") == Decimal("7000")
+
 
 class TestCombinedIncome:
     """Tests for combined income from multiple sources."""
@@ -406,6 +448,24 @@ class TestCombinedIncome:
         # Other: $2,000
         # Total: $97,000
         assert context.get_decimal_result("gross_income") == Decimal("97000")
+
+    def test_rental_income_routes_to_gross_and_investment_income(self) -> None:
+        tax_input = TaxInput(
+            tax_year=2025,
+            filing_status=FilingStatus.SINGLE,
+            residence_state="TX",
+            rental_income=Decimal("12000"),
+        )
+        context = CalculationContext(
+            input=tax_input,
+            tax_year=2025,
+            trace=CalculationTrace(calculation_id="rental-income", tax_year=2025),
+        )
+        IncomeAggregationStage().execute(context)
+
+        assert context.get_decimal_result("gross_income") == Decimal("12000")
+        assert context.get_decimal_result("investment_income") == Decimal("12000")
+        assert context.get_decimal_result("net_investment_income") == Decimal("12000")
 
 
 class TestEarnedIncomeTracking:

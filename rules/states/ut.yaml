@@ -1,5 +1,5 @@
 # =============================================================================
-# Utah - Flat tax state (4.55%)
+# Utah - Flat tax state (4.5%)
 # 2025 tax brackets verified
 # =============================================================================
 
@@ -24,7 +24,7 @@ effective_end_date: "2025-12-31"
 # Rate Schedule - FLAT TAX
 rate_schedule:
   rate_type: "flat"
-  flat_rate: 0.0455
+  flat_rate: 0.045
   brackets: []
   surtaxes: []
 
@@ -50,10 +50,10 @@ state_config:
     available: true
     base_credit: 835
     dependent_credit: 835
-    phase_out_start: 16135
-    notes: "Utah provides a taxpayer credit that phases out at higher incomes"
+    phase_out_start: 18213
+    notes: "2025 single taxpayer credit is 6% of qualifying federal deductions, reduced by 1.3% of FAGI over $18,213"
   special_notes:
-    - "Utah flat tax rate is 4.55% for 2025"
+    - "Utah flat tax rate is 4.5% for 2025"
     - "Uses taxpayer credit system instead of deductions"
 
 # Verification
@@ -61,10 +61,10 @@ verification:
   status: "verified"
   last_verified: "2025-02-20"
   verified_by: "opencode"
-  notes: "Utah flat tax rate verified - 4.55% for 2025"
+  notes: "Utah 2025 TC-40 rate and taxpayer-credit inputs source-reviewed"
 
 references:
   - source_name: "Utah State Tax Commission"
-    url: "https://tax.utah.gov/"
+    url: "https://files.tax.utah.gov/tax/forms/current/tc-40inst.pdf"
     retrieved_date: "2025-02-20"
     notes: "Utah flat tax rate 4.55%"

@@ -20,6 +20,7 @@ class StateTaxType(str, Enum):
     FLAT = "flat"
     GRADUATED = "graduated"
     INTEREST_DIVIDENDS_ONLY = "interest_dividends_only"
+    CAPITAL_GAINS_EXCISE = "capital_gains_excise"
 
 
 class StateStartingPoint(str, Enum):
@@ -72,6 +73,7 @@ class StateExemption:
     personal_amount: Decimal
     dependent_available: bool
     dependent_amount: Decimal
+    treatment: str = "deduction"
 
 
 @dataclass
@@ -112,8 +114,7 @@ class StateRules:
     def get_brackets_for_status(self, filing_status: str) -> list[StateBracket]:
         """Get brackets for a specific filing status."""
         return [
-            b for b in self.brackets
-            if b.filing_status == filing_status or b.filing_status == "all"
+            b for b in self.brackets if b.filing_status == filing_status or b.filing_status == "all"
         ]
 
     def get_standard_deduction(self, filing_status: str) -> Decimal:
@@ -142,6 +143,23 @@ class StateTaxInput:
     capital_gains: Decimal = Decimal(0)
     retirement_income: Decimal = Decimal(0)
 
+    # Character and federal-return inputs used by reviewed 2025 state policies.
+    # None means unavailable; zero means a known zero. Ordinary dividends already
+    # include the qualified-dividend subset.
+    qualified_dividends: Decimal | None = None
+    net_short_term_gains: Decimal | None = None
+    net_long_term_gains: Decimal | None = None
+    federal_agi_capital_gain: Decimal | None = None
+    federal_income_tax_after_nonrefundable_credits: Decimal | None = None
+    federal_refundable_credits: Decimal | None = None
+    federal_earned_income_credit: Decimal | None = None
+    federal_niit: Decimal | None = None
+    federal_additional_medicare_tax: Decimal | None = None
+    federal_self_employment_tax: Decimal | None = None
+    employee_social_security_tax: Decimal | None = None
+    employee_medicare_tax: Decimal | None = None
+    federal_deduction_amount: Decimal | None = None
+
     # Deductions
     use_standard_deduction: bool = True
     itemized_deductions: Decimal = Decimal(0)
@@ -151,6 +169,20 @@ class StateTaxInput:
     num_dependents: int = 0
     age_65_or_older: bool = False
     is_blind: bool = False
+    can_be_claimed_as_dependent: bool = False
+    spouse_age_65_or_older: bool = False
+    spouse_is_blind: bool = False
+    taxpayer_age_at_year_end: int | None = None
+    spouse_age_at_year_end: int | None = None
+    federal_eitc_eligibility_asserted: bool | None = None
+
+    # Specialized policies are restricted to the reviewed baseline. Direct
+    # compatibility calls default to the generic, explicitly unvalidated path.
+    baseline_profile_supported: bool = False
+    unsupported_profile_reasons: tuple[str, ...] = ()
+
+    # Typed scenario fact for Arizona's post-2011 capital-gain subtraction.
+    az_post_2011_eligible_long_term_gains: Decimal | None = None
 
     # For credit calculations
     taxes_paid_to_other_states: Decimal = Decimal(0)
@@ -166,6 +198,66 @@ class StateBracketBreakdown:
     rate: Decimal
     income_in_bracket: Decimal
     tax_in_bracket: Decimal
+
+
+@dataclass(frozen=True)
+class StateAmountComponent:
+    """Named addition or subtraction used to reconcile a state base."""
+
+    component_id: str
+    name: str
+    amount: Decimal
+
+
+@dataclass(frozen=True)
+class StateCreditComponent:
+    """A state credit with its legally available and applied amounts."""
+
+    credit_id: str
+    name: str
+    amount_available: Decimal
+    amount_applied: Decimal
+    is_refundable: bool
+
+
+@dataclass(frozen=True)
+class RateScheduleResult:
+    """Result of a state rate schedule, including published-base rounding."""
+
+    tax: Decimal
+    bracket_breakdown: tuple[StateBracketBreakdown, ...]
+    marginal_rate: Decimal
+    published_base_adjustment: Decimal = Decimal(0)
+
+
+@dataclass
+class StatePolicyComputation:
+    """Auditable intermediate output from a reviewed 2025 state policy."""
+
+    starting_income: Decimal
+    state_agi: Decimal
+    taxable_income: Decimal
+    tax_type_override: StateTaxType | None = None
+    additions: tuple[StateAmountComponent, ...] = ()
+    subtractions: tuple[StateAmountComponent, ...] = ()
+    deduction_type: str = "none"
+    deduction_amount: Decimal = Decimal(0)
+    personal_exemption: Decimal = Decimal(0)
+    dependent_exemption: Decimal = Decimal(0)
+    ordinary_taxable_income: Decimal = Decimal(0)
+    preferential_taxable_income: Decimal = Decimal(0)
+    ordinary_tax: Decimal = Decimal(0)
+    preferential_tax: Decimal = Decimal(0)
+    other_base_tax: Decimal = Decimal(0)
+    tax_before_credits: Decimal = Decimal(0)
+    surtax: Decimal = Decimal(0)
+    recapture: Decimal = Decimal(0)
+    credits: tuple[StateCreditComponent, ...] = ()
+    marginal_rate: Decimal = Decimal(0)
+    bracket_breakdown: tuple[StateBracketBreakdown, ...] = ()
+    assumptions: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
 
 
 @dataclass
@@ -194,6 +286,9 @@ class StateTaxResult:
     # Deductions
     deduction_type: str  # "standard", "itemized", "none"
     deduction_amount: Decimal
+    starting_point: str = "federal_agi"
+    additions: list[StateAmountComponent] = field(default_factory=list)
+    subtractions: list[StateAmountComponent] = field(default_factory=list)
 
     # Exemptions
     personal_exemption: Decimal = Decimal(0)
@@ -201,14 +296,23 @@ class StateTaxResult:
 
     # Taxable income
     taxable_income: Decimal = Decimal(0)
+    ordinary_taxable_income: Decimal = Decimal(0)
+    preferential_taxable_income: Decimal = Decimal(0)
 
     # Tax calculation
     tax_before_credits: Decimal = Decimal(0)
+    ordinary_tax: Decimal = Decimal(0)
+    preferential_tax: Decimal = Decimal(0)
+    other_base_tax: Decimal = Decimal(0)
     surtax: Decimal = Decimal(0)
+    recapture: Decimal = Decimal(0)
     total_tax: Decimal = Decimal(0)
 
     # Credits
     credits: Decimal = Decimal(0)
+    nonrefundable_credits: Decimal = Decimal(0)
+    refundable_credits: Decimal = Decimal(0)
+    credit_components: list[StateCreditComponent] = field(default_factory=list)
     credit_for_taxes_paid_elsewhere: Decimal = Decimal(0)
 
     # Final
@@ -225,10 +329,11 @@ class StateTaxResult:
     # Warnings/notes
     warnings: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    assumptions: list[str] = field(default_factory=list)
 
     @property
     def no_tax_message(self) -> str | None:
         """Get message if state has no income tax."""
-        if not self.has_income_tax:
+        if not self.has_income_tax and self.total_tax == 0:
             return f"{self.state_name} has no state income tax"
         return None

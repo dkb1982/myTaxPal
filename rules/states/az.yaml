@@ -37,7 +37,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 14600  # PLACEHOLDER
+        amount: 15750
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 29200  # PLACEHOLDER

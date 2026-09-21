@@ -6,6 +6,10 @@
 # Identity
 jurisdiction_id: "US-PA-PHL"
 tax_year: 2025
+policy_2025:
+  resident_first_half_wage_rate: 0.0375
+  resident_second_half_wage_rate: 0.0374
+  school_income_tax_rate: 0.0374
 
 # Metadata
 jurisdiction_type: "city"
@@ -51,11 +55,10 @@ local_config:
     - "Wages and salaries"
     - "Commissions"
     - "Bonuses"
-    - "Stock options (at exercise)"
-    - "Net self-employment income"
+    - "Resident corporate dividends (School Income Tax)"
+    - "Resident securities net gains held six months or less (School Income Tax)"
   tax_base_excludes:
-    - "Interest and dividends"
-    - "Capital gains"
+    - "Personal securities gains held more than six months"
     - "Rental income"
     - "Retirement income"
   withholding_required: true
@@ -63,17 +66,23 @@ local_config:
   special_notes:
     - "Philadelphia wage tax is one of the highest local taxes in the US"
     - "Rates reduced July 1, 2025: resident 3.74%, nonresident 3.43%"
-    - "Only wages/earned income are taxed, not investment income"
+    - "Separate School Income Tax applies to resident dividends and gains held six months or less"
     - "Philadelphia does NOT use the PA EIT system"
 
 # Verification
 verification:
-  status: "verified"
-  last_verified: "2025-02-20"
-  verified_by: "opencode"
-  notes: "Philadelphia rates updated for 2025"
+  status: "validated_cases_only"
+  last_verified: "2026-09-09"
+  verified_by: "source-derived repair tests"
+  notes: "2025 single/age-40 resident vanilla profile only. Wage timing and six-month gain amounts must be supplied. Low-income refund approval is not assumed."
 
 references:
+  - source_name: "2025 Philadelphia School Income Tax instructions"
+    url: "https://www.phila.gov/media/20260128151226/2025-School-Income-Tax-SIT-instructions.pdf"
+    retrieved_date: "2026-09-09"
+  - source_name: "2025 Philadelphia W-2 guide, mid-year wage-rate change"
+    url: "https://employee.phila.gov/wp-content/uploads/2026/01/One-Philly-How-to-Navigate-Your-2025-W-2_January-2026_Final-1.pdf"
+    retrieved_date: "2026-09-09"
   - source_name: "Philadelphia Department of Revenue"
     url: "https://www.phila.gov/revenue/"
     retrieved_date: "2025-02-20"

@@ -543,7 +543,7 @@ class TestDetailedBreakdownIntegration:
             "country_code": "GB",
             "tax_year": 2025,
             "gross_income": 50000,
-            "income_breakdown": {
+            "income": {
                 "employment_wages": 50000
             },
             "currency_code": "GBP"

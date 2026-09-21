@@ -16,7 +16,7 @@ from tax_estimator.calculation.countries.base import BaseCountryCalculator
 from tax_estimator.calculation.countries import (
     gb, de, fr, sg, hk, ae, jp, au, ca, it, es, pt,
 )
-from tax_estimator.models.international import InternationalTaxInput
+from tax_estimator.models.international import InternationalTaxInput, get_currency_for_country
 from tax_estimator.models.income_breakdown import IncomeBreakdown
 
 # All supported country calculators
@@ -54,7 +54,7 @@ def _make_input(country_code: str, gross_income: Decimal) -> InternationalTaxInp
     return InternationalTaxInput(
         country_code=country_code,
         tax_year=2025,
-        currency_code="USD",  # Simplified — real usage converts to local
+        currency_code=get_currency_for_country(country_code),
         gross_income=gross_income,
     )
 

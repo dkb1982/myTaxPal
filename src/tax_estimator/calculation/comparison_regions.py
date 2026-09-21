@@ -100,7 +100,9 @@ US_STATES: dict[str, USStateInfo] = {
     "US-MT": USStateInfo("US-MT", "Montana", "MT", True, Decimal("0.059"), False),
     "US-NE": USStateInfo("US-NE", "Nebraska", "NE", True, Decimal("0.0584"), False),
     "US-NV": USStateInfo("US-NV", "Nevada", "NV", False, None, True),
-    "US-NH": USStateInfo("US-NH", "New Hampshire", "NH", True, Decimal("0.03"), False),  # Interest/dividends only
+    "US-NH": USStateInfo(
+        "US-NH", "New Hampshire", "NH", False, None, False
+    ),  # I&D tax repealed for 2025
     "US-NJ": USStateInfo("US-NJ", "New Jersey", "NJ", True, Decimal("0.1075"), False),
     "US-NM": USStateInfo("US-NM", "New Mexico", "NM", True, Decimal("0.059"), False),
     "US-NY": USStateInfo("US-NY", "New York", "NY", True, Decimal("0.109"), True),
@@ -129,6 +131,7 @@ NO_INCOME_TAX_STATES = [
     "US-AK",  # Alaska
     "US-FL",  # Florida
     "US-NV",  # Nevada
+    "US-NH",  # New Hampshire (I&D repealed for 2025)
     "US-SD",  # South Dakota
     "US-TN",  # Tennessee
     "US-TX",  # Texas
@@ -136,8 +139,8 @@ NO_INCOME_TAX_STATES = [
     "US-WY",  # Wyoming
 ]
 
-# Note: New Hampshire only taxes interest and dividends
-INTEREST_DIVIDENDS_ONLY_STATES = ["US-NH"]
+# No interest/dividend-only state tax remains in this 2025 registry.
+INTEREST_DIVIDENDS_ONLY_STATES: list[str] = []
 
 # Popular states for comparison (shown first in UI)
 POPULAR_COMPARISON_STATES = [

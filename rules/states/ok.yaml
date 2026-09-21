@@ -44,25 +44,25 @@ rate_schedule:
       income_from: 2500
       income_to: 3750
       rate: 0.0175
-      base_tax: 14
+      base_tax: 13.75
     - bracket_id: "OK-2025-S-4"
       filing_status: "single"
       income_from: 3750
       income_to: 4900
       rate: 0.0275
-      base_tax: 35.88
+      base_tax: 35.63
     - bracket_id: "OK-2025-S-5"
       filing_status: "single"
       income_from: 4900
       income_to: 7200
       rate: 0.0375
-      base_tax: 67.50
+      base_tax: 67.25
     - bracket_id: "OK-2025-S-6"
       filing_status: "single"
       income_from: 7200
       income_to: null
       rate: 0.0475
-      base_tax: 153.75
+      base_tax: 153.50
 
     # Married Filing Jointly
     - bracket_id: "OK-2025-MFJ-1"
@@ -224,7 +224,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 12050
+        amount: 6350
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 24100
@@ -240,8 +240,8 @@ deductions:
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 1000
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 
@@ -263,6 +263,6 @@ verification:
 
 references:
   - source_name: "Oklahoma Tax Commission"
-    url: "https://www.ok.gov/tax/"
+    url: "https://oklahoma.gov/content/dam/ok/en/tax/documents/forms/individuals/current/511-Pkt.pdf"
     retrieved_date: "2025-02-20"
     notes: "Oklahoma 6 brackets"

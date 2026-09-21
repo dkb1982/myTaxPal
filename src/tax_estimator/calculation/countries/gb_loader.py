@@ -29,6 +29,7 @@ def _get_default_rules_dir() -> Path:
 @dataclass
 class NIComponent:
     """National Insurance component."""
+
     component_id: str
     name: str
     employee_rate: Decimal | None
@@ -43,6 +44,7 @@ class NIComponent:
 @dataclass
 class StudentLoanPlan:
     """Student loan plan."""
+
     plan_id: str
     name: str
     threshold: Decimal
@@ -52,38 +54,51 @@ class StudentLoanPlan:
 @dataclass
 class CapitalGainsRules:
     """Capital gains tax rules."""
+
     annual_exempt_amount: Decimal
     basic_rate: Decimal
     higher_rate: Decimal
 
 
 @dataclass
+class Class4NIRules:
+    """Annualised Class 4 National Insurance parameters."""
+
+    lower_profits_limit: Decimal
+    upper_profits_limit: Decimal
+    main_rate: Decimal
+    additional_rate: Decimal
+
+
+@dataclass
 class GBRules:
     """UK tax rules loaded from YAML."""
+
     jurisdiction_id: str
     tax_year: int
     jurisdiction_name: str
-    
+
     # Income tax brackets (England/Wales/NI)
     income_tax_brackets: list[dict[str, Any]]
-    
+
     # Scotland-specific brackets
     scotland_brackets: list[dict[str, Any]] | None
-    
+
     # Personal allowance
     personal_allowance: Decimal
     taper_threshold: Decimal
     taper_rate: Decimal
-    
+
     # National Insurance
     ni_components: list[NIComponent]
-    
+    class_4_ni: Class4NIRules
+
     # Student loans
     student_loan_plans: list[StudentLoanPlan]
-    
+
     # Capital gains
     capital_gains: CapitalGainsRules
-    
+
     # Verification status
     verification_status: str
     last_verified: str | None
@@ -127,36 +142,52 @@ class GBRulesLoader:
         """Parse the YAML data into a GBRules object."""
         rate_schedule = data.get("rate_schedule", {})
         brackets = rate_schedule.get("brackets", [])
-        
+
         scotland_data = data.get("scotland_brackets")
-        
+
         taper = data.get("personal_allowance_taper", {})
-        
+
         # Parse NI components
         ni_components = []
         for ni in data.get("social_insurance", {}).get("components", []):
-            ni_components.append(NIComponent(
-                component_id=ni.get("component_id", ""),
-                name=ni.get("name", ""),
-                employee_rate=Decimal(str(ni.get("employee_rate"))) if ni.get("employee_rate") else None,
-                employer_rate=Decimal(str(ni.get("employer_rate"))) if ni.get("employer_rate") else None,
-                primary_threshold=Decimal(str(ni.get("primary_threshold"))) if ni.get("primary_threshold") else None,
-                upper_limit=Decimal(str(ni.get("upper_limit"))) if ni.get("upper_limit") else None,
-                additional_rate=Decimal(str(ni.get("additional_rate"))) if ni.get("additional_rate") else None,
-                secondary_threshold=Decimal(str(ni.get("secondary_threshold"))) if ni.get("secondary_threshold") else None,
-                notes=ni.get("notes", ""),
-            ))
-        
+            ni_components.append(
+                NIComponent(
+                    component_id=ni.get("component_id", ""),
+                    name=ni.get("name", ""),
+                    employee_rate=Decimal(str(ni.get("employee_rate")))
+                    if ni.get("employee_rate")
+                    else None,
+                    employer_rate=Decimal(str(ni.get("employer_rate")))
+                    if ni.get("employer_rate")
+                    else None,
+                    primary_threshold=Decimal(str(ni.get("primary_threshold")))
+                    if ni.get("primary_threshold")
+                    else None,
+                    upper_limit=Decimal(str(ni.get("upper_limit")))
+                    if ni.get("upper_limit")
+                    else None,
+                    additional_rate=Decimal(str(ni.get("additional_rate")))
+                    if ni.get("additional_rate")
+                    else None,
+                    secondary_threshold=Decimal(str(ni.get("secondary_threshold")))
+                    if ni.get("secondary_threshold")
+                    else None,
+                    notes=ni.get("notes", ""),
+                )
+            )
+
         # Parse student loan plans
         student_loans = []
         for sl in data.get("student_loan_plans", []):
-            student_loans.append(StudentLoanPlan(
-                plan_id=sl.get("plan_id", ""),
-                name=sl.get("name", ""),
-                threshold=Decimal(str(sl.get("threshold", 0))),
-                rate=Decimal(str(sl.get("rate", 0))),
-            ))
-        
+            student_loans.append(
+                StudentLoanPlan(
+                    plan_id=sl.get("plan_id", ""),
+                    name=sl.get("name", ""),
+                    threshold=Decimal(str(sl.get("threshold", 0))),
+                    rate=Decimal(str(sl.get("rate", 0))),
+                )
+            )
+
         # Parse capital gains
         cg_data = data.get("capital_gains", {})
         capital_gains = CapitalGainsRules(
@@ -164,10 +195,18 @@ class GBRulesLoader:
             basic_rate=Decimal(str(cg_data.get("basic_rate", 0.18))),
             higher_rate=Decimal(str(cg_data.get("higher_rate", 0.24))),
         )
-        
+
+        class_4_data = data.get("social_insurance", {}).get("class_4", {})
+        class_4_ni = Class4NIRules(
+            lower_profits_limit=Decimal(str(class_4_data.get("lower_profits_limit", 12570))),
+            upper_profits_limit=Decimal(str(class_4_data.get("upper_profits_limit", 50270))),
+            main_rate=Decimal(str(class_4_data.get("main_rate", "0.06"))),
+            additional_rate=Decimal(str(class_4_data.get("additional_rate", "0.02"))),
+        )
+
         # Verification
         verification = data.get("verification", {})
-        
+
         return GBRules(
             jurisdiction_id=data.get("jurisdiction_id", "GB"),
             tax_year=data.get("tax_year", 2025),
@@ -178,6 +217,7 @@ class GBRulesLoader:
             taper_threshold=Decimal(str(taper.get("taper_threshold", 100000))),
             taper_rate=Decimal(str(taper.get("taper_rate", 0.5))),
             ni_components=ni_components,
+            class_4_ni=class_4_ni,
             student_loan_plans=student_loans,
             capital_gains=capital_gains,
             verification_status=verification.get("status", "placeholder"),

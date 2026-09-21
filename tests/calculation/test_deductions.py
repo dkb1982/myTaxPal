@@ -8,8 +8,8 @@ from decimal import Decimal
 
 import pytest
 
-from tax_estimator.calculation.stages.stage_05_deductions import DeductionsStage
 from tax_estimator.calculation.context import CalculationContext
+from tax_estimator.calculation.stages.stage_05_deductions import DeductionsStage
 from tax_estimator.calculation.trace import CalculationTrace
 from tax_estimator.models.tax_input import (
     FilingStatus,
@@ -17,7 +17,6 @@ from tax_estimator.models.tax_input import (
     SpouseInfo,
     TaxInput,
     TaxpayerInfo,
-    WageIncome,
 )
 from tax_estimator.rules.schema import JurisdictionRules
 
@@ -120,9 +119,7 @@ class TestAdditionalDeduction:
         deduction = context.get_decimal_result("standard_deduction")
         assert deduction == Decimal("17000")
 
-    def test_age_65_plus_and_blind_single(
-        self, federal_rules: JurisdictionRules
-    ) -> None:
+    def test_age_65_plus_and_blind_single(self, federal_rules: JurisdictionRules) -> None:
         """Test both additional deductions for single filer."""
         tax_input = TaxInput(
             tax_year=2025,
@@ -147,9 +144,7 @@ class TestAdditionalDeduction:
         deduction = context.get_decimal_result("standard_deduction")
         assert deduction == Decimal("19000")
 
-    def test_mfj_both_spouses_65_plus(
-        self, federal_rules: JurisdictionRules
-    ) -> None:
+    def test_mfj_both_spouses_65_plus(self, federal_rules: JurisdictionRules) -> None:
         """Test additional deduction for MFJ when both spouses are 65+."""
         tax_input = TaxInput(
             tax_year=2025,
@@ -175,9 +170,7 @@ class TestAdditionalDeduction:
         deduction = context.get_decimal_result("standard_deduction")
         assert deduction == Decimal("33200")
 
-    def test_mfj_one_spouse_65_plus_one_blind(
-        self, federal_rules: JurisdictionRules
-    ) -> None:
+    def test_mfj_one_spouse_65_plus_one_blind(self, federal_rules: JurisdictionRules) -> None:
         """Test MFJ with one spouse 65+ and the other blind."""
         tax_input = TaxInput(
             tax_year=2025,
@@ -208,7 +201,7 @@ class TestItemizedDeductions:
     """Tests for itemized deduction calculations."""
 
     def test_salt_cap_single(self, federal_rules: JurisdictionRules) -> None:
-        """Test SALT deduction is capped at $10,000."""
+        """Test 2025 SALT ceiling permits the full $23,000 at this MAGI."""
         tax_input = TaxInput(
             tax_year=2025,
             filing_status=FilingStatus.SINGLE,
@@ -232,10 +225,10 @@ class TestItemizedDeductions:
         stage.execute(context)
 
         breakdown = context.get_result("itemized_breakdown")
-        assert breakdown["salt"] == Decimal("10000")  # Capped at $10,000
+        assert breakdown["salt"] == Decimal("23000")
 
     def test_salt_cap_mfs(self, federal_rules: JurisdictionRules) -> None:
-        """Test SALT deduction is capped at $5,000 for MFS."""
+        """Test the 2025 MFS SALT ceiling before its MAGI phase-down."""
         tax_input = TaxInput(
             tax_year=2025,
             filing_status=FilingStatus.MFS,
@@ -258,11 +251,9 @@ class TestItemizedDeductions:
         stage.execute(context)
 
         breakdown = context.get_result("itemized_breakdown")
-        assert breakdown["salt"] == Decimal("5000")  # Capped at $5,000 for MFS
+        assert breakdown["salt"] == Decimal("10000")
 
-    def test_medical_expenses_threshold(
-        self, federal_rules: JurisdictionRules
-    ) -> None:
+    def test_medical_expenses_threshold(self, federal_rules: JurisdictionRules) -> None:
         """Test medical expenses are only deductible above 7.5% of AGI."""
         tax_input = TaxInput(
             tax_year=2025,
@@ -383,3 +374,151 @@ class TestItemizedDeductions:
         # Force itemize even though $5,000 < $15,000
         assert method == "itemized"
         assert deduction == Decimal("5000")
+
+
+def _deduction_context(
+    input_data: TaxInput,
+    federal_rules: JurisdictionRules,
+    agi: str,
+    earned_income: str = "0",
+) -> CalculationContext:
+    context = CalculationContext(
+        input=input_data,
+        tax_year=2025,
+        trace=CalculationTrace(calculation_id="deduction-test", tax_year=2025),
+    )
+    context.jurisdiction_rules["US"] = federal_rules
+    context.set_result("agi", Decimal(agi))
+    context.set_result("earned_income", Decimal(earned_income))
+    assert DeductionsStage().execute(context).status.value == "success"
+    return context
+
+
+class Test2025DeductionRepairs:
+    """Source-derived checks for 2025 SALT and senior provisions."""
+
+    @pytest.mark.parametrize(
+        "status,agi,expected",
+        [
+            (FilingStatus.SINGLE, "550000", "25000.00"),
+            (FilingStatus.SINGLE, "650000", "10000"),
+            (FilingStatus.MFS, "300000", "12500.00"),
+        ],
+    )
+    def test_salt_magi_phase_down(
+        self,
+        federal_rules: JurisdictionRules,
+        status: FilingStatus,
+        agi: str,
+        expected: str,
+    ) -> None:
+        context = _deduction_context(
+            TaxInput(
+                tax_year=2025,
+                filing_status=status,
+                residence_state="TX",
+                itemized_deductions=ItemizedDeductions(state_local_taxes_paid=Decimal("100000")),
+            ),
+            federal_rules,
+            agi,
+        )
+        assert context.get_result("itemized_breakdown")["salt"] == Decimal(expected)
+
+    def test_enhanced_senior_is_separate_and_included_in_total(
+        self,
+        federal_rules: JurisdictionRules,
+    ) -> None:
+        context = _deduction_context(
+            TaxInput(
+                tax_year=2025,
+                filing_status=FilingStatus.SINGLE,
+                residence_state="TX",
+                taxpayer=TaxpayerInfo(
+                    age_at_year_end=70,
+                    qualifies_for_enhanced_senior_deduction=True,
+                ),
+            ),
+            federal_rules,
+            "60000",
+        )
+        result = context.get_result("deduction_result")
+        assert result.standard_deduction_available == Decimal("17000")
+        assert result.enhanced_senior_deduction == Decimal("6000.00")
+        assert result.deduction_used == Decimal("23000.00")
+
+    def test_unknown_senior_eligibility_is_omitted_with_warning(
+        self,
+        federal_rules: JurisdictionRules,
+    ) -> None:
+        context = _deduction_context(
+            TaxInput(
+                tax_year=2025,
+                filing_status=FilingStatus.SINGLE,
+                residence_state="TX",
+                taxpayer=TaxpayerInfo(age_at_year_end=70),
+            ),
+            federal_rules,
+            "60000",
+        )
+        assert context.get_decimal_result("enhanced_senior_deduction") == 0
+        assert any("eligibility was not asserted" in warning for warning in context.warnings)
+
+    def test_mfj_senior_phaseout_applies_per_eligible_spouse(
+        self,
+        federal_rules: JurisdictionRules,
+    ) -> None:
+        context = _deduction_context(
+            TaxInput(
+                tax_year=2025,
+                filing_status=FilingStatus.MFJ,
+                residence_state="TX",
+                taxpayer=TaxpayerInfo(
+                    age_at_year_end=70,
+                    qualifies_for_enhanced_senior_deduction=True,
+                ),
+                spouse=SpouseInfo(
+                    age_at_year_end=68,
+                    qualifies_for_enhanced_senior_deduction=True,
+                ),
+            ),
+            federal_rules,
+            "200000",
+        )
+        # Each $6,000 amount loses 6% of the $50,000 excess.
+        assert context.get_decimal_result("enhanced_senior_deduction") == Decimal("6000.00")
+
+    def test_non_joint_spouse_is_not_counted_for_enhanced_senior_deduction(
+        self,
+        federal_rules: JurisdictionRules,
+    ) -> None:
+        context = _deduction_context(
+            TaxInput(
+                tax_year=2025,
+                filing_status=FilingStatus.SINGLE,
+                residence_state="TX",
+                spouse=SpouseInfo(
+                    age_at_year_end=70,
+                    qualifies_for_enhanced_senior_deduction=True,
+                ),
+            ),
+            federal_rules,
+            "60000",
+        )
+        assert context.get_decimal_result("enhanced_senior_deduction") == 0
+
+    def test_dependent_standard_deduction_uses_earned_income_plus_450(
+        self,
+        federal_rules: JurisdictionRules,
+    ) -> None:
+        context = _deduction_context(
+            TaxInput(
+                tax_year=2025,
+                filing_status=FilingStatus.SINGLE,
+                residence_state="TX",
+                taxpayer=TaxpayerInfo(is_dependent=True),
+            ),
+            federal_rules,
+            "10000",
+            earned_income="2000",
+        )
+        assert context.get_decimal_result("standard_deduction") == Decimal("2450")

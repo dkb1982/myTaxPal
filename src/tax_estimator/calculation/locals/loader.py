@@ -7,6 +7,7 @@ Loads local tax rules from YAML files.
 from __future__ import annotations
 
 import os
+import re
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -78,12 +79,18 @@ class LocalRulesLoader:
 
     def get_rules_file_path(self, jurisdiction_id: str) -> Path:
         """Get the path to a jurisdiction's rules file."""
-        # Convert US-NY-NYC to ny_nyc.yaml format
-        parts = jurisdiction_id.split("-")
-        if len(parts) >= 3:
-            state_code = parts[1].lower()
-            local_code = parts[2].lower()
-            filename = f"{state_code}_{local_code}.yaml"
+        if not re.fullmatch(r"[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*", jurisdiction_id):
+            raise LocalRulesLoaderError("Invalid local jurisdiction identifier")
+        from tax_estimator.calculation.comparison_regions import US_CITIES
+
+        advertised = US_CITIES.get(jurisdiction_id.upper())
+        if advertised is not None:
+            filename = f"{advertised.local_jurisdiction_id}.yaml"
+        elif jurisdiction_id.upper().startswith("US-"):
+            parts = jurisdiction_id.split("-", 2)
+            if len(parts) != 3:
+                raise LocalRulesLoaderError("Local jurisdiction requires a state and city")
+            filename = f"{parts[1].lower()}_{parts[2].lower().replace('-', '_')}.yaml"
         else:
             filename = f"{jurisdiction_id.lower().replace('-', '_')}.yaml"
 
@@ -103,13 +110,6 @@ class LocalRulesLoader:
         Raises:
             LocalRulesLoaderError: If rules cannot be loaded
         """
-        # Normalize jurisdiction_id
-        if not jurisdiction_id.startswith("US-"):
-            # Convert ny_nyc format to US-NY-NYC
-            parts = jurisdiction_id.split("_")
-            if len(parts) == 2:
-                jurisdiction_id = f"US-{parts[0].upper()}-{parts[1].upper()}"
-
         cache_key = f"{jurisdiction_id}-{tax_year}"
 
         if cache_key in self._cache:
@@ -118,70 +118,107 @@ class LocalRulesLoader:
         rules_path = self.get_rules_file_path(jurisdiction_id)
 
         if not rules_path.exists():
-            raise LocalRulesLoaderError(
-                f"Local rules file not found: {rules_path}"
-            )
+            raise LocalRulesLoaderError(f"Local rules file not found: {rules_path}")
 
         try:
             with open(rules_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise LocalRulesLoaderError(
-                f"Failed to parse YAML for {jurisdiction_id}: {e}"
-            ) from e
+            raise LocalRulesLoaderError(f"Failed to parse YAML for {jurisdiction_id}: {e}") from e
 
         rules = self._parse_rules(data, jurisdiction_id)
+        from tax_estimator.calculation.comparison_regions import US_CITIES
+
+        advertised_ids = {key for key, city in US_CITIES.items()
+                          if city.local_jurisdiction_id == rules_path.stem}
+        if advertised_ids and rules.jurisdiction_id not in advertised_ids:
+            raise LocalRulesLoaderError("Local rules identity does not match the selected city")
+        expected_state = rules_path.stem.split("_", 1)[0].upper()
+        if rules.parent_state.removeprefix("US-") != expected_state:
+            raise LocalRulesLoaderError("Local rules parent state does not match its identifier")
+        if not rules.jurisdiction_id.startswith(f"US-{expected_state}-"):
+            raise LocalRulesLoaderError("Local rules jurisdiction ID does not match its parent state")
+        if rules.tax_year != tax_year:
+            raise LocalRulesLoaderError(
+                f"Unsupported tax year {tax_year} for {jurisdiction_id}; rules are for {rules.tax_year}"
+            )
         self._cache[cache_key] = rules
         return rules
 
     def _parse_rules(self, data: dict[str, Any], jurisdiction_id: str) -> LocalRules:
         """Parse raw YAML data into LocalRules model."""
+        if not isinstance(data, dict) or not isinstance(data.get("has_income_tax"), bool):
+            raise LocalRulesLoaderError("Local rules require an explicit boolean has_income_tax")
         # Parse tax type
         tax_type_str = data.get("tax_type", "none")
         try:
             tax_type = LocalTaxType(tax_type_str)
-        except ValueError:
-            tax_type = LocalTaxType.NONE
+        except ValueError as exc:
+            raise LocalRulesLoaderError(f"Unsupported local tax type: {tax_type_str}") from exc
+        if tax_type == LocalTaxType.PAYROLL_TAX:
+            raise LocalRulesLoaderError("Employer payroll tax is outside this employee income-tax estimator")
 
         # Parse tax base
         rate_schedule = data.get("rate_schedule", {})
+        if not isinstance(rate_schedule, dict):
+            raise LocalRulesLoaderError("Local rate schedule must be an object")
+        if data["has_income_tax"] and (
+            "tax_base" not in rate_schedule or "rate_type" not in rate_schedule
+            or "applies_to" not in data
+        ):
+            raise LocalRulesLoaderError("Taxable local rules require explicit base, rate type and applicability")
         tax_base_str = rate_schedule.get("tax_base", "earned_income")
         try:
             tax_base = LocalTaxBase(tax_base_str)
-        except ValueError:
-            tax_base = LocalTaxBase.EARNED_INCOME
+        except ValueError as exc:
+            raise LocalRulesLoaderError(f"Unsupported local tax base: {tax_base_str}") from exc
 
         # Parse applicability
         applies_to_str = data.get("applies_to", "both_residents_and_workers")
         try:
             applies_to = ResidencyApplicability(applies_to_str)
-        except ValueError:
-            applies_to = ResidencyApplicability.BOTH_RESIDENTS_AND_WORKERS
+        except ValueError as exc:
+            raise LocalRulesLoaderError(f"Unsupported local applicability: {applies_to_str}") from exc
 
         # Parse flat rates
         flat_rates = None
         rate_type = rate_schedule.get("rate_type", "flat")
+        if rate_type not in {"flat", "graduated", "piggyback", "mixed"}:
+            raise LocalRulesLoaderError(f"Unsupported local rate type: {rate_type}")
 
         if rate_type == "flat":
             flat_rates_data = rate_schedule.get("flat_rates", {})
             if flat_rates_data:
                 flat_rates = LocalFlatRates(
-                    rate=self._to_decimal(flat_rates_data.get("rate")),
-                    resident_rate=self._to_decimal(flat_rates_data.get("resident_rate")),
-                    nonresident_rate=self._to_decimal(flat_rates_data.get("nonresident_rate")),
+                    rate=self._rate_decimal(flat_rates_data.get("rate")),
+                    resident_rate=self._rate_decimal(flat_rates_data.get("resident_rate")),
+                    nonresident_rate=self._rate_decimal(flat_rates_data.get("nonresident_rate")),
                 )
         elif rate_type == "piggyback":
             # For piggyback tax, get rate from piggyback section
             piggyback_data = rate_schedule.get("piggyback", {})
             if piggyback_data:
                 flat_rates = LocalFlatRates(
-                    rate=self._to_decimal(piggyback_data.get("rate")),
+                    rate=self._rate_decimal(piggyback_data.get("rate")),
                 )
 
         # Parse brackets
         brackets: list[LocalBracket] = []
         for bracket_data in rate_schedule.get("brackets", []):
             brackets.append(self._parse_bracket(bracket_data))
+        for filing_status in {b.filing_status for b in brackets}:
+            if filing_status not in {"single", "mfj", "mfs", "hoh", "qss", "all"}:
+                raise LocalRulesLoaderError("Unsupported filing status in local brackets")
+            schedule = sorted((b for b in brackets if b.filing_status == filing_status), key=lambda b: b.income_from)
+            if schedule[0].income_from != 0 or schedule[-1].income_to is not None:
+                raise LocalRulesLoaderError("Local brackets must cover all nonnegative taxable income")
+            for index, bracket in enumerate(schedule):
+                if bracket.income_from < 0 or bracket.base_tax < 0 or (
+                    bracket.income_to is not None and bracket.income_to <= bracket.income_from
+                ):
+                    raise LocalRulesLoaderError("Invalid local bracket bounds or base tax")
+                if index and schedule[index - 1].income_to != bracket.income_from:
+                    raise LocalRulesLoaderError("Local brackets must not have gaps or overlaps")
 
         # Parse credits
         credit = None
@@ -189,7 +226,9 @@ class LocalRulesLoader:
         local_config = data.get("local_config", {})
         credit_system = local_config.get("credit_system", {})
 
-        if credits_data.get("credit_for_taxes_paid_elsewhere") or credit_system.get("allows_credit"):
+        if credits_data.get("credit_for_taxes_paid_elsewhere") or credit_system.get(
+            "allows_credit"
+        ):
             # Try to get max_credit_rate from local_config.credit_system first, then from credits
             max_credit = self._to_decimal(credit_system.get("max_credit_rate"))
             if max_credit is None:
@@ -206,8 +245,40 @@ class LocalRulesLoader:
         if rate_type == "mixed":
             resident_surcharge = rate_schedule.get("resident_surcharge", {})
             if resident_surcharge:
-                resident_surcharge_rate = self._to_decimal(resident_surcharge.get("rate"))
+                resident_surcharge_rate = self._rate_decimal(resident_surcharge.get("rate"))
                 surcharge_base = resident_surcharge.get("base")
+            nonresident = rate_schedule.get("nonresident_rate", {})
+            if nonresident:
+                flat_rates = LocalFlatRates(nonresident_rate=self._rate_decimal(nonresident.get("rate")))
+
+        if data["has_income_tax"]:
+            if tax_type == LocalTaxType.NONE:
+                raise LocalRulesLoaderError("Taxable local rules cannot use tax_type none")
+            if rate_type in {"flat", "piggyback"} and (
+                flat_rates is None or all(v is None for v in (flat_rates.rate, flat_rates.resident_rate, flat_rates.nonresident_rate))
+            ):
+                raise LocalRulesLoaderError("Taxable local rules require a numeric rate")
+            if rate_type == "graduated" and not brackets:
+                raise LocalRulesLoaderError("Graduated local rules require brackets")
+            if rate_type == "mixed" and resident_surcharge_rate is None:
+                raise LocalRulesLoaderError("Mixed local rules require a resident surcharge rate")
+            if rate_type in {"flat", "piggyback"} and flat_rates and flat_rates.rate is None:
+                if applies_to != ResidencyApplicability.WORKERS_ONLY and flat_rates.resident_rate is None:
+                    raise LocalRulesLoaderError("Missing local resident tax rate")
+                if applies_to != ResidencyApplicability.RESIDENTS_ONLY and flat_rates.nonresident_rate is None:
+                    raise LocalRulesLoaderError("Missing local nonresident tax rate")
+            if rate_type == "mixed":
+                if surcharge_base != "state_tax":
+                    raise LocalRulesLoaderError("Unsupported local surcharge base")
+                if applies_to != ResidencyApplicability.RESIDENTS_ONLY and (flat_rates is None or flat_rates.nonresident_rate is None):
+                    raise LocalRulesLoaderError("Mixed local rules require a nonresident rate")
+        rates = [b.rate for b in brackets]
+        if flat_rates:
+            rates.extend(v for v in (flat_rates.rate, flat_rates.resident_rate, flat_rates.nonresident_rate) if v is not None)
+        if resident_surcharge_rate is not None:
+            rates.append(resident_surcharge_rate)
+        if any(not v.is_finite() or v < 0 or v > 1 for v in rates):
+            raise LocalRulesLoaderError("Local tax rates must be finite numbers between zero and one")
 
         # Extract parent state
         parent_state = data.get("parent_state", "")
@@ -233,6 +304,7 @@ class LocalRulesLoader:
             credit=credit,
             zip_prefixes=data.get("zip_prefixes", []),
             special_notes=local_config.get("special_notes", []),
+            policy_parameters={key: self._required_decimal(value) for key, value in data.get("policy_2025", {}).items()},
         )
 
     def _parse_bracket(self, data: dict[str, Any]) -> LocalBracket:
@@ -241,23 +313,36 @@ class LocalRulesLoader:
         return LocalBracket(
             bracket_id=data.get("bracket_id", ""),
             filing_status=data.get("filing_status", "all"),
-            income_from=Decimal(str(data.get("income_from", 0))),
-            income_to=Decimal(str(income_to)) if income_to is not None else None,
-            rate=Decimal(str(data.get("rate", 0))),
-            base_tax=Decimal(str(data.get("base_tax", 0))),
+            income_from=self._required_decimal(data.get("income_from")),
+            income_to=self._required_decimal(income_to) if income_to is not None else None,
+            rate=self._required_decimal(data.get("rate")),
+            base_tax=self._required_decimal(data.get("base_tax", 0)),
         )
+
+    def _rate_decimal(self, value: Any) -> Decimal | None:
+        if value == "full_rate":
+            raise LocalRulesLoaderError("A tax rate must be numeric, not a credit-limit marker")
+        return self._to_decimal(value)
 
     def _to_decimal(self, value: Any) -> Decimal | None:
         """Convert a value to Decimal if not None."""
         if value is None:
             return None
-        # Handle string values like "full_rate"
-        if isinstance(value, str) and not value.replace(".", "").replace("-", "").isdigit():
+        if value == "full_rate":  # Legacy credit-limit marker, not a tax rate.
             return None
         try:
-            return Decimal(str(value))
-        except Exception:
-            return None
+            result = Decimal(str(value))
+            if not result.is_finite():
+                raise ValueError("non-finite amount")
+            return result
+        except Exception as exc:
+            raise LocalRulesLoaderError(f"Invalid numeric local rule: {value!r}") from exc
+
+    def _required_decimal(self, value: Any) -> Decimal:
+        result = self._to_decimal(value)
+        if result is None:
+            raise LocalRulesLoaderError("Local policy parameter requires a numeric value")
+        return result
 
     def list_available_jurisdictions(self) -> list[str]:
         """List all jurisdictions with available rules."""
@@ -268,8 +353,8 @@ class LocalRulesLoader:
         for file_path in self.rules_dir.glob("*.yaml"):
             # Convert ny_nyc.yaml to US-NY-NYC format
             parts = file_path.stem.split("_")
-            if len(parts) == 2:
-                jurisdiction_id = f"US-{parts[0].upper()}-{parts[1].upper()}"
+            if len(parts) >= 2:
+                jurisdiction_id = f"US-{parts[0].upper()}-{'_'.join(parts[1:]).upper()}"
                 jurisdictions.append(jurisdiction_id)
 
         return sorted(jurisdictions)
@@ -285,7 +370,7 @@ class LocalRulesLoader:
 
         for file_path in self.rules_dir.glob("*.yaml"):
             parts = file_path.stem.split("_")
-            if len(parts) == 2:
+            if len(parts) >= 2:
                 file_state = parts[0].upper()
                 if file_state == state_code:
                     jurisdictions.append(file_path.stem)

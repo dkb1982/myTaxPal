@@ -25,7 +25,7 @@ rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers - 2025 brackets (12 brackets)
+    # Single filers - official 2025 Schedule I
     - bracket_id: "HI-2025-S-1"
       filing_status: "single"
       income_from: 0
@@ -37,7 +37,7 @@ rate_schedule:
       income_from: 9600
       income_to: 14400
       rate: 0.032
-      base_tax: 134.40
+      base_tax: 134
     - bracket_id: "HI-2025-S-3"
       filing_status: "single"
       income_from: 14400
@@ -55,49 +55,49 @@ rate_schedule:
       income_from: 24000
       income_to: 36000
       rate: 0.068
-      base_tax: 859.20
+      base_tax: 859
     - bracket_id: "HI-2025-S-6"
       filing_status: "single"
       income_from: 36000
       income_to: 48000
       rate: 0.072
-      base_tax: 1675.20
+      base_tax: 1675
     - bracket_id: "HI-2025-S-7"
       filing_status: "single"
       income_from: 48000
-      income_to: 72000
+      income_to: 125000
       rate: 0.076
-      base_tax: 2539.20
+      base_tax: 2539
     - bracket_id: "HI-2025-S-8"
       filing_status: "single"
-      income_from: 72000
-      income_to: 96000
+      income_from: 125000
+      income_to: 175000
       rate: 0.079
-      base_tax: 4363.20
+      base_tax: 8391
     - bracket_id: "HI-2025-S-9"
       filing_status: "single"
-      income_from: 96000
-      income_to: 150000
+      income_from: 175000
+      income_to: 225000
       rate: 0.0825
-      base_tax: 6259.20
+      base_tax: 12341
     - bracket_id: "HI-2025-S-10"
       filing_status: "single"
-      income_from: 150000
-      income_to: 175000
+      income_from: 225000
+      income_to: 275000
       rate: 0.09
-      base_tax: 10714.20
+      base_tax: 16466
     - bracket_id: "HI-2025-S-11"
       filing_status: "single"
-      income_from: 175000
-      income_to: 200000
+      income_from: 275000
+      income_to: 325000
       rate: 0.10
-      base_tax: 12964.20
+      base_tax: 20966
     - bracket_id: "HI-2025-S-12"
       filing_status: "single"
-      income_from: 200000
+      income_from: 325000
       income_to: null
       rate: 0.11
-      base_tax: 15464.20
+      base_tax: 25966
 
     # Married Filing Jointly - 2025 brackets (12 brackets)
     - bracket_id: "HI-2025-MFJ-1"
@@ -403,7 +403,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 12000
+        amount: 4400
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 24000
@@ -419,8 +419,8 @@ deductions:
         dependent_claimed_elsewhere: null
     additional_amounts: []
   exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
+    personal_exemption_available: true
+    personal_exemption_amount: 1144
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 

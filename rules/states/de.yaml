@@ -68,7 +68,7 @@ rate_schedule:
       income_from: 60000
       income_to: null
       rate: 0.066
-      base_tax: 2941
+      base_tax: 2943.50
 
     # Married Filing Jointly - Same as single (DE uses same brackets for all statuses)
     - bracket_id: "DE-2025-MFJ-1"

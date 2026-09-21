@@ -104,7 +104,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 7370
+        amount: 2470
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 14740

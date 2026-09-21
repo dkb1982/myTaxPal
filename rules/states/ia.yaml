@@ -57,7 +57,7 @@ deductions:
 
 # State-specific configuration
 state_config:
-  starting_point: "federal_agi"
+  starting_point: "federal_taxable_income"
   has_local_income_tax: false
   local_tax_mandatory: false
   reciprocity_states: []

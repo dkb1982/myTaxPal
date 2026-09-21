@@ -30,27 +30,27 @@ rate_schedule:
     - bracket_id: "NE-2025-S-1"
       filing_status: "single"
       income_from: 0
-      income_to: 3700
+      income_to: 4030
       rate: 0.0246
       base_tax: 0
     - bracket_id: "NE-2025-S-2"
       filing_status: "single"
-      income_from: 3700
-      income_to: 22170
+      income_from: 4030
+      income_to: 24120
       rate: 0.0351
-      base_tax: 91.02
+      base_tax: 99.14
     - bracket_id: "NE-2025-S-3"
       filing_status: "single"
-      income_from: 22170
-      income_to: 35710
+      income_from: 24120
+      income_to: 38870
       rate: 0.0501
-      base_tax: 739.76
+      base_tax: 804.30
     - bracket_id: "NE-2025-S-4"
       filing_status: "single"
-      income_from: 35710
+      income_from: 38870
       income_to: null
-      rate: 0.0584
-      base_tax: 1418.23
+      rate: 0.052
+      base_tax: 1543.28
 
     # Married Filing Jointly
     - bracket_id: "NE-2025-MFJ-1"
@@ -164,7 +164,7 @@ deductions:
     available: true
     amounts:
       - filing_status: "single"
-        amount: 8850
+        amount: 8600
         dependent_claimed_elsewhere: null
       - filing_status: "mfj"
         amount: 17700
@@ -199,10 +199,10 @@ verification:
   status: "verified"
   last_verified: "2025-02-20"
   verified_by: "opencode"
-  notes: "Nebraska 4 brackets"
+  notes: "2025 single schedule and deduction source-reviewed; policy applies personal credit"
 
 references:
   - source_name: "Nebraska Department of Revenue"
-    url: "https://revenue.nebraska.gov/"
+    url: "https://revenue.nebraska.gov/sites/default/files/doc/tax-forms/2025/f_1040N.pdf"
     retrieved_date: "2025-02-20"
     notes: "Nebraska 4 brackets"

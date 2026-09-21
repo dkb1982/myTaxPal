@@ -7,8 +7,6 @@ These tests verify that:
 3. The API endpoints still work when frontend is enabled
 """
 
-import pytest
-from pathlib import Path
 
 
 class TestFrontendServing:
@@ -345,7 +343,8 @@ class TestIncomeBreakdownFields:
 
         # Check for capital gains hints
         assert "0% tax in Singapore" in html
-        assert "taxed as ordinary income" in html
+        assert "held one year or less" in html
+        assert "Philadelphia: ST gains held six months or less" in html
 
     def test_js_has_gather_income_breakdown_function(self, client):
         """Test that JS has gatherIncomeBreakdown function."""

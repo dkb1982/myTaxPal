@@ -14,27 +14,36 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
 
-from tax_estimator.calculation.countries import calculate_international_tax
-from tax_estimator.calculation.countries.base import get_country_name, COUNTRY_NAMES
-from tax_estimator.calculation.countries.router import CountryRouter
+from tax_estimator.api.routes.comparison import IncomeBreakdownRequest
 from tax_estimator.calculation.comparison import (
     compare_regions,
-    get_supported_comparison_countries,
 )
+from tax_estimator.calculation.countries import calculate_international_tax
+from tax_estimator.calculation.countries.base import get_country_name
+from tax_estimator.calculation.countries.router import CountryRouter
+from tax_estimator.models.income_breakdown import IncomeBreakdown
 from tax_estimator.models.international import (
+    COUNTRY_CURRENCY_MAP,
+    AETaxInput,
+    AUTaxInput,
+    CATaxInput,
+    ComparisonResult,
+    DETaxInput,
+    ESTaxInput,
+    FRTaxInput,
+    HKTaxInput,
     InternationalTaxInput,
     InternationalTaxResult,
-    ComparisonResult,
+    ITTaxInput,
+    JPTaxInput,
+    PTTaxInput,
+    SGTaxInput,
+    UKTaxInput,
     get_currency_for_country,
-    COUNTRY_CURRENCY_MAP,
 )
-from tax_estimator.api.routes.comparison import IncomeBreakdownRequest
-from tax_estimator.calculation.comparison_regions import NO_CGT_COUNTRIES, NO_TAX_COUNTRIES
-from tax_estimator.models.income_breakdown import IncomeBreakdown
-
 
 router = APIRouter(prefix="/international", tags=["International Tax"])
 
@@ -47,21 +56,27 @@ router = APIRouter(prefix="/international", tags=["International Tax"])
 class InternationalEstimateRequest(BaseModel):
     """Request for international tax estimate."""
 
-    country_code: str = Field(
-        ..., description="ISO 3166-1 alpha-2 country code (e.g., GB, DE)"
-    )
-    tax_year: int = Field(
-        default=2025, ge=2024, le=2030, description="Tax year"
-    )
-    gross_income: Decimal = Field(
-        ..., gt=0, description="Gross income in local currency"
-    )
+    model_config = ConfigDict(extra="forbid")
+
+    country_code: str = Field(..., description="ISO 3166-1 alpha-2 country code (e.g., GB, DE)")
+    tax_year: int = Field(default=2025, ge=2025, le=2025, description="Supported tax year")
+    gross_income: Decimal = Field(..., gt=0, description="Gross income in local currency")
     income: IncomeBreakdownRequest | None = Field(
         None, description="Detailed income breakdown by type"
     )
-    currency_code: str | None = Field(
-        None, description="Currency code (defaults based on country)"
-    )
+    currency_code: str | None = Field(None, description="Currency code (defaults based on country)")
+    uk: UKTaxInput | None = Field(None, description="Optional UK residence and relief profile")
+    sg: SGTaxInput | None = Field(None, description="Optional Singapore residence and CPF profile")
+    de: DETaxInput | None = None
+    fr: FRTaxInput | None = None
+    hk: HKTaxInput | None = None
+    ae: AETaxInput | None = None
+    jp: JPTaxInput | None = None
+    au: AUTaxInput | None = None
+    ca: CATaxInput | None = None
+    it: ITTaxInput | None = None
+    es: ESTaxInput | None = None
+    pt: PTTaxInput | None = None
 
     def get_income_breakdown(self) -> IncomeBreakdown | None:
         """Get IncomeBreakdown if detailed income was provided."""
@@ -76,16 +91,11 @@ class CompareRegionsRequest(BaseModel):
     base_currency: str = Field(
         default="USD", description="Currency for comparison (e.g., USD, GBP)"
     )
-    gross_income: Decimal = Field(
-        ..., gt=0, description="Gross income in base currency"
-    )
+    gross_income: Decimal = Field(..., gt=0, description="Gross income in base currency")
     regions: list[str] = Field(
-        ..., min_length=1, max_length=12,
-        description="List of country codes to compare"
+        ..., min_length=1, max_length=12, description="List of country codes to compare"
     )
-    tax_year: int = Field(
-        default=2025, ge=2024, le=2030, description="Tax year"
-    )
+    tax_year: int = Field(default=2025, ge=2025, le=2025, description="Supported tax year")
 
 
 class CountryInfo(BaseModel):
@@ -258,69 +268,44 @@ async def create_international_estimate(
             f"Supported: {', '.join(CountryRouter.get_supported_countries())}",
         )
 
-    # Determine taxable income, excluding exempt income types for this country
-    taxable_gross = request.gross_income
     income_breakdown = request.get_income_breakdown()
-    notes: list[str] = []
-
-    if income_breakdown is not None:
-        if country_code in NO_TAX_COUNTRIES:
-            taxable_gross = Decimal(0)
-            notes.append(f"No personal income tax in {country_code}")
-        elif country_code in NO_CGT_COUNTRIES:
-            # Exclude capital gains (and dividends for SG/HK)
-            exempt = income_breakdown.total_capital_gains
-            if country_code in ("SG", "HK"):
-                exempt += income_breakdown.total_dividends
-                if income_breakdown.total_dividends > 0:
-                    notes.append(f"Dividends not taxed in {country_code}")
-            if income_breakdown.total_capital_gains > 0:
-                notes.append(f"No capital gains tax in {country_code}")
-            taxable_gross = max(Decimal(0), income_breakdown.total - exempt)
 
     currency_code = request.currency_code or get_currency_for_country(country_code)
 
-    # If all income is exempt, return zero-tax result directly
-    if income_breakdown is not None and taxable_gross == Decimal(0):
-        return InternationalTaxResult(
+    # Preserve the original categories and profile through the public boundary;
+    # country calculators, not routes, determine exempt treatment.
+    try:
+        if country_code != "GB":
+            from tax_estimator.calculation.profiles import PROFILE_MODELS, comparison_profiles
+
+            field = PROFILE_MODELS[country_code][0]
+            profile = getattr(request, field)
+            if profile is not None:
+                # Non-UK public profiles are options only: legacy calculators
+                # otherwise silently prefer their duplicate monetary fields.
+                comparison_profiles({country_code: profile}, [country_code])
+        tax_input = InternationalTaxInput(
             country_code=country_code,
-            country_name=get_country_name(country_code),
-            currency_code=currency_code,
             tax_year=request.tax_year,
+            currency_code=currency_code,
             gross_income=request.gross_income,
-            taxable_income=Decimal(0),
-            income_tax=Decimal(0),
-            social_insurance=Decimal(0),
-            other_taxes=Decimal(0),
-            total_tax=Decimal(0),
-            net_income=request.gross_income,
-            effective_rate=Decimal(0),
-            calculation_notes=notes,
+            income_breakdown=income_breakdown,
+            uk=request.uk,
+            sg=request.sg,
+            de=request.de,
+            fr=request.fr,
+            hk=request.hk,
+            ae=request.ae,
+            jp=request.jp,
+            au=request.au,
+            ca=request.ca,
+            it=request.it,
+            es=request.es,
+            pt=request.pt,
         )
-
-    # Create input with taxable portion only
-    tax_input = InternationalTaxInput(
-        country_code=country_code,
-        tax_year=request.tax_year,
-        currency_code=currency_code,
-        gross_income=taxable_gross,
-    )
-
-    # Calculate
-    result = calculate_international_tax(tax_input)
-
-    # If some income was exempt, adjust totals to reflect full gross
-    if income_breakdown is not None and taxable_gross < request.gross_income:
-        net_income = request.gross_income - result.total_tax
-        effective_rate = (result.total_tax / request.gross_income).quantize(Decimal("0.0001")) if request.gross_income > 0 else Decimal(0)
-        result = result.model_copy(update={
-            "gross_income": request.gross_income,
-            "net_income": net_income,
-            "effective_rate": effective_rate,
-            "calculation_notes": result.calculation_notes + notes,
-        })
-
-    return result
+        return calculate_international_tax(tax_input)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.post("/compare", response_model=ComparisonResult)
@@ -337,8 +322,7 @@ async def compare_tax_regions(
     """
     # Validate all regions
     invalid_regions = [
-        r for r in request.regions
-        if not CountryRouter.is_country_supported(r.upper())
+        r for r in request.regions if not CountryRouter.is_country_supported(r.upper())
     ]
     if invalid_regions:
         raise HTTPException(

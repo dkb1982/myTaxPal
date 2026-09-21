@@ -30,57 +30,31 @@ if TYPE_CHECKING:
     pass
 
 
-# =============================================================================
-# Static Exchange Rates (PLACEHOLDER)
-# =============================================================================
-# These are PLACEHOLDER rates for development and testing.
-# DO NOT use for real financial calculations.
-# Rates are expressed as: 1 USD = X local currency
-
-DEFAULT_EXCHANGE_RATES = {
-    "USD": Decimal("1.0"),
-    "GBP": Decimal("0.79"),      # 1 USD = 0.79 GBP
-    "EUR": Decimal("0.92"),      # 1 USD = 0.92 EUR
-    "SGD": Decimal("1.34"),      # 1 USD = 1.34 SGD
-    "HKD": Decimal("7.82"),      # 1 USD = 7.82 HKD
-    "AED": Decimal("3.67"),      # 1 USD = 3.67 AED
-    "JPY": Decimal("149.50"),    # 1 USD = 149.50 JPY
-    "AUD": Decimal("1.53"),      # 1 USD = 1.53 AUD
-    "CAD": Decimal("1.36"),      # 1 USD = 1.36 CAD
-}
-
-DEFAULT_RATE_DATE = "2025-01-01"
-
-
-def get_default_exchange_rates() -> dict[str, Decimal]:
-    """Get default placeholder exchange rates."""
-    return DEFAULT_EXCHANGE_RATES.copy()
+# Shared canonical historical rates; no silently invented 1:1 conversion.
+def validate_exchange_rates(rates: dict[str, Decimal]) -> dict[str, Decimal]:
+    if not rates:
+        raise ValueError("Exchange rates must not be empty")
+    parsed = {currency: Decimal(str(rate)) for currency, rate in rates.items()}
+    if any(not r.is_finite() or r <= 0 for r in parsed.values()):
+        raise ValueError("Exchange rates must be finite and positive")
+    if parsed.get("USD") != Decimal(1):
+        raise ValueError("Exchange rates must use USD = 1 as their base")
+    return parsed
 
 
 def load_exchange_rates_from_file(path: Path) -> tuple[dict[str, Decimal], str, str]:
-    """
-    Load exchange rates from a YAML file.
-
-    Args:
-        path: Path to exchange_rates.yaml
-
-    Returns:
-        Tuple of (rates_dict, date_string, source_string)
-    """
-    if not path.exists():
-        return get_default_exchange_rates(), DEFAULT_RATE_DATE, "PLACEHOLDER"
-
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
+    return validate_exchange_rates(data["rates"]), str(data["date"]), str(data["source"])
 
-    rates = {}
-    for currency, rate in data.get("rates", {}).items():
-        rates[currency] = Decimal(str(rate))
 
-    rate_date = data.get("date", DEFAULT_RATE_DATE)
-    source = data.get("source", "PLACEHOLDER")
+DEFAULT_EXCHANGE_RATES, DEFAULT_RATE_DATE, DEFAULT_RATE_SOURCE = load_exchange_rates_from_file(
+    Path(__file__).resolve().parents[3] / "rules" / "exchange_rates.yaml"
+)
 
-    return rates, rate_date, source
+
+def get_default_exchange_rates() -> dict[str, Decimal]:
+    return DEFAULT_EXCHANGE_RATES.copy()
 
 
 # =============================================================================
@@ -116,12 +90,18 @@ class RegionComparisonEngine:
             rate_date: Date of exchange rates
             rate_source: Source of exchange rates
         """
-        self._rates = exchange_rates or get_default_exchange_rates()
+        self._rates = (
+            validate_exchange_rates(exchange_rates)
+            if exchange_rates is not None
+            else get_default_exchange_rates()
+        )
         self._rate_date = rate_date or DEFAULT_RATE_DATE
-        self._rate_source = rate_source or "PLACEHOLDER - Use official rates"
+        self._rate_source = rate_source or (
+            DEFAULT_RATE_SOURCE if exchange_rates is None else "User-supplied rates"
+        )
 
     @classmethod
-    def from_yaml(cls, yaml_path: Path) -> "RegionComparisonEngine":
+    def from_yaml(cls, yaml_path: Path) -> RegionComparisonEngine:
         """Create engine from YAML file."""
         rates, date, source = load_exchange_rates_from_file(yaml_path)
         return cls(exchange_rates=rates, rate_date=date, rate_source=source)
@@ -146,6 +126,8 @@ class RegionComparisonEngine:
         Raises:
             ValueError: If exchange rate is zero or negative
         """
+        if from_currency not in self._rates or to_currency not in self._rates:
+            raise ValueError(f"Missing exchange rate for {from_currency} or {to_currency}")
         if from_currency == to_currency:
             return amount
 
@@ -188,6 +170,8 @@ class RegionComparisonEngine:
         Returns:
             ComparisonResult with all comparisons
         """
+        if tax_year != 2025:
+            raise ValueError(f"Unsupported tax year {tax_year}; only 2025 is available")
         summaries: list[CountryTaxSummary] = []
 
         for country_code in regions:
@@ -242,9 +226,7 @@ class RegionComparisonEngine:
         local_currency = get_currency_for_country(country_code)
 
         # Convert income to local currency
-        gross_income_local = self.convert_currency(
-            gross_income_base, base_currency, local_currency
-        )
+        gross_income_local = self.convert_currency(gross_income_base, base_currency, local_currency)
 
         # Create input and calculate
         tax_input = InternationalTaxInput(
@@ -257,21 +239,8 @@ class RegionComparisonEngine:
         result = calculate_international_tax(tax_input)
 
         # Convert results back to base currency
-        total_tax_base = self.convert_currency(
-            result.total_tax, local_currency, base_currency
-        )
-        net_income_base = self.convert_currency(
-            result.net_income, local_currency, base_currency
-        )
-        income_tax_base = self.convert_currency(
-            result.income_tax, local_currency, base_currency
-        )
-        social_insurance_base = self.convert_currency(
-            result.social_insurance, local_currency, base_currency
-        )
-        other_taxes_base = self.convert_currency(
-            result.other_taxes, local_currency, base_currency
-        )
+        total_tax_base = self.convert_currency(result.total_tax, local_currency, base_currency)
+        net_income_base = gross_income_base - total_tax_base
 
         return CountryTaxSummary(
             country_code=country_code,
@@ -287,6 +256,7 @@ class RegionComparisonEngine:
             income_tax_local=result.income_tax,
             social_insurance_local=result.social_insurance,
             other_taxes_local=result.other_taxes,
+            notes=result.calculation_notes + result.warnings,
         )
 
 

@@ -19,6 +19,7 @@ from tax_estimator.calculation.locals.models import (
     ResidencyApplicability,
 )
 from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
+from tax_estimator.calculation.locals.policies_2025 import calculate_2025_local
 
 
 class LocalCalculationError(Exception):
@@ -82,17 +83,28 @@ class LocalCalculator:
         if not rules.has_income_tax:
             return self._create_no_tax_result(tax_input, rules)
 
+        try:
+            policy_result = calculate_2025_local(tax_input, rules, self)
+        except ValueError as exc:
+            raise LocalCalculationError(f"{rules.jurisdiction_name}: {exc}") from exc
+        if policy_result is not None:
+            return policy_result
+
         # Calculate based on tax type
         if rules.rate_type == "flat":
-            return self._calculate_flat_tax(tax_input, rules)
+            result = self._calculate_flat_tax(tax_input, rules)
         elif rules.rate_type == "graduated":
-            return self._calculate_graduated_tax(tax_input, rules)
+            result = self._calculate_graduated_tax(tax_input, rules)
         elif rules.rate_type == "piggyback":
-            return self._calculate_piggyback_tax(tax_input, rules)
+            result = self._calculate_piggyback_tax(tax_input, rules)
         elif rules.rate_type == "mixed":
-            return self._calculate_mixed_tax(tax_input, rules)
+            result = self._calculate_mixed_tax(tax_input, rules)
         else:
-            return self._create_no_tax_result(tax_input, rules)
+            raise LocalCalculationError(f"Unsupported rate type: {rules.rate_type}")
+        result.total_tax = result.net_tax
+        result.nonrefundable_credits = result.credit_for_taxes_paid_elsewhere
+        result.warnings.append("Local result uses the unvalidated legacy profile; the 2025 single/age-40 policies and automatic credits were not applied.")
+        return result
 
     def _tax_applies(self, tax_input: LocalTaxInput, rules: LocalRules) -> bool:
         """Check if the local tax applies based on residency."""
@@ -446,7 +458,7 @@ class LocalCalculator:
         total_income = federal_agi or Decimal(0)
         actual_wages = wages if wages is not None else total_income
         actual_se_income = self_employment_income or Decimal(0)
-        actual_state_taxable = state_taxable_income or total_income
+        actual_state_taxable = state_taxable_income if state_taxable_income is not None else total_income
         actual_state_tax = state_tax_liability or Decimal(0)
         actual_local_credit = local_taxes_paid_elsewhere or Decimal(0)
 

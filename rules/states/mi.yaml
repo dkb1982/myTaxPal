@@ -39,9 +39,9 @@ deductions:
     additional_amounts: []
   exemptions:
     personal_exemption_available: true
-    personal_exemption_amount: 5400  # PLACEHOLDER
+    personal_exemption_amount: 5800
     dependent_exemption_available: true
-    dependent_exemption_amount: 5400  # PLACEHOLDER
+    dependent_exemption_amount: 5800
 
 # State-specific configuration
 state_config:
