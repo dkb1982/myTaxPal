@@ -113,6 +113,80 @@ def irc_net_capital_gain(net_short_term_gains: Decimal, net_long_term_gains: Dec
     )
 
 
+# ---------------------------------------------------------------------------
+# 2025 state treatment of the federal IRC section 199A (QBI) deduction.
+#
+# Only states whose computation starts from *federal taxable income* (Form 1040
+# line 15) inherit the QBI deduction; federal-AGI starting points never see it.
+# Each decision below was checked against the state's 2025 form, instructions or
+# statute (retrieved 2026-10-23):
+#
+# CO  addback_high_agi  Starts from federal taxable income, so QBI is kept,
+#     except C.R.S. 39-22-104(3)(o) adds back the full section 199A deduction for
+#     tax years 2021-2025 when federal AGI exceeds $500,000 on a single return or
+#     $1,000,000 on a joint return (taxpayers required to file Schedule F are
+#     exempt; farm income is not modelled). 2025 DR 0104 line 3 "Qualified
+#     Business Income Deduction Addback". HB25B-1001 removed the 2026 sunset.
+#     https://colorado.public.law/statutes/crs_39-22-104
+#     https://tax.colorado.gov/sites/tax/files/documents/DR0104_2025.pdf
+#     https://leg.colorado.gov/bills/HB25B-1001
+# ID  conforms  2025 Form 40 starts from federal AGI (line 7) and itself
+#     subtracts the federal QBI deduction (line 18 = Form 1040 lines 13a+13b), so
+#     federal taxable income including QBI is the right Idaho base.
+#     https://tax.idaho.gov/wp-content/uploads/forms/EFO00089/EFO00089_03-02-2026.pdf
+# IA  conforms  Starting point is federal taxable income with rolling IRC
+#     conformity; no section 199A modification is listed for 2025.
+#     https://revenue.iowa.gov/taxes/tax-guidance/individual-income-tax/1040-expanded-instructions/conformity-irc
+# MT  addback  MCA 15-30-2120(2)(i) adds back "an amount equal to the qualified
+#     business income deduction claimed" to federal taxable income (2025 Form 2
+#     Schedule I, other additions).
+#     https://archive.legmt.gov/bills/mca/title_0150/chapter_0300/part_0210/section_0200/0150-0300-0210-0200.html
+# NM  disallowed  2025 PIT-1 starts from federal AGI (line 9) and subtracts only
+#     the federal standard/itemized deduction (line 12); there is no QBI line, so
+#     the base is federal taxable income *before* QBI.
+#     https://taxsim.nber.org/historical_state_tax_forms/NM/2025/2025%20PIT%20Packet_Final.pdf
+#     (archived copy of the NM TRD 2025 PIT packet)
+# ND  conforms  ND-1 starts from federal taxable income, which "perpetually
+#     conforms"; no section 199A addition.
+#     https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/2025-individual-income-tax-booklet.pdf
+# SC  addback  2025 SC1040 instructions, line e other additions: "Add back the
+#     qualified business income deduction under IRC Section 199A."
+#     https://dor.sc.gov/sites/dor/files/forms/SC1040Instr_2025.pdf
+# ---------------------------------------------------------------------------
+QBI_CONFORMITY_2025: dict[str, str] = {
+    "CO": "addback_high_agi",
+    "ID": "conforms",
+    "IA": "conforms",
+    "MT": "addback",
+    "NM": "disallowed",
+    "ND": "conforms",
+    "SC": "addback",
+}
+
+CO_QBI_ADDBACK_AGI_THRESHOLD = {"joint": Decimal("1000000"), "other": Decimal("500000")}
+
+
+def state_qbi_addback_2025(tax_input: StateTaxInput, state_code: str) -> Decimal:
+    """Return the federal QBI deduction a 2025 state adds back to federal taxable income.
+
+    Returns zero for conforming states, for states whose starting point is not
+    federal taxable income, and whenever no federal QBI deduction was claimed.
+    "disallowed" states start from pre-QBI income, which is arithmetically the
+    same add-back; callers decide whether to present it as a modification.
+    """
+    qbi = max(ZERO, tax_input.federal_qbi_deduction)
+    if not qbi:
+        return ZERO
+    treatment = QBI_CONFORMITY_2025.get(state_code.upper())
+    if treatment in {"addback", "disallowed"}:
+        return qbi
+    if treatment == "addback_high_agi":
+        key = "joint" if tax_input.filing_status == "mfj" else "other"
+        if tax_input.federal_agi > CO_QBI_ADDBACK_AGI_THRESHOLD[key]:
+            return qbi
+    return ZERO
+
+
 def require_policy_inputs(tax_input: StateTaxInput, *field_names: str) -> None:
     """Reject a supported-profile call whose required pipeline detail is absent."""
     missing = [name for name in field_names if getattr(tax_input, name) is None]

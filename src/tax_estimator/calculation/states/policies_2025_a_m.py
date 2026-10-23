@@ -24,6 +24,7 @@ from tax_estimator.calculation.states.policy_common import (
     calculate_rate_schedule,
     irc_net_capital_gain,
     require_policy_inputs,
+    state_qbi_addback_2025,
 )
 
 PolicyFn = Callable[[StateTaxInput, StateRules], StatePolicyComputation]
@@ -375,7 +376,7 @@ def _co(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     addback = ZERO
     if tax_input.federal_agi > Decimal("300000"):
         addback = max(ZERO, federal_deduction - Decimal("12000"))
-    additions = (
+    additions: tuple[StateAmountComponent, ...] = (
         (
             StateAmountComponent(
                 "CO-HIGH-INCOME-DEDUCTION", "Federal deduction above Colorado cap", addback
@@ -384,6 +385,14 @@ def _co(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         if addback
         else ()
     )
+    # C.R.S. 39-22-104(3)(o) / DR 0104 line 3; see policy_common.QBI_CONFORMITY_2025.
+    qbi_addback = state_qbi_addback_2025(tax_input, "CO")
+    if qbi_addback:
+        additions += (
+            StateAmountComponent(
+                "CO-QBI-ADDBACK", "Qualified business income deduction addback", qbi_addback
+            ),
+        )
     return _flat_policy(
         tax_input,
         rules,
@@ -892,7 +901,19 @@ def _mt(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     require_policy_inputs(tax_input, "net_short_term_gains", "net_long_term_gains")
     if (tax_input.net_short_term_gains or ZERO) < 0 or (tax_input.net_long_term_gains or ZERO) < 0:
         raise StatePolicyError("Montana signed capital-loss combinations are not source-supported")
-    taxable = max(ZERO, tax_input.federal_taxable_income)
+    # MCA 15-30-2120(2)(i): the federal QBI deduction is added back.
+    qbi_addback = state_qbi_addback_2025(tax_input, "MT")
+    additions = (
+        (
+            StateAmountComponent(
+                "MT-QBI-ADDBACK", "Qualified business income deduction addback", qbi_addback
+            ),
+        )
+        if qbi_addback
+        else ()
+    )
+    state_agi = tax_input.federal_taxable_income + qbi_addback
+    taxable = max(ZERO, state_agi)
     lt = min(max(ZERO, tax_input.net_long_term_gains or ZERO), taxable)
     ordinary = taxable - lt
     ordinary_schedule = calculate_rate_schedule(
@@ -913,7 +934,8 @@ def _mt(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     )
     return StatePolicyComputation(
         starting_income=tax_input.federal_taxable_income,
-        state_agi=tax_input.federal_taxable_income,
+        additions=additions,
+        state_agi=state_agi,
         taxable_income=taxable,
         ordinary_taxable_income=ordinary,
         preferential_taxable_income=lt,

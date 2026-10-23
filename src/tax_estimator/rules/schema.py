@@ -315,6 +315,16 @@ class EITCParameter(BaseModel):
     mfj_phaseout_end: float = Field(..., ge=0)
 
 
+class QBIConfig(BaseModel):
+    """Section 199A qualified business income deduction parameters."""
+
+    rate: float = Field(default=0.20, ge=0, le=1, description="Deduction rate on QBI")
+    threshold_single: float = Field(..., ge=0, description="Taxable-income threshold (single/HOH/MFS)")
+    threshold_mfj: float = Field(..., ge=0, description="Taxable-income threshold (MFJ/QSS)")
+    phase_in_range_single: float = Field(..., gt=0, description="Phase-in range above threshold")
+    phase_in_range_mfj: float = Field(..., gt=0, description="Phase-in range above threshold (MFJ/QSS)")
+
+
 class FederalCreditConfig(BaseModel):
     """Federal credits implemented by the 2025 pipeline."""
 
@@ -604,6 +614,9 @@ class JurisdictionRules(BaseModel):
     )
     federal_credits: FederalCreditConfig | None = Field(
         default=None, description="Federal credit parameters (federal only)"
+    )
+    qualified_business_income: QBIConfig | None = Field(
+        default=None, description="Section 199A QBI deduction parameters (federal only)"
     )
 
     # International extensions (optional - only for international jurisdictions)

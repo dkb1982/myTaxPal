@@ -175,8 +175,9 @@ class TestCaliforniaTax:
             filing_status="single",
             federal_agi=Decimal("1100000"),
         )
-        # With surtax, increase should be more than base rate difference
-        assert result_above.surtax >= Decimal(0)
+        # The 1% Behavioral Health Services Tax applies only above $1M taxable income
+        assert result_below.surtax == Decimal(0)
+        assert result_above.surtax > Decimal(0)
 
 
 class TestNewYorkTax:

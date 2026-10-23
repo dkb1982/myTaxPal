@@ -98,6 +98,9 @@ class StateTaxCalculationStage(CalculationStage):
             employee_social_security_tax=context.get_decimal_result("employee_social_security_tax"),
             employee_medicare_tax=context.get_decimal_result("employee_medicare_tax"),
             federal_deduction_amount=context.get_decimal_result("deduction_used"),
+            # taxable_income above is post-QBI; states that disallow or add back
+            # the section 199A deduction use this amount (stage 06 result).
+            federal_qbi_deduction=context.get_decimal_result("qbi_deduction", Decimal(0)),
             federal_eitc_eligibility_asserted=input_data.eitc_eligibility_asserted,
             taxpayer_age_at_year_end=input_data.taxpayer.age_at_year_end,
             baseline_profile_supported=not profile_reasons,

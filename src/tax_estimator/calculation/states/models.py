@@ -159,6 +159,10 @@ class StateTaxInput:
     employee_social_security_tax: Decimal | None = None
     employee_medicare_tax: Decimal | None = None
     federal_deduction_amount: Decimal | None = None
+    # Federal IRC section 199A deduction already subtracted in federal_taxable_income
+    # (Form 1040 line 13a). Zero for wage/investment-only returns. States that do
+    # not allow it add it back; see policy_common.QBI_CONFORMITY_2025.
+    federal_qbi_deduction: Decimal = Decimal(0)
 
     # Deductions
     use_standard_deduction: bool = True
@@ -186,6 +190,11 @@ class StateTaxInput:
 
     # For credit calculations
     taxes_paid_to_other_states: Decimal = Decimal(0)
+
+    @property
+    def federal_taxable_income_before_qbi(self) -> Decimal:
+        """Federal taxable income before the section 199A deduction."""
+        return self.federal_taxable_income + self.federal_qbi_deduction
 
 
 @dataclass

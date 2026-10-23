@@ -367,6 +367,16 @@ payroll_taxes:
   niit_threshold_mfs: 125000
   niit_rate: 0.038
 
+# Section 199A QBI deduction (2025) — Rev. Proc. 2024-40 §4.27:
+# threshold $197,300 ($394,600 MFJ); phase-in range $50,000 ($100,000 MFJ).
+# https://www.irs.gov/pub/irs-drop/rp-24-40.pdf
+qualified_business_income:
+  rate: 0.20
+  threshold_single: 197300
+  threshold_mfj: 394600
+  phase_in_range_single: 50000
+  phase_in_range_mfj: 100000
+
 # Federal Credits (2025)
 federal_credits:
   child_tax_credit:

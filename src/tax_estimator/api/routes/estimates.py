@@ -67,6 +67,8 @@ from tax_estimator.models.tax_input import (
 )
 from tax_estimator.rules.loader import get_rules_for_jurisdiction
 
+CENT = Decimal("0.01")
+
 router = APIRouter()
 
 
@@ -382,6 +384,7 @@ def _convert_result_to_response(
         deduction_type=federal.deduction.method,
         deduction_amount=federal.deduction.deduction_used,
         enhanced_senior_deduction=federal.deduction.enhanced_senior_deduction,
+        qualified_business_income_deduction=federal.deduction.qbi_deduction or None,
         taxable_income=federal.taxable_income,
         ordinary_income=federal.ordinary_income,
         preferential_income=federal.preferential_income,
@@ -410,8 +413,10 @@ def _convert_result_to_response(
             CreditBreakdownInfo(
                 code=c.credit_id,
                 name=c.credit_name,
-                amount=c.credit_amount,
+                amount=c.amount_used.quantize(CENT),
                 refundable=c.is_refundable,
+                limited_to=c.amount_used.quantize(CENT) if c.amount_used < c.credit_amount else None,
+                full_amount=c.credit_amount.quantize(CENT) if c.amount_used < c.credit_amount else None,
             )
             for c in federal.credits.nonrefundable_credits
         ],
@@ -423,8 +428,10 @@ def _convert_result_to_response(
             CreditBreakdownInfo(
                 code=c.credit_id,
                 name=c.credit_name,
-                amount=c.credit_amount,
+                amount=c.amount_used.quantize(CENT),
                 refundable=c.is_refundable,
+                limited_to=c.amount_used.quantize(CENT) if c.amount_used < c.credit_amount else None,
+                full_amount=c.credit_amount.quantize(CENT) if c.amount_used < c.credit_amount else None,
             )
             for c in federal.credits.refundable_credits
         ],

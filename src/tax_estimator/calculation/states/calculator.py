@@ -29,7 +29,11 @@ from tax_estimator.calculation.states.models import (
 )
 from tax_estimator.calculation.states.policies_2025_a_m import POLICIES_2025_A_M
 from tax_estimator.calculation.states.policies_2025_n_w import POLICIES_2025_N_W
-from tax_estimator.calculation.states.policy_common import StatePolicyError, build_state_result
+from tax_estimator.calculation.states.policy_common import (
+    StatePolicyError,
+    build_state_result,
+    state_qbi_addback_2025,
+)
 
 if TYPE_CHECKING:
     pass
@@ -479,7 +483,14 @@ class StateCalculator:
     def _get_starting_income(self, tax_input: StateTaxInput, rules: StateRules) -> Decimal:
         """Determine the starting income based on state rules."""
         if rules.starting_point == StateStartingPoint.FEDERAL_TAXABLE_INCOME:
-            return tax_input.federal_taxable_income
+            # Federal taxable income is after the section 199A deduction; apply
+            # each state's reviewed QBI conformity (zero when no QBI is claimed).
+            addback = (
+                state_qbi_addback_2025(tax_input, rules.state_code)
+                if tax_input.tax_year == 2025
+                else Decimal(0)
+            )
+            return tax_input.federal_taxable_income + addback
         elif rules.starting_point == StateStartingPoint.STATE_DEFINED:
             # For states with unique starting points, default to federal AGI
             return tax_input.federal_agi

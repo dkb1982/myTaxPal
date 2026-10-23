@@ -127,6 +127,10 @@ class FinalCalculationStage(CalculationStage):
                 additional_deduction=Decimal(0),
             )
 
+        deduction_result = deduction_result.model_copy(
+            update={"qbi_deduction": context.get_decimal_result("qbi_deduction", Decimal(0))}
+        )
+
         credits_result = context.get_result("credits_result")
         bracket_breakdown = context.get_result("bracket_breakdown", [])
 

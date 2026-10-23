@@ -6,7 +6,6 @@ Validates and normalizes input data before calculation begins.
 
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from tax_estimator.calculation.stages.base import CalculationStage, StageResult

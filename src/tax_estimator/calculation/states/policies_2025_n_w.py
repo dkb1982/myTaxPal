@@ -26,6 +26,7 @@ from tax_estimator.calculation.states.policy_common import (
     calculate_rate_schedule,
     irc_net_capital_gain,
     require_policy_inputs,
+    state_qbi_addback_2025,
 )
 
 ZERO = Decimal(0)
@@ -271,13 +272,17 @@ def _nm(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     computation = _ordinary_computation(
         tax_input,
         rules,
-        starting_income=tax_input.federal_taxable_income,
+        # PIT-1 lines 9 and 12: federal AGI less the federal standard/itemized
+        # deduction. No QBI line exists, so the base is pre-QBI federal taxable
+        # income (see policy_common.QBI_CONFORMITY_2025).
+        starting_income=tax_input.federal_taxable_income_before_qbi,
         subtractions=tuple(subtraction_items),
         deduction_type="none",
         warnings=tuple(warnings),
         notes=(
-            "2025 PIT-1 starts from federal taxable income; public-security net "
-            "capital gain deduction is limited to $2,500.",
+            "2025 PIT-1 starts from federal AGI less the federal standard deduction "
+            "(no federal QBI deduction); public-security net capital gain deduction "
+            "is limited to $2,500.",
         ),
     )
     federal_eitc = _federal_eitc(tax_input, "New Mexico")
@@ -678,19 +683,26 @@ def _sc(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         tax_input.net_long_term_gains or ZERO,
     )
     capital_subtraction = net_capital_gain * Decimal("0.44")
-    computation = _ordinary_computation(
-        tax_input,
-        rules,
-        starting_income=tax_input.federal_taxable_income,
-        additions=(
+    additions = []
+    if conformity_addback:
+        additions.append(
             _component(
                 "SC-OBBBA-STD",
                 "Nonconforming federal standard deduction addback",
                 conformity_addback,
-            ),
+            )
         )
-        if conformity_addback
-        else (),
+    # SC1040 instructions line e: add back the IRC section 199A deduction.
+    qbi_addback = state_qbi_addback_2025(tax_input, "SC")
+    if qbi_addback:
+        additions.append(
+            _component("SC-QBI-ADDBACK", "Qualified business income deduction addback", qbi_addback)
+        )
+    computation = _ordinary_computation(
+        tax_input,
+        rules,
+        starting_income=tax_input.federal_taxable_income,
+        additions=tuple(additions),
         subtractions=(
             _component(
                 "SC-NET-CAPITAL-GAIN", "44% net capital gain deduction", capital_subtraction

@@ -43,6 +43,9 @@ class DeductionResult(BaseModel):
         default=Decimal(0), description="Total itemized deductions"
     )
     deduction_used: Decimal = Field(..., description="Deduction amount applied")
+    qbi_deduction: Decimal = Field(
+        default=Decimal(0), description="Section 199A QBI deduction (below-the-line)"
+    )
     additional_deduction: Decimal = Field(
         default=Decimal(0), description="Additional deduction for age/blindness"
     )

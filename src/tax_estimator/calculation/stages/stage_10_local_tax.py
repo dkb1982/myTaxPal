@@ -20,6 +20,14 @@ if TYPE_CHECKING:
     from tax_estimator.calculation.context import CalculationContext
 
 
+# States where some cities, counties or school districts levy a local income
+# tax on residents (Tax Foundation, "Local Income Taxes", 2025). Elsewhere the
+# "local tax omitted" warning would be noise.
+STATES_WITH_LOCAL_INCOME_TAX = frozenset(
+    {"AL", "CO", "DE", "IA", "IN", "KY", "MD", "MI", "MO", "NJ", "NY", "OH", "OR", "PA"}
+)
+
+
 class LocalTaxCalculationStage(CalculationStage):
     """Calculates local income tax."""
 
@@ -56,10 +64,11 @@ class LocalTaxCalculationStage(CalculationStage):
         explicit_jurisdiction = input_data.local_jurisdiction_id
 
         if not residence_zip and not explicit_jurisdiction:
-            context.add_warning(
-                "Local tax is omitted because no explicit covered city was selected. "
-                "A ZIP is optional and does not establish a local-tax jurisdiction."
-            )
+            if input_data.residence_state.upper() in STATES_WITH_LOCAL_INCOME_TAX:
+                context.add_warning(
+                    "Local tax is omitted because no explicit covered city was selected. "
+                    "A ZIP is optional and does not establish a local-tax jurisdiction."
+                )
             # No explicit city was provided, so local tax cannot be calculated.
             context.set_result("local_results", [])
             context.set_result("total_local_tax", Decimal(0))
@@ -87,9 +96,10 @@ class LocalTaxCalculationStage(CalculationStage):
             local_jurisdiction = city.local_jurisdiction_id if city else None
 
             if not local_jurisdiction:
-                context.add_warning(
-                    "Local tax is omitted because no explicit covered city was selected. ZIP alone cannot confirm city/county obligations."
-                )
+                if input_data.residence_state.upper() in STATES_WITH_LOCAL_INCOME_TAX:
+                    context.add_warning(
+                        "Local tax is omitted because no explicit covered city was selected. ZIP alone cannot confirm city/county obligations."
+                    )
                 # No explicit local-tax jurisdiction was selected.
                 context.set_result("local_results", [])
                 context.set_result("total_local_tax", Decimal(0))

@@ -84,7 +84,7 @@ def validate_date_string(value: str | None, field_name: str = "date") -> str | N
     try:
         date.fromisoformat(value)
     except ValueError:
-        raise ValueError(f"Invalid {field_name}: '{value}' is not a valid date")
+        raise ValueError(f"Invalid {field_name}: not a valid calendar date")
 
     return value
 
@@ -137,7 +137,6 @@ class DependentInfo(BaseModel):
         ..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date of birth (YYYY-MM-DD format)"
     )
     relationship: str = Field(..., max_length=50, description="Relationship to taxpayer")
-    ssn_last_four: str | None = Field(None, pattern=r"^\d{4}$", description="Last 4 of SSN")
     months_lived_with_taxpayer: int = Field(
         ..., ge=0, le=12, description="Months lived with taxpayer"
     )
@@ -605,6 +604,9 @@ class CreditBreakdownInfo(BaseModel):
     amount: Decimal = Field(..., description="Credit amount")
     refundable: bool = Field(..., description="Whether refundable")
     limited_to: Decimal | None = Field(None, description="Amount limited to")
+    full_amount: Decimal | None = Field(
+        None, description="Credit before the tax-liability limit, when the limit applies"
+    )
     phase_out_applied: bool = Field(default=False, description="Phase-out applied")
 
 

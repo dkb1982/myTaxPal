@@ -63,7 +63,7 @@ class TestSelfEmploymentTaxBasics:
         assert se_tax is None or se_tax == Decimal("0")
 
     def test_se_tax_at_threshold(self, federal_rules: JurisdictionRules) -> None:
-        """Test SE income exactly at $400 threshold."""
+        """$400 of profit is below the $400 net-earnings threshold."""
         tax_input = TaxInput(
             tax_year=2025,
             filing_status=FilingStatus.SINGLE,
@@ -94,13 +94,9 @@ class TestSelfEmploymentTaxBasics:
         assert result.status.value == "success"
 
         se_tax = context.get_result("self_employment_tax")
-        # At exactly $400, SE tax should be calculated
-        # SE taxable = $400 * 0.9235 = $369.40
-        # SS tax = $369.40 * 0.124 = $45.81
-        # Medicare tax = $369.40 * 0.029 = $10.71
-        # Total = $56.52
-        assert se_tax is not None
-        assert se_tax > Decimal("0")
+        # Schedule SE line 4c: the $400 test applies to net earnings, not profit.
+        # $400 profit x 0.9235 = $369.40 < $400, so no SE tax is due.
+        assert not se_tax
 
     def test_se_tax_basic_calculation(self, federal_rules: JurisdictionRules) -> None:
         """Test basic SE tax calculation."""
@@ -419,7 +415,8 @@ class Test2025PayrollRepairs:
         # $300,000 x .9235 = $277,050 Schedule SE earnings; Form 8959
         # taxes $77,050 over the single threshold at .9%.
         assert context.get_decimal_result("additional_medicare_tax") == Decimal("693.45")
-        assert any("qualified business income" in warning for warning in context.warnings)
+        # QBI base (profit less half SE tax) is recorded for the Section 199A deduction.
+        assert context.get_decimal_result("qualified_business_income") > Decimal("0")
 
     def test_employee_social_security_is_capped_per_spouse(
         self,

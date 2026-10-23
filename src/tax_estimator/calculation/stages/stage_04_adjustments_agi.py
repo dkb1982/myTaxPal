@@ -86,13 +86,8 @@ class AdjustmentsAGIStage(CalculationStage):
 
         # Self-employment tax deduction (half of SE tax)
         se_tax_deduction = Decimal(0)
-        if se_net > 0:
-            context.add_warning(
-                "The qualified business income deduction is not calculated; "
-                "self-employment scenarios may overstate taxable income."
-            )
-        if se_net >= 400:
-            se_tax = self._calculate_self_employment_tax(se_net, context)
+        se_tax = self._calculate_self_employment_tax(se_net, context) if se_net > 0 else Decimal(0)
+        if se_tax > 0:
             se_tax_deduction = (se_tax / 2).quantize(Decimal("0.01"))
             total_adjustments += se_tax_deduction
             trace.add_step(
@@ -287,6 +282,10 @@ class AdjustmentsAGIStage(CalculationStage):
         context.set_result("total_adjustments", total_adjustments)
         context.set_result("agi", agi)
         context.set_result("se_tax_deduction", se_tax_deduction)
+        # QBI from sole proprietorships: profit less the SE-tax, SE health and
+        # SE retirement deductions attributable to the business (Reg. 1.199A-3(b)(1)(vi)).
+        qbi = max(Decimal(0), se_net - se_tax_deduction - se_health - se_retirement)
+        context.set_result("qualified_business_income", qbi)
 
         # Calculate Additional Medicare Tax once across wages and SE earnings.
         additional_medicare = self._calculate_additional_medicare_tax(input_data, agi, context)
@@ -307,7 +306,7 @@ class AdjustmentsAGIStage(CalculationStage):
         SE Tax = (SE Income * SE_factor) * (12.4% SS + 2.9% Medicare)
         Subject to Social Security wage base limit.
         """
-        if net_se_income < 400:
+        if net_se_income <= 0:
             return Decimal(0)
 
         # Get payroll tax config from federal rules
@@ -339,9 +338,10 @@ class AdjustmentsAGIStage(CalculationStage):
 
         total_se_tax = Decimal(0)
         for owner, owner_net_se in se_by_owner.items():
-            if owner_net_se < 400:
-                continue
             taxable_se = owner_net_se * se_factor
+            # Schedule SE: no SE tax unless net earnings (profit x 92.35%) reach $400
+            if taxable_se < 400:
+                continue
             ss_remaining = max(Decimal(0), ss_wage_base - wages_by_owner[owner])
             ss_taxable = min(taxable_se, ss_remaining)
             total_se_tax += ss_taxable * ss_rate
