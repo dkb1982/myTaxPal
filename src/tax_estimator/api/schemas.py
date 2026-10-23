@@ -14,7 +14,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from tax_estimator.models.us_scenario import USScenarioFacts
 
@@ -89,7 +89,13 @@ def validate_date_string(value: str | None, field_name: str = "date") -> str | N
     return value
 
 
-class FilerInfo(BaseModel):
+class RequestModel(BaseModel):
+    """Request input: unknown fields are rejected, not silently ignored."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class FilerInfo(RequestModel):
     """Filer information for tax estimate."""
 
     filing_status: FilingStatus = Field(..., description="Tax filing status")
@@ -111,7 +117,7 @@ class FilerInfo(BaseModel):
         return validate_date_string(v, "date_of_birth")
 
 
-class SpouseInfo(BaseModel):
+class SpouseInfo(RequestModel):
     """Spouse information for MFJ/MFS."""
 
     date_of_birth: str | None = Field(
@@ -128,7 +134,7 @@ class SpouseInfo(BaseModel):
         return validate_date_string(v, "date_of_birth")
 
 
-class DependentInfo(BaseModel):
+class DependentInfo(RequestModel):
     """Information about a dependent."""
 
     first_name: str = Field(..., max_length=100, description="First name")
@@ -165,7 +171,7 @@ class DependentInfo(BaseModel):
 # =============================================================================
 
 
-class AddressInfo(BaseModel):
+class AddressInfo(RequestModel):
     """Physical address for tax jurisdiction lookup."""
 
     street: str = Field(..., max_length=500, description="Street address")
@@ -174,7 +180,7 @@ class AddressInfo(BaseModel):
     zip: str = Field(..., pattern=r"^\d{5}(-\d{4})?$", description="ZIP code")
 
 
-class ResidencyChange(BaseModel):
+class ResidencyChange(RequestModel):
     """Record of residency change for part-year residents."""
 
     state: str = Field(..., pattern=r"^[A-Z]{2}$", description="State code")
@@ -203,7 +209,7 @@ class ResidencyChange(BaseModel):
         return result
 
 
-class RemoteWorkInfo(BaseModel):
+class RemoteWorkInfo(RequestModel):
     """Remote work information for multi-state taxation."""
 
     is_remote: bool = Field(..., description="Whether taxpayer works remotely")
@@ -212,7 +218,7 @@ class RemoteWorkInfo(BaseModel):
     employer_required: bool | None = Field(None, description="If remote work is employer required")
 
 
-class ResidencyInfo(BaseModel):
+class ResidencyInfo(RequestModel):
     """Residency information for state tax calculation."""
 
     residence_state: str = Field(
@@ -242,7 +248,7 @@ class ResidencyInfo(BaseModel):
 # =============================================================================
 
 
-class WageIncomeInfo(BaseModel):
+class WageIncomeInfo(RequestModel):
     """W-2 wage income from an employer."""
 
     employer_name: str = Field(..., max_length=200, description="Employer name")
@@ -260,7 +266,7 @@ class WageIncomeInfo(BaseModel):
     retirement_contributions: Decimal | None = Field(None, ge=0, description="401k etc.")
 
 
-class InterestIncomeInfo(BaseModel):
+class InterestIncomeInfo(RequestModel):
     """Interest income."""
 
     taxable: Decimal = Field(default=Decimal(0), ge=0, description="Taxable interest")
@@ -268,7 +274,7 @@ class InterestIncomeInfo(BaseModel):
     tax_exempt_state: str | None = Field(None, description="State for municipal bonds")
 
 
-class DividendIncomeInfo(BaseModel):
+class DividendIncomeInfo(RequestModel):
     """Dividend income."""
 
     ordinary: Decimal = Field(default=Decimal(0), ge=0, description="Ordinary dividends")
@@ -284,7 +290,7 @@ class DividendIncomeInfo(BaseModel):
         return v
 
 
-class CapitalGainsInfo(BaseModel):
+class CapitalGainsInfo(RequestModel):
     """Capital gains and losses."""
 
     short_term_gain: Decimal = Field(default=Decimal(0), description="Short-term gains")
@@ -298,7 +304,7 @@ class CapitalGainsInfo(BaseModel):
     long_term_carryover_loss: Decimal = Field(default=Decimal(0), ge=0)
 
 
-class EquityCompensationInfo(BaseModel):
+class EquityCompensationInfo(RequestModel):
     """Equity compensation (RSUs, ISOs, NSOs)."""
 
     type: Literal["rsu", "iso", "nso"] = Field(..., description="Type of equity")
@@ -314,7 +320,7 @@ class EquityCompensationInfo(BaseModel):
     vest_state: str | None = Field(None, description="State at vest")
 
 
-class SelfEmploymentInfo(BaseModel):
+class SelfEmploymentInfo(RequestModel):
     """Self-employment income."""
 
     business_name: str | None = Field(None, max_length=200, description="Business name")
@@ -326,7 +332,7 @@ class SelfEmploymentInfo(BaseModel):
     )
 
 
-class RentalIncomeInfo(BaseModel):
+class RentalIncomeInfo(RequestModel):
     """Rental property income."""
 
     property_address: str | None = Field(None, max_length=500, description="Property address")
@@ -336,7 +342,7 @@ class RentalIncomeInfo(BaseModel):
     depreciation: Decimal = Field(default=Decimal(0), ge=0, description="Depreciation")
 
 
-class RetirementIncomeInfo(BaseModel):
+class RetirementIncomeInfo(RequestModel):
     """Retirement income from various sources."""
 
     social_security: Decimal = Field(default=Decimal(0), ge=0, description="Social Security")
@@ -345,7 +351,7 @@ class RetirementIncomeInfo(BaseModel):
     roth_distribution: Decimal = Field(default=Decimal(0), ge=0, description="Roth distributions")
 
 
-class OtherIncomeInfo(BaseModel):
+class OtherIncomeInfo(RequestModel):
     """Other income not covered by specific categories."""
 
     description: str = Field(..., max_length=500, description="Description of income")
@@ -353,7 +359,7 @@ class OtherIncomeInfo(BaseModel):
     type: str | None = Field(None, max_length=50, description="Type category")
 
 
-class IncomeInfo(BaseModel):
+class IncomeInfo(RequestModel):
     """All income information for tax estimate."""
 
     wages: list[WageIncomeInfo] | None = Field(None, description="W-2 wage income")
@@ -374,7 +380,7 @@ class IncomeInfo(BaseModel):
 # =============================================================================
 
 
-class AdjustmentsInfo(BaseModel):
+class AdjustmentsInfo(RequestModel):
     """Above-the-line adjustments to income."""
 
     hsa_contribution: Decimal = Field(default=Decimal(0), ge=0, description="HSA contributions")
@@ -393,7 +399,7 @@ class AdjustmentsInfo(BaseModel):
     alimony_paid_pre_2019: bool = Field(default=False, description="Divorce was before 2019")
 
 
-class ItemizedDeductionsInfo(BaseModel):
+class ItemizedDeductionsInfo(RequestModel):
     """Itemized deduction amounts."""
 
     medical_expenses: Decimal = Field(default=Decimal(0), ge=0, description="Medical expenses")
@@ -411,7 +417,7 @@ class ItemizedDeductionsInfo(BaseModel):
     other_itemized: Decimal = Field(default=Decimal(0), ge=0, description="Other itemized")
 
 
-class DeductionsInfo(BaseModel):
+class DeductionsInfo(RequestModel):
     """Deduction preferences."""
 
     type: Literal["standard", "itemized"] = Field(..., description="Deduction type preference")
@@ -423,21 +429,21 @@ class DeductionsInfo(BaseModel):
 # =============================================================================
 
 
-class ChildTaxCreditInfo(BaseModel):
+class ChildTaxCreditInfo(RequestModel):
     """Child Tax Credit information."""
 
     eligible_children_under_17: int = Field(default=0, ge=0, description="Children under 17")
     eligible_children_17_plus: int = Field(default=0, ge=0, description="Other dependents")
 
 
-class ChildDependentCareInfo(BaseModel):
+class ChildDependentCareInfo(RequestModel):
     """Child and Dependent Care Credit."""
 
     expenses_paid: Decimal = Field(default=Decimal(0), ge=0, description="Care expenses paid")
     qualifying_persons: int = Field(default=0, ge=0, le=2, description="Qualifying persons (0-2)")
 
 
-class EducationCreditInfo(BaseModel):
+class EducationCreditInfo(RequestModel):
     """Education credits (AOTC, LLC)."""
 
     aotc_eligible_students: int = Field(default=0, ge=0, description="AOTC eligible students")
@@ -445,26 +451,26 @@ class EducationCreditInfo(BaseModel):
     llc_expenses: Decimal = Field(default=Decimal(0), ge=0, description="LLC expenses")
 
 
-class EarnedIncomeCreditInfo(BaseModel):
+class EarnedIncomeCreditInfo(RequestModel):
     """Earned Income Credit."""
 
     claim_eic: bool = Field(default=False, description="Claiming EIC")
     investment_income: Decimal = Field(default=Decimal(0), ge=0, description="Investment income")
 
 
-class SaversCreditInfo(BaseModel):
+class SaversCreditInfo(RequestModel):
     """Saver's Credit."""
 
     retirement_contributions: Decimal = Field(default=Decimal(0), ge=0, description="Contributions")
 
 
-class ForeignTaxCreditInfo(BaseModel):
+class ForeignTaxCreditInfo(RequestModel):
     """Foreign Tax Credit."""
 
     foreign_taxes_paid: Decimal = Field(default=Decimal(0), ge=0, description="Foreign taxes paid")
 
 
-class CreditsInfo(BaseModel):
+class CreditsInfo(RequestModel):
     """Tax credit information."""
 
     child_tax_credit: ChildTaxCreditInfo | None = Field(None, description="CTC")
@@ -476,14 +482,14 @@ class CreditsInfo(BaseModel):
     estimated_payments: Decimal = Field(default=Decimal(0), ge=0, description="Est. payments")
 
 
-class EstimatedPaymentInfo(BaseModel):
+class EstimatedPaymentInfo(RequestModel):
     """Estimated tax payment record."""
 
     date: str = Field(..., description="Payment date")
     amount: Decimal = Field(..., ge=0, description="Payment amount")
 
 
-class StateEstimatedPaymentInfo(BaseModel):
+class StateEstimatedPaymentInfo(RequestModel):
     """State estimated tax payment."""
 
     state: str = Field(..., description="State code")
@@ -491,14 +497,14 @@ class StateEstimatedPaymentInfo(BaseModel):
     amount: Decimal = Field(..., ge=0, description="Payment amount")
 
 
-class PriorYearOverpaymentInfo(BaseModel):
+class PriorYearOverpaymentInfo(RequestModel):
     """Prior year overpayment applied."""
 
     federal: Decimal = Field(default=Decimal(0), ge=0, description="Federal applied")
     state: dict[str, Decimal] | None = Field(None, description="State amounts by code")
 
 
-class WithholdingInfo(BaseModel):
+class WithholdingInfo(RequestModel):
     """Withholding and payment information."""
 
     federal_estimated_payments: list[EstimatedPaymentInfo] | None = Field(
@@ -517,7 +523,7 @@ class WithholdingInfo(BaseModel):
 # =============================================================================
 
 
-class CalculationOptions(BaseModel):
+class CalculationOptions(RequestModel):
     """Options for calculation behavior."""
 
     optimize_deduction: bool = Field(default=True, description="Auto-choose standard vs itemized")
@@ -527,7 +533,7 @@ class CalculationOptions(BaseModel):
     )
 
 
-class EstimateRequest(BaseModel):
+class EstimateRequest(RequestModel):
     """
     Complete request for creating a tax estimate.
 

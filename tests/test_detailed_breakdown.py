@@ -560,7 +560,7 @@ class TestDetailedBreakdownIntegration:
         request_data = {
             "base_currency": "USD",
             "gross_income": 100000,
-            "income_breakdown": {
+            "income": {
                 "employment_wages": 100000
             },
             "regions": ["US-CA", "US-TX"],
@@ -649,7 +649,7 @@ class TestDetailedBreakdownErrorHandling:
         request_data = {
             "base_currency": "USD",
             "gross_income": 100000,
-            "income_breakdown": {
+            "income": {
                 "employment_wages": 100000
             },
             "regions": ["US-CA", "US-TX"],
@@ -675,7 +675,7 @@ class TestDetailedBreakdownErrorHandling:
             "country_code": "AE",  # UAE has no income tax
             "tax_year": 2025,
             "gross_income": 100000,
-            "income_breakdown": {
+            "income": {
                 "employment_wages": 100000
             },
             "currency_code": "AED"
@@ -698,7 +698,7 @@ class TestDetailedBreakdownErrorHandling:
         request_data = {
             "base_currency": "USD",
             "gross_income": 100000,
-            "income_breakdown": {
+            "income": {
                 "employment_wages": 100000
             },
             "regions": ["INVALID-REGION", "US-CA"],
@@ -760,7 +760,7 @@ class TestDetailedBreakdownErrorHandling:
         request_data = {
             "base_currency": "USD",
             "gross_income": 100000,
-            "income_breakdown": {
+            "income": {
                 "employment_wages": 100000
             },
             "regions": ["US-CA"],  # Only one region

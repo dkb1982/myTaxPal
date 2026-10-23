@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from tax_estimator.api.dependencies import SettingsDep
 from tax_estimator.calculation.comparison_enhanced import (
@@ -44,6 +44,8 @@ router = APIRouter(prefix="/comparison", tags=["Tax Comparison"])
 class IncomeBreakdownRequest(BaseModel):
     """Income breakdown for detailed comparison."""
 
+    model_config = ConfigDict(extra="forbid")
+
     employment_wages: Decimal = Field(default=Decimal(0), ge=0)
     capital_gains_short_term: Decimal = Field(default=Decimal(0), ge=0)
     capital_gains_long_term: Decimal = Field(default=Decimal(0), ge=0)
@@ -69,6 +71,8 @@ class IncomeBreakdownRequest(BaseModel):
 
 class EnhancedCompareRequest(BaseModel):
     """Request for enhanced multi-region comparison."""
+
+    model_config = ConfigDict(extra="forbid")
 
     # Base parameters
     base_currency: str = Field(
