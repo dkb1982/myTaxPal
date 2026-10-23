@@ -32,10 +32,10 @@ context.updateSummaryCard({total_tax:'13449', total_statutory_deductions:'21099'
 assert.match(elements.get('total-tax-display').textContent, /21,099/);
 assert.match(elements.get('net-income-display').textContent, /78,901/);
 assert.match(elements.get('effective-rate-display').textContent, /21\.1/);
-assert.equal(elements.get('tax-status-badge').textContent, 'Modelled Taxes + Contributions');
+assert.equal(elements.get('tax-status-badge').textContent, 'Tax and contributions');
 context.updateSummaryCard({total_modelled_deductions:-78.5, net_income:1078.5,
   total_income:1000, statutory_effective_rate:-.0785, marginal_rate:0, balance_due:-155});
-assert.equal(elements.get('tax-status-badge').textContent, 'Net Modelled Credit');
+assert.equal(elements.get('tax-status-badge').textContent, 'Net modelled credit');
 context.populateFICABreakdown({summary:{total_income:'100000', employee_social_security_tax:'0', employee_medicare_tax:'0', employee_payroll_tax:'0'}});
 assert.match(elements.get('fica-total-amount').textContent, /\$0/);
 context.populateLocalBreakdown({summary:{total_local_tax:'3120'}, local:[{

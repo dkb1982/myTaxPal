@@ -446,14 +446,14 @@ function setComparisonYearMode() {
     const scope = document.getElementById('compare-year-scope');
     if (scope) scope.hidden = !limited;
     const legend = document.getElementById('compare-region-legend');
-    if (legend) legend.textContent = limited ? 'Verified 2026 US states (choose 1 or more)' : 'Select Regions to Compare (2-6)';
+    if (legend) legend.textContent = limited ? 'Verified 2026 US states (choose 1 or more)' : 'Places to compare (2–6)';
     const submit = document.getElementById('compare-calculate-btn');
-    if (submit) submit.textContent = limited ? 'Calculate 2026 Taxes' : 'Compare Taxes';
+    if (submit) submit.textContent = limited ? 'Calculate 2026 take-home pay' : 'Compare take-home pay';
     const scopeDisclosure = document.getElementById('compare-us-scope');
     if (scopeDisclosure) scopeDisclosure.textContent = limited
         ? '2026 estimates cover the listed verified states only: single, age 40, full-year resident and employee in each state, no dependants, standard deduction, wages, dividends and direct securities gains. Special deductions and local taxes are outside scope.'
-        : 'US comparisons assume age 40, no dependants, full-year residence/work in each location and standard deductions. Only the single-filer wage/dividend/direct-securities profile is source-checked. EITC legal eligibility is not assumed. Rankings use net after modelled taxes, excluding state/local payroll contributions.';
-    for (const id of ['compare-country-profiles', 'compare-state-details', 'us-cities-section']) {
+        : 'Each place is modelled as a full-year resident and worker. US places assume age 40, no dependants and the standard deduction; only single filers with wages, dividends and direct securities gains are source-checked.';
+    for (const id of ['compare-country-details', 'compare-country-profiles', 'compare-state-details', 'us-cities-section']) {
         const section = document.getElementById(id);
         if (section) section.style.display = limited ? 'none' : '';
     }
@@ -662,7 +662,10 @@ function updateChips() {
 
     checked.forEach(cb => {
         const label = cb.closest('label');
-        const name = label ? label.textContent.trim() : cb.value;
+        // Use only the label's own text, not badge text such as "No tax".
+        const name = label
+            ? Array.from(label.childNodes).filter(node => node.nodeType === 3).map(node => node.textContent).join('').trim() || cb.value
+            : cb.value;
 
         const chip = document.createElement('span');
         chip.className = 'chip';
@@ -705,11 +708,12 @@ function setupIncomeTotals() {
 
         inputs.forEach(input => {
             input.addEventListener('input', updateTotal);
-            // Format with 2 decimal places on blur (no commas - type="number" rejects them)
+            // Normalise on blur: whole numbers stay whole, otherwise 2 decimals
+            // (no commas - type="number" rejects them)
             input.addEventListener('blur', () => {
                 const value = parseFloat(input.value) || 0;
                 if (value > 0) {
-                    input.value = value.toFixed(2);
+                    input.value = Number.isInteger(value) ? String(value) : value.toFixed(2);
                 }
             });
             // Clear field on focus if value is zero for easy editing
@@ -791,7 +795,7 @@ function populateStates(states = US_STATES) {
     if (!stateSelect) return;
 
     const previous = stateSelect.value;
-    stateSelect.innerHTML = '<option value="">-- Select State --</option>';
+    stateSelect.innerHTML = '<option value="">Choose a state</option>';
 
     // Add states to dropdown
     states.forEach(state => {
@@ -1326,11 +1330,12 @@ function displayResults(result) {
                         <tr><td>State Taxable Income</td><td>${formatCurrency(state.taxable_income)}</td></tr>
                         <tr><td>Tax Before Credits</td><td>${formatCurrency(state.tax_before_credits)}</td></tr>
                         <tr><td>Total State Tax</td><td>${formatCurrency(state.total_tax)}</td></tr>
+                        ${parseFloat(state.withholding) > 0 ? `
                         <tr><td>State Withholding</td><td>${formatCurrency(state.withholding)}</td></tr>
                         <tr class="${state.balance_due_or_refund < 0 ? 'result-positive' : 'result-negative'}">
                             <td>${state.balance_due_or_refund < 0 ? 'State Refund' : 'State Amount Owed'}</td>
                             <td>${formatCurrency(Math.abs(state.balance_due_or_refund))}</td>
-                        </tr>
+                        </tr>` : ''}
                     </tbody>
                 </table>
             `;
@@ -1474,7 +1479,7 @@ function buildCompareAssumptionsHtml(regions) {
     const profiles = regions.flatMap(region => (region.notes || [])
         .filter(note => note.startsWith('Domestic profile used'))
         .map(note => `<li>${escapeHtml(region.region_name || region.country_code || region.region_id)}: ${escapeHtml(note)}</li>`));
-    return `<p>Independent full-year domestic estimates using historical annual-average FX, not current rates. Home-country tax, treaties and living costs are excluded. Non-UK international models remain unvalidated. US scenarios assume age 40 and no dependants; the source-checked state/city scope is single filers with standard deductions, wages, dividends and direct securities gains. EITC eligibility is not assumed. Rankings show net after modelled taxes, excluding state/local employee payroll contributions.</p>${profiles.length ? `<details><summary>Country profiles used (including default province and family settings)</summary><ul>${profiles.join('')}</ul></details>` : ''}`;
+    return `<p>Each place is an independent full-year estimate using historical annual-average exchange rates, not current rates. Home-country tax, treaties and living costs are excluded. Only US and UK figures are source-checked; other countries are early estimates. US places assume age 40, no dependants and the standard deduction. Take-home excludes state/local employee payroll contributions.</p>${profiles.length ? `<details><summary>Country profiles used (default province and family settings)</summary><ul>${profiles.join('')}</ul></details>` : ''}`;
 }
 
 function displayCompareResults(result) {
@@ -1494,9 +1499,15 @@ function displayCompareResults(result) {
         const fx = result.exchange_rates || {};
         const fxDate = fx.rate_date || 'an undisclosed historical date';
         const fxSource = fx.source || 'the supplied exchange-rate snapshot';
+        // Show a source URL as a link rather than raw text; only https URLs are linked.
+        const urlMatch = /https:\/\/[^\s)]+/.exec(fxSource);
+        const fxSourceText = fxSource.replace(/https?:\/\/[^\s)]+/, '').replace(/[\s—-]+$/, '').trim() || 'source';
+        const fxSourceHtml = urlMatch
+            ? `<a href="${escapeHtml(urlMatch[0])}" target="_blank" rel="noopener noreferrer">${escapeHtml(fxSourceText)}</a>`
+            : escapeHtml(fxSource);
         infoEl.innerHTML = is2026
-            ? `${single2026 ? 'Estimating' : 'Comparing'} tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (USD). No currency conversion is applied.`
-            : `Comparing tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${escapeHtml(result.base_currency)}). FX snapshot: ${escapeHtml(fxDate)} (${escapeHtml(fxSource)}).`;
+            ? `${single2026 ? 'Estimating' : 'Comparing'} take-home pay on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (USD). No currency conversion is applied.`
+            : `Comparing take-home pay on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${escapeHtml(result.base_currency)}). FX snapshot: ${escapeHtml(fxDate)} (${fxSourceHtml}).`;
     }
 
     // Populate comparison cards
@@ -1526,6 +1537,8 @@ function displayCompareResults(result) {
         const lowestTaxId = lowestTax.region_id || lowestTax.country_code;
         const highestNet = sortedResults[0];
         const highestNetId = highestNet.region_id || highestNet.country_code;
+
+        renderCompareChart(sortedResults, result.base_currency);
 
         sortedResults.forEach((region) => {
             const card = document.createElement('div');
@@ -1560,15 +1573,15 @@ function displayCompareResults(result) {
                 <h4 class="compare-card-name">${escapeHtml(regionName)}</h4>
                 <div class="compare-card-stats">
                     <div class="compare-card-stat">
-                        <span class="compare-card-stat-label">Total Tax</span>
-                        <span class="compare-card-stat-value">${totalTax}</span>
-                    </div>
-                    <div class="compare-card-stat">
-                        <span class="compare-card-stat-label">Net after modelled taxes</span>
+                        <span class="compare-card-stat-label">Take-home</span>
                         <span class="compare-card-stat-value compare-card-stat-value--net">${netIncome}</span>
                     </div>
                     <div class="compare-card-stat">
-                        <span class="compare-card-stat-label">Effective Rate</span>
+                        <span class="compare-card-stat-label">Total tax</span>
+                        <span class="compare-card-stat-value">${totalTax}</span>
+                    </div>
+                    <div class="compare-card-stat">
+                        <span class="compare-card-stat-label">Effective rate</span>
                         <span class="compare-card-stat-value">${effectiveRate}</span>
                     </div>
                 </div>
@@ -1613,6 +1626,60 @@ function displayCompareResults(result) {
     }
 }
 
+/**
+ * Ranked take-home chart for Compare: one row per place, take-home and tax as a
+ * stacked bar scaled to the largest gross, plus the gap to the leader.
+ */
+function renderCompareChart(sortedRegions, baseCurrency) {
+    const chart = document.getElementById('compare-chart');
+    if (!chart) return;
+    chart.innerHTML = '';
+    chart.hidden = sortedRegions.length < 2;
+    if (chart.hidden) return;
+
+    const net = region => parseFloat(region.net_income_base) || 0;
+    const tax = region => parseFloat(region.total_tax_base) || 0;
+    const maxGross = Math.max(...sortedRegions.map(region => Math.max(net(region), 0) + Math.max(tax(region), 0)), 1);
+    const leaderNet = net(sortedRegions[0]);
+
+    const title = document.createElement('h3');
+    title.className = 'compare-chart-title';
+    title.textContent = 'Take-home pay, ranked';
+    chart.appendChild(title);
+
+    const list = document.createElement('ol');
+    list.className = 'compare-chart-list';
+    sortedRegions.forEach((region, index) => {
+        const regionId = region.region_id || region.country_code;
+        const name = region.region_name || REGION_NAMES[regionId] || regionId;
+        const gap = net(region) - leaderNet;
+
+        const row = document.createElement('li');
+        row.className = 'compare-chart-row';
+        row.innerHTML = `
+            <span class="compare-chart-name">${escapeHtml(name)}</span>
+            <span class="compare-chart-track" aria-hidden="true"></span>
+            <span class="compare-chart-value">${formatIntlCurrency(net(region), baseCurrency)}</span>
+            <span class="compare-chart-gap">${index === 0 ? 'Highest' : escapeHtml(formatIntlCurrency(gap, baseCurrency).replace('-', '−'))}</span>
+        `;
+        const track = row.querySelector('.compare-chart-track');
+        const netSeg = document.createElement('span');
+        netSeg.className = 'split-seg split-seg--net';
+        netSeg.style.width = `${(Math.max(net(region), 0) / maxGross) * 100}%`;
+        const taxSeg = document.createElement('span');
+        taxSeg.className = 'split-seg split-seg--tax';
+        taxSeg.style.width = `${(Math.max(tax(region), 0) / maxGross) * 100}%`;
+        track.append(netSeg, taxSeg);
+        list.appendChild(row);
+    });
+    chart.appendChild(list);
+
+    const key = document.createElement('p');
+    key.className = 'compare-chart-key';
+    key.innerHTML = '<span class="split-swatch split-seg--net"></span>Take-home <span class="split-swatch split-seg--tax"></span>Tax and contributions';
+    chart.appendChild(key);
+}
+
 function showError(errorData) {
     const errorMessage = document.getElementById('error-message');
 
@@ -1636,6 +1703,7 @@ function showError(errorData) {
 
     errorMessage.textContent = message;
     errorSection.hidden = false;
+    errorSection.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
 }
 
 function hideError() {
@@ -1677,6 +1745,15 @@ function formatCurrency(amount) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(amount);
+}
+
+function formatCurrencyWhole(amount) {
+    const value = parseFloat(amount);
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0
+    }).format(Number.isFinite(value) ? value : 0);
 }
 
 function formatPercent(rate) {
@@ -1751,20 +1828,69 @@ function updateSummaryCard(summary) {
     const netIncomeEl = document.getElementById('net-income-display');
 
     const statutoryDeductions = summary.total_modelled_deductions ?? summary.total_statutory_deductions ?? summary.total_tax;
-    if (totalTaxEl) totalTaxEl.textContent = formatCurrency(statutoryDeductions);
+    const netIncome = summary.net_income ?? (summary.total_income - statutoryDeductions);
+    if (totalTaxEl) totalTaxEl.textContent = formatCurrencyWhole(statutoryDeductions);
     if (effectiveRateEl) effectiveRateEl.textContent = formatPercent(summary.statutory_effective_rate ?? summary.effective_rate);
     if (marginalRateEl) marginalRateEl.textContent = formatPercent(summary.marginal_rate);
-    if (netIncomeEl) {
-        const netIncome = summary.net_income ?? (summary.total_income - statutoryDeductions);
-        netIncomeEl.textContent = formatCurrency(netIncome);
+    if (netIncomeEl) netIncomeEl.textContent = formatCurrencyWhole(netIncome);
+
+    const monthlyEl = document.getElementById('net-monthly-display');
+    if (monthlyEl) {
+        const net = parseFloat(netIncome);
+        monthlyEl.textContent = Number.isFinite(net) ? `About ${formatCurrencyWhole(net / 12)} a month` : '';
     }
 
     const badgeEl = document.getElementById('tax-status-badge');
     if (badgeEl) {
         const isNetCredit = statutoryDeductions < 0;
-        badgeEl.textContent = isNetCredit ? 'Net Modelled Credit' : 'Modelled Taxes + Contributions';
+        badgeEl.textContent = isNetCredit ? 'Net modelled credit' : 'Tax and contributions';
         badgeEl.className = 'summary-card-badge ' + (isNetCredit ? 'refund' : 'owed');
     }
+
+    renderSplitBar(summary, netIncome);
+}
+
+/**
+ * Draw the "where your income goes" bar and legend from the summary totals.
+ * Hidden when any component is negative (net credits) or totals are missing.
+ */
+function renderSplitBar(summary, netIncome) {
+    const bar = document.getElementById('summary-split-bar');
+    const legend = document.getElementById('summary-split-legend');
+    if (!bar || !legend) return;
+
+    const value = v => parseFloat(v) || 0;
+    const parts = [
+        { key: 'net', label: 'Take-home', amount: value(netIncome) },
+        { key: 'federal', label: 'Federal', amount: value(summary.total_federal_tax) },
+        { key: 'payroll', label: 'FICA', amount: value(summary.total_fica_tax ?? summary.employee_payroll_tax) },
+        { key: 'state', label: 'State', amount: value(summary.total_state_tax) },
+        { key: 'local', label: 'Local', amount: value(summary.total_local_tax) },
+    ];
+    const total = parts.reduce((sum, part) => sum + part.amount, 0);
+    const hasTaxParts = parts.slice(1).some(part => part.amount !== 0);
+    const usable = total > 0 && hasTaxParts && parts.every(part => part.amount >= 0);
+
+    bar.innerHTML = '';
+    legend.innerHTML = '';
+    bar.hidden = !usable;
+    legend.hidden = !usable;
+    if (!usable) return;
+
+    // Taxes first, take-home last, so the bar reads left to right like a payslip.
+    [...parts.slice(1), parts[0]].forEach(part => {
+        if (part.amount <= 0) return;
+        const seg = document.createElement('span');
+        seg.className = `split-seg split-seg--${part.key}`;
+        seg.style.width = `${(part.amount / total) * 100}%`;
+        bar.appendChild(seg);
+    });
+    parts.forEach(part => {
+        if (part.amount <= 0) return;
+        const item = document.createElement('li');
+        item.innerHTML = `<span class="split-swatch split-seg--${part.key}"></span>${escapeHtml(part.label)} <strong>${formatCurrencyWhole(part.amount)}</strong>`;
+        legend.appendChild(item);
+    });
 }
 
 /**
@@ -2737,7 +2863,7 @@ function updateIntlSummaryCard(result) {
     const netIncomeEl = document.getElementById('intl-net-income-display');
 
     if (totalTaxEl) totalTaxEl.textContent = formatIntlCurrency(result.total_tax, currency);
-    if (taxLabelEl) taxLabelEl.textContent = `Total Tax Liability (${currency})`;
+    if (taxLabelEl) taxLabelEl.textContent = `Total tax (${currency})`;
     if (effectiveRateEl) effectiveRateEl.textContent = formatPercent(result.effective_rate);
     if (marginalRateEl) {
         if (result.marginal_rate) {

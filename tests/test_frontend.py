@@ -17,7 +17,7 @@ class TestFrontendServing:
         response = client.get("/")
         assert response.status_code == 200
         assert "text/html" in response.headers.get("content-type", "")
-        assert "TaxEstimate" in response.text
+        assert "myTaxPal" in response.text
 
     def test_index_html_contains_form(self, client):
         """Test that index.html contains the tax form."""
@@ -185,7 +185,7 @@ class TestFrontendContent:
         response = client.get("/")
         assert response.status_code == 200
         assert "<title>" in response.text
-        assert "TaxEstimate" in response.text
+        assert "<title>myTaxPal" in response.text
 
     def test_html_has_header(self, client):
         """Test that the HTML has a header section."""

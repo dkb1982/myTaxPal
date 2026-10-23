@@ -117,7 +117,7 @@ class TestHealthEndpoints:
         content_type = response.headers.get("content-type", "")
         if "text/html" in content_type:
             # Frontend is enabled - verify it serves HTML
-            assert "TaxEstimate" in response.text
+            assert "myTaxPal" in response.text
             # API info should be available at /api
             api_response = client.get("/api")
             assert api_response.status_code == 200
