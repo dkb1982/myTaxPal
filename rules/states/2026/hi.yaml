@@ -1,0 +1,141 @@
+# Hawaii individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-HI"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Hawaii"
+jurisdiction_abbreviation: "HI"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "HI-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 9600
+      rate: 0.014
+      base_tax: 0
+    - bracket_id: "HI-2026-S-2"
+      filing_status: "single"
+      income_from: 9600
+      income_to: 14400
+      rate: 0.032
+      base_tax: 134
+    - bracket_id: "HI-2026-S-3"
+      filing_status: "single"
+      income_from: 14400
+      income_to: 19200
+      rate: 0.055
+      base_tax: 288
+    - bracket_id: "HI-2026-S-4"
+      filing_status: "single"
+      income_from: 19200
+      income_to: 24000
+      rate: 0.064
+      base_tax: 552
+    - bracket_id: "HI-2026-S-5"
+      filing_status: "single"
+      income_from: 24000
+      income_to: 36000
+      rate: 0.068
+      base_tax: 859
+    - bracket_id: "HI-2026-S-6"
+      filing_status: "single"
+      income_from: 36000
+      income_to: 48000
+      rate: 0.072
+      base_tax: 1675
+    - bracket_id: "HI-2026-S-7"
+      filing_status: "single"
+      income_from: 48000
+      income_to: 125000
+      rate: 0.076
+      base_tax: 2539
+    - bracket_id: "HI-2026-S-8"
+      filing_status: "single"
+      income_from: 125000
+      income_to: 175000
+      rate: 0.079
+      base_tax: 8391
+    - bracket_id: "HI-2026-S-9"
+      filing_status: "single"
+      income_from: 175000
+      income_to: 225000
+      rate: 0.0825
+      base_tax: 12341
+    - bracket_id: "HI-2026-S-10"
+      filing_status: "single"
+      income_from: 225000
+      income_to: 275000
+      rate: 0.09
+      base_tax: 16466
+    - bracket_id: "HI-2026-S-11"
+      filing_status: "single"
+      income_from: 275000
+      income_to: 325000
+      rate: 0.1
+      base_tax: 20966
+    - bracket_id: "HI-2026-S-12"
+      filing_status: "single"
+      income_from: 325000
+      income_to: null
+      rate: 0.11
+      base_tax: 25966
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 8000
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 1144
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Hawaii 2026 brackets are the same as 2025 (Act 46, SLH 2024); Act 24, SLH 2026 changes brackets only from 2027."
+    - "2026 single standard deduction $8,000 (Act 46, SLH 2024); personal exemption $1,144."
+    - "Capital gains alternative tax 7.25% (HRS 235-51(f)) with a $48,000 single floor."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 2)"
+  notes: "Hawaii DOTAX Announcements 2024-03, 2025-07 and 2026-06."
+
+references:
+  - source_name: "Hawaii DOTAX Announcement No. 2024-03 (Act 46, SLH 2024)"
+    url: "https://files.hawaii.gov/tax/news/announce/ann24-03.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Tax year 2026: single standard deduction $8,000; brackets the same as tax year 2025 (single schedule reproduced)."
+  - source_name: "Hawaii DOTAX Announcement No. 2025-07"
+    url: "https://files.hawaii.gov/tax/news/announce/ann25-07.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Confirms Act 46 increases the standard deduction for tax year 2026; 2026 withholding tables adopted."
+  - source_name: "Hawaii DOTAX Announcement No. 2026-06 (2026 legislative session)"
+    url: "https://files.hawaii.gov/tax/news/announce/ann26-06.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Act 24 bracket changes apply to 2027 and 2029; Act 35 conforms to the IRC as of Dec 31 2025 for taxable years after Dec 31 2025."
+  - source_name: "Hawaii 2025 Form N-11 instructions"
+    url: "https://files.hawaii.gov/tax/forms/current/n11ins.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Personal exemption, capital gains worksheet, EITC and food/excise credit mechanics (2025 baseline)."

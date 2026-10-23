@@ -2,7 +2,8 @@
 
 from pathlib import Path
 
-from tax_estimator.calculation.coverage import enabled_us_states
+from tax_estimator.calculation.comparison_regions import get_city_for_local_jurisdiction
+from tax_estimator.calculation.coverage import enabled_us_cities, enabled_us_states
 from tax_estimator.models.tax_input import TaxInput
 
 SUPPORTED_2026_US_STATES = enabled_us_states(2026)
@@ -49,7 +50,9 @@ def baseline_profile_reasons(
         if state_code not in enabled_us_states(2026, rules_root=rules_root):
             reasons.append(f"tax year 2026 is not supported for state {state_code}")
         if tax_input.local_jurisdiction_id:
-            reasons.append("local income-tax jurisdictions are not supported for tax year 2026")
+            city = get_city_for_local_jurisdiction(tax_input.local_jurisdiction_id)
+            if city is None or city.region_id not in enabled_us_cities(2026, rules_root=rules_root):
+                reasons.append("this local income-tax jurisdiction is not supported for tax year 2026")
     elif tax_input.tax_year != 2025:
         reasons.append("the source-checked US profile supports only tax years 2025 and 2026")
     if tax_input.filing_status.value != "single":

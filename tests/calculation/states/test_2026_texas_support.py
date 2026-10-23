@@ -63,16 +63,22 @@ def _tax_input(state: str = "TX", **changes) -> TaxInput:
 
 
 def test_2026_registry_matches_loadable_state_matrix() -> None:
-    loader = StateRulesLoader()
+    from tax_estimator.calculation.states.policies_2026 import PENDING_2026, POLICIES_2026
 
-    assert SUPPORTED_2026_US_STATES == frozenset(
-        {"AK", "FL", "NV", "NH", "SD", "TN", "TX", "WY"}
-    )
-    assert set(loader.list_available_states(2026)) == set(SUPPORTED_2026_US_STATES)
+    loader = StateRulesLoader()
+    available = set(loader.list_available_states(2026))
+
+    # Every public state has its rules on disk, and every taxed public state
+    # has a reviewed policy; a rules file alone never makes a state public.
+    assert {"AK", "FL", "NV", "NH", "SD", "TN", "TX", "WY"} <= SUPPORTED_2026_US_STATES
+    assert set(SUPPORTED_2026_US_STATES) <= available
     for state in SUPPORTED_2026_US_STATES:
         rules = loader.load_state_rules(state, 2026)
         assert rules.tax_year == 2026
         assert rules.state_code == state
+        if rules.has_income_tax:
+            assert state in POLICIES_2026
+    assert not set(SUPPORTED_2026_US_STATES) & set(PENDING_2026)
 
 
 def test_state_loader_uses_year_directory_without_2025_fallback() -> None:
@@ -84,7 +90,7 @@ def test_state_loader_uses_year_directory_without_2025_fallback() -> None:
     assert loader.load_state_rules("TX", 2025).tax_year == 2025
     assert loader.load_state_rules("TX", 2026).tax_year == 2026
     with pytest.raises(StateRulesLoaderError, match="Unsupported tax year 2026"):
-        loader.load_state_rules("CA", 2026)
+        loader.load_state_rules("ZZ", 2026)
 
 
 def test_2026_texas_uses_explicit_no_income_tax_policy() -> None:
@@ -98,7 +104,13 @@ def test_2026_texas_uses_explicit_no_income_tax_policy() -> None:
     assert any("2026 Texas result" in item for item in result.assumptions)
 
 
-def test_2026_state_calculation_rejects_unregistered_state_before_fallback() -> None:
+def test_2026_state_calculation_rejects_unregistered_state_before_fallback(monkeypatch) -> None:
+    # CA has rules and a policy on disk; it must still be rejected when the
+    # coverage registry does not list it.
+    monkeypatch.setattr(
+        "tax_estimator.calculation.states.calculator.enabled_us_states",
+        lambda *args, **kwargs: frozenset({"TX"}),
+    )
     with pytest.raises(StateCalculationError, match="not supported for CA"):
         StateCalculator().calculate(_state_input("CA"))
 
@@ -124,33 +136,42 @@ def test_2026_texas_rejects_profiles_outside_reviewed_baseline(changes, match) -
         StateCalculator().calculate(_state_input(**changes))
 
 
-def test_baseline_registry_rejects_unsupported_2026_state_and_local() -> None:
+def test_baseline_registry_rejects_unsupported_2026_state_and_local(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "tax_estimator.calculation.us_profile.enabled_us_states",
+        lambda *args, **kwargs: frozenset({"TX"}),
+    )
     assert baseline_profile_reasons(_tax_input()) == ()
     assert any(
         "not supported for state CA" in reason
         for reason in baseline_profile_reasons(_tax_input("CA"))
     )
     assert any(
-        "local income-tax jurisdictions are not supported" in reason
+        "local income-tax jurisdiction is not supported" in reason
         for reason in baseline_profile_reasons(
             _tax_input(local_jurisdiction_id="US-TX-FAKE")
         )
     )
 
 
-def test_local_loader_is_year_scoped_and_2026_has_no_coverage() -> None:
+def test_local_loader_is_year_scoped_without_2025_fallback() -> None:
     loader = LocalRulesLoader()
 
     assert loader.get_rules_file_path("US-NY-NYC", 2025).parent == loader.rules_dir
     assert loader.get_rules_file_path("US-NY-NYC", 2026).parent.name == "2026"
     assert "US-NY-NYC" in loader.list_available_jurisdictions(2025)
-    assert loader.list_available_jurisdictions(2026) == []
+    assert loader.load_local_rules("US-NY-NYC", 2026).tax_year == 2026
     assert loader.get_jurisdictions_for_state("TX", 2026) == []
+    # Newark has 2025 rules but no 2026 file; it must not fall back to 2025.
     with pytest.raises(LocalRulesLoaderError, match="Unsupported tax year 2026"):
-        loader.load_local_rules("US-NY-NYC", 2026)
+        loader.load_local_rules("US-NJ-NEW", 2026)
 
 
-def test_selected_2026_local_never_enters_2025_policy_or_generic_fallback() -> None:
+def test_selected_2026_local_never_enters_2025_policy_or_generic_fallback(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "tax_estimator.calculation.locals.calculator.enabled_us_cities",
+        lambda *args, **kwargs: frozenset(),
+    )
     tax_input = LocalTaxInput(
         jurisdiction_id="US-NY-NYC",
         tax_year=2026,

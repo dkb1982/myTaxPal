@@ -1,0 +1,104 @@
+# Connecticut individual income-tax rule for the narrow 2026 US estimator profile
+# (single, age 40, full-year resident, W-2 wages, dividends and capital gains).
+# Brackets are CT-1040ES 2026 Table B (single). The policy
+# (policies_2026_g1._ct) applies Table A (personal exemption), Table C (2%
+# phase-out add-back), Table D (recapture) and Table E (personal tax credit).
+
+jurisdiction_id: "US-CT"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Connecticut"
+jurisdiction_abbreviation: "CT"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "CT-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 10000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "CT-2026-S-2"
+      filing_status: "single"
+      income_from: 10000
+      income_to: 50000
+      rate: 0.045
+      base_tax: 200
+    - bracket_id: "CT-2026-S-3"
+      filing_status: "single"
+      income_from: 50000
+      income_to: 100000
+      rate: 0.055
+      base_tax: 2000
+    - bracket_id: "CT-2026-S-4"
+      filing_status: "single"
+      income_from: 100000
+      income_to: 200000
+      rate: 0.06
+      base_tax: 4750
+    - bracket_id: "CT-2026-S-5"
+      filing_status: "single"
+      income_from: 200000
+      income_to: 250000
+      rate: 0.065
+      base_tax: 10750
+    - bracket_id: "CT-2026-S-6"
+      filing_status: "single"
+      income_from: 250000
+      income_to: 500000
+      rate: 0.069
+      base_tax: 14000
+    - bracket_id: "CT-2026-S-7"
+      filing_status: "single"
+      income_from: 500000
+      income_to: null
+      rate: 0.0699
+      base_tax: 31250
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    # Table A: $15,000 single exemption, reduced $1,000 per $1,000 of AGI over $30,000.
+    personal_exemption_available: true
+    personal_exemption_amount: 15000
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Connecticut 2026 single rates run from 2% to 6.99% (CT-1040ES 2026 Table B)."
+    - "Connecticut recaptures the benefit of lower brackets above $56,500 and $105,000 of AGI (single) and phases out the personal exemption and personal tax credit."
+
+verification:
+  status: "source_checked_limited_scenarios"
+  last_verified: "2026-10-23"
+  verified_by: "source review (agent); not professional sign-off"
+  notes: "All 2026 single-filer amounts taken from DRS Form CT-1040ES (Rev. 01/26) Tables A-E; identical to 2025. No 2026 enacted rate or surcharge change found (2026 capital-gains surcharge and top-rate bills were proposals only). EITC 40% of federal (CGS 12-704e)."
+
+references:
+  - source_name: "Connecticut DRS, 2026 Form CT-1040ES (Rev. 01/26), Tables A-E"
+    url: "https://portal.ct.gov/-/media/drs/forms/2025/income/ct1040es-flat0126.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 taxable-year personal exemptions, initial tax calculation, 2% phase-out add-back, tax recapture and personal tax credits."
+  - source_name: "Connecticut DRS, 2025 Form CT-1040 instructions"
+    url: "https://portal.ct.gov/-/media/drs/forms/2025/income/2025-ct-1040-instructions_1225.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Tax Calculation Schedule structure; Connecticut EITC 40% of federal EIC."

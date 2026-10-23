@@ -1,0 +1,41 @@
+# =============================================================================
+# Yonkers - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-NY-YNK"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "Yonkers"
+parent_jurisdiction_id: "US-NY"
+parent_state: "NY"
+has_income_tax: true
+tax_type: "resident_surcharge"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+rate_schedule:
+  rate_type: "mixed"
+  tax_base: "state_tax"
+  resident_surcharge:
+    base: "state_tax"
+    rate: 0.1675
+local_config:
+  special_notes:
+    - "Resident income tax surcharge = 16.75% of NY State tax after nonrefundable credits (IT-201 line 55 basis), before refundable credits."
+    - "Consumes NY tax before credits + supplemental tax (recapture) - household credit from the 2026 NY state result."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 resident surcharge cases only."
+references:
+  - evidence_id: "YNK-2026-SRC-1"
+    source_name: "NYS IT-2105-I (2026) estimated tax instructions"
+    url: "https://www.tax.ny.gov/pdf/current_forms/it/it2105i.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Line 22a: the current rate for Yonkers is 16.75% (.1675) of the NY State amount."
+  - evidence_id: "YNK-2026-SRC-2"
+    source_name: "NYS IT-201-I (2025) Yonkers resident surcharge worksheet"
+    url: "https://www.tax.ny.gov/pdf/current_forms/it/it201i.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Surcharge base is NY tax after nonrefundable credits."

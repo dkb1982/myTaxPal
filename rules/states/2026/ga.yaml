@@ -1,0 +1,65 @@
+# Georgia individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-GA"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Georgia"
+jurisdiction_abbreviation: "GA"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0499
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 15000
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Georgia 2026 flat rate 4.99% (O.C.G.A. 48-7-20(a.1) as amended by HB 463, 2026)."
+    - "2026 standard deduction $15,000 single (O.C.G.A. 48-7-27(a)(1)(B)(ii), HB 463)."
+    - "Further 0.125-point annual cuts begin no earlier than 2027 and are subject to revenue triggers."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 2)"
+  notes: "Enacted HB 463 (2026) text and Georgia DOR Important Tax Updates."
+
+references:
+  - source_name: "Georgia HB 463 (2026), as passed House and Senate, signed 2026-05-11"
+    url: "https://gov.georgia.gov/document/2026-signed-legislation/hb-463/download"
+    retrieved_date: "2026-10-23"
+    notes: "Sec. 2-1: 4.99% for taxable years beginning on or after Jan 1 2026; Sec. 2-3: single standard deduction $15,000; Sec. 5-1: applies to taxable years beginning on or after Jan 1 2026."
+  - source_name: "Georgia DOR, Important Tax Updates"
+    url: "https://dor.georgia.gov/taxes/important-tax-updates"
+    retrieved_date: "2026-10-23"
+    notes: "Rate reduced to a flat 4.99%; standard deduction $15,000 single; Georgia did not conform to the OBBBA tips/overtime exclusions."
+  - source_name: "Office of the Governor press release 2026-05-11"
+    url: "https://gov.georgia.gov/press-releases/2026-05-11/gov-kemp-signs-legislation-lowering-taxes-and-supporting-economic-growth"
+    retrieved_date: "2026-10-23"
+    notes: "HB 463 lowers the rate from 5.19% to 4.99% beginning January 1, 2026."

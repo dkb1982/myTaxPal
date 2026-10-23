@@ -1,0 +1,98 @@
+# Minnesota individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-MN"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Minnesota"
+jurisdiction_abbreviation: "MN"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "MN-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 33310
+      rate: 0.0535
+      base_tax: 0
+    - bracket_id: "MN-2026-S-2"
+      filing_status: "single"
+      income_from: 33310
+      income_to: 109430
+      rate: 0.068
+      base_tax: 1782.085
+    - bracket_id: "MN-2026-S-3"
+      filing_status: "single"
+      income_from: 109430
+      income_to: 203150
+      rate: 0.0785
+      base_tax: 6958.245
+    - bracket_id: "MN-2026-S-4"
+      filing_status: "single"
+      income_from: 203150
+      income_to: null
+      rate: 0.0985
+      base_tax: 14315.265
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 15300
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "2026 single brackets and $15,300 standard deduction from the DOR Tax Year 2026 Inflation-Adjusted Amounts."
+    - "Standard deduction reduced 3% of AGI over $244,400 (to $337,800) plus 10% above $337,800, capped at 80%; 80% above $1,107,750."
+    - "1% tax on net investment income over $1,000,000 (Minn. Stat. 290.033)."
+    - "Laws 2026 ch. 128 updated IRC conformity to May 1 2026; rates and brackets unchanged."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 3)"
+  notes: "All indexed amounts from DOR Tax Year 2026 Inflation-Adjusted Amounts (Dec 2025); statute text from the Revisor."
+
+references:
+  - source_name: "MN DOR Tax Year 2026 Inflation-Adjusted Amounts"
+    url: "https://www.revenue.state.mn.us/sites/default/files/2025-12/inflation-adjusted-amounts-2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Single brackets 33,310/109,430/203,150; std deduction 15,300; limitation 244,400/337,800/1,107,750; WFC earned income 9,690; phase-out threshold 32,680."
+  - source_name: "MN DOR press release Dec 16 2025"
+    url: "https://www.revenue.state.mn.us/press-release/2025-12-16/minnesota-income-tax-brackets-standard-deduction-and-dependent-exemption"
+    retrieved_date: "2026-10-23"
+    notes: "2026 brackets, standard deduction and dependent exemption."
+  - source_name: "Minn. Stat. 290.0123"
+    url: "https://www.revisor.mn.gov/statutes/cite/290.0123"
+    retrieved_date: "2026-10-23"
+    notes: "Standard deduction and limitation formula (3%/10%, 80% cap)."
+  - source_name: "Minn. Stat. 290.033 and Laws 2026 ch. 128 art. 1 s. 21"
+    url: "https://www.revisor.mn.gov/laws/2026/0/128/"
+    retrieved_date: "2026-10-23"
+    notes: "1% NIIT on net investment income over $1,000,000; 2026 law adds opportunity-zone adjustment only; IRC conformity to May 1 2026."
+  - source_name: "Minn. Stat. 290.0671 and 290.0661 subd. 4"
+    url: "https://www.revisor.mn.gov/statutes/cite/290.0671"
+    retrieved_date: "2026-10-23"
+    notes: "WFC 4% of earned income; joint phaseout 12% of the greater of earned income or AGI over the threshold; refundable."

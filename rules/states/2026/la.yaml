@@ -1,0 +1,65 @@
+# Louisiana individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-LA"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Louisiana"
+jurisdiction_abbreviation: "LA"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.03
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 12838
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Louisiana 2026 flat rate is 3% of net income (La. R.S. 47:32(A))."
+    - "2026 standard deduction $12,838 single (R.S. 47:294 inflation adjustment, LDR RIB 26-019)."
+    - "Louisiana earned income credit is 5% of the federal EIC and refundable (R.S. 47:297.8)."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 3)"
+  notes: "Rate from current R.S. 47:32; 2026 standard deduction from LDR Revenue Information Bulletin 26-019 (Sept 28 2026)."
+
+references:
+  - source_name: "La. R.S. 47:32"
+    url: "https://www.legis.la.gov/legis/Law.aspx?d=101946"
+    retrieved_date: "2026-10-23"
+    notes: "Individual tax computed at three percent on net income (Acts 2024, 3rd Ex. Sess., No. 11)."
+  - source_name: "LDR Revenue Information Bulletin 26-019"
+    url: "https://dam.ldr.la.gov/lawspolicies/RIB%2026-019.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 standard deduction: single/MFS $12,838; MFJ/HOH/QSS $25,676 (2025 amounts x 2.7% CPI-U)."
+  - source_name: "La. R.S. 47:297.8"
+    url: "https://www.legis.la.gov/legis/Law.aspx?d=453085"
+    retrieved_date: "2026-10-23"
+    notes: "EIC = 5% of federal EIC for tax years 2019 through 2030; excess refundable."

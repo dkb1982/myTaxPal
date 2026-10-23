@@ -1,0 +1,95 @@
+# Maine individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-ME"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Maine"
+jurisdiction_abbreviation: "ME"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "ME-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 27400
+      rate: 0.058
+      base_tax: 0
+    - bracket_id: "ME-2026-S-2"
+      filing_status: "single"
+      income_from: 27400
+      income_to: 64850
+      rate: 0.0675
+      base_tax: 1589
+    - bracket_id: "ME-2026-S-3"
+      filing_status: "single"
+      income_from: 64850
+      income_to: null
+      rate: 0.0715
+      base_tax: 4117
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 15700
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 5300
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "2026 rate schedule, standard deduction $15,700 and personal exemption $5,300 from MRS 2026 Individual Income Tax Rates (revised May 20 2026)."
+    - "2% surcharge on Maine taxable income over $1,000,000 for single filers from 2026 (36 M.R.S. 5111(7))."
+    - "Standard deduction and exemption phase-out thresholds are computed from statute with the MRS 1.279 COLA (provisional)."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 3)"
+  notes: "Brackets, deduction, exemption and surcharge from MRS 2026 rate schedule (rev. May 20 2026) and current 36 M.R.S. text."
+
+references:
+  - source_name: "MRS 2026 Individual Income Tax Rates (revised)"
+    url: "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/2026-05/ind_tax_rate_sched_2026_rev.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Single schedule <27,400 5.8%; 1,589 + 6.75% to 64,850; 4,117 + 7.15%. Std deduction 15,700; exemption 5,300; COLAs 1.303/1.298/1.279; 2% surcharge note."
+  - source_name: "36 M.R.S. 5124-C"
+    url: "https://legislature.maine.gov/statutes/36/title36sec5124-C.html"
+    retrieved_date: "2026-10-23"
+    notes: "Sub-1-C: 2026 basic standard deduction $15,700 (PL 2025 c. 650 Pt. K); sub-2 phase-out: (AGI - $80,000 indexed)/$75,000."
+  - source_name: "36 M.R.S. 5126-A"
+    url: "https://legislature.maine.gov/statutes/36/title36sec5126-A.html"
+    retrieved_date: "2026-10-23"
+    notes: "Personal exemption phase-out: (AGI - $266,700 indexed)/$125,000."
+  - source_name: "36 M.R.S. 5403"
+    url: "https://legislature.maine.gov/statutes/36/title36sec5403.html"
+    retrieved_date: "2026-10-23"
+    notes: "Sub-4 and sub-8 use the June-2017-base chained CPI COLA; amounts rounded down to $50."
+  - source_name: "36 M.R.S. 5111"
+    url: "https://legislature.maine.gov/statutes/36/title36sec5111.html"
+    retrieved_date: "2026-10-23"
+    notes: "Sub-7: 2% surcharge above $1,000,000 (single) for tax years beginning on or after Jan 1 2026."
+  - source_name: "36 M.R.S. 5219-S"
+    url: "https://legislature.maine.gov/statutes/36/title36sec5219-S.html"
+    retrieved_date: "2026-10-23"
+    notes: "EIC 50% of federal EIC for no qualifying child (2022+); refundable."

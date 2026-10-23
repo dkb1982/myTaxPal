@@ -1,0 +1,142 @@
+# Maryland STATE individual income-tax rule for the narrow 2026 US estimator profile (single filer). County tax is separate.
+
+jurisdiction_id: "US-MD"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Maryland"
+jurisdiction_abbreviation: "MD"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "MD-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 1000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "MD-2026-S-2"
+      filing_status: "single"
+      income_from: 1000
+      income_to: 2000
+      rate: 0.03
+      base_tax: 20
+    - bracket_id: "MD-2026-S-3"
+      filing_status: "single"
+      income_from: 2000
+      income_to: 3000
+      rate: 0.04
+      base_tax: 50
+    - bracket_id: "MD-2026-S-4"
+      filing_status: "single"
+      income_from: 3000
+      income_to: 100000
+      rate: 0.0475
+      base_tax: 90
+    - bracket_id: "MD-2026-S-5"
+      filing_status: "single"
+      income_from: 100000
+      income_to: 125000
+      rate: 0.05
+      base_tax: 4697.50
+    - bracket_id: "MD-2026-S-6"
+      filing_status: "single"
+      income_from: 125000
+      income_to: 150000
+      rate: 0.0525
+      base_tax: 5947.50
+    - bracket_id: "MD-2026-S-7"
+      filing_status: "single"
+      income_from: 150000
+      income_to: 250000
+      rate: 0.055
+      base_tax: 7260
+    - bracket_id: "MD-2026-S-8"
+      filing_status: "single"
+      income_from: 250000
+      income_to: 500000
+      rate: 0.0575
+      base_tax: 12760
+    - bracket_id: "MD-2026-S-9"
+      filing_status: "single"
+      income_from: 500000
+      income_to: 1000000
+      rate: 0.0625
+      base_tax: 27135
+    - bracket_id: "MD-2026-S-10"
+      filing_status: "single"
+      income_from: 1000000
+      income_to: null
+      rate: 0.065
+      base_tax: 58385
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 3400
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 3200
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "State rates per Tax-General 10-105(a)(1) (2025 BRFA brackets 6.25%/6.5%)."
+    - "Additional 2% of net capital gain when federal AGI exceeds $350,000 (10-105(a)(3)-(4))."
+    - "2026 standard deduction $3,400 computed from 10-217(c) (provisional; matches 2026 withholding guide)."
+    - "County/local income tax is computed separately and is not part of this state result."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 3)"
+  notes: "Statute text current through the 2026 session (mgaleg.maryland.gov); standard deduction computed under 10-217(c) and matched to the Comptroller 2026 withholding guide."
+
+references:
+  - source_name: "Md. Tax-General 10-105"
+    url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-105&enactments=false"
+    retrieved_date: "2026-10-23"
+    notes: "Single brackets 2% ... 6.25% (500,001-1,000,000), 6.5% over 1,000,000; 2% net capital gain tax above $350,000 FAGI."
+  - source_name: "Md. Tax-General 10-217"
+    url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-217&enactments=false"
+    retrieved_date: "2026-10-23"
+    notes: "Standard deduction $3,350 indexed after 2025 by the 2024-base IRC 1(f)(3) COLA, rounded down to $50."
+  - source_name: "Comptroller 2026 Employer Withholding Guide"
+    url: "https://www.marylandcomptroller.gov/content/dam/mdcomp/tax/instructions/withholding/2026/withholding-guide.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Standard deduction for the 2026 percentage method is $3,400; exemption $3,200."
+  - source_name: "Md. Tax-General 10-211"
+    url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-211&enactments=false"
+    retrieved_date: "2026-10-23"
+    notes: "Exemption $3,200 limited to $1,600/$800/$0 above $100,000/$125,000/$150,000 FAGI."
+  - source_name: "Md. Tax-General 10-704"
+    url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-704&enactments=false"
+    retrieved_date: "2026-10-23"
+    notes: "No-qualifying-child EIC = 100% of federal EIC; excess refundable."
+  - source_name: "Md. Tax-General 10-709"
+    url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-709&enactments=false"
+    retrieved_date: "2026-10-23"
+    notes: "Poverty-level credit: HHS guideline available July 1 of the taxable year; 5% of earned income."
+  - source_name: "BLS C-CPI-U SUUR0000SA0"
+    url: "https://api.bls.gov/publicAPI/v2/timeseries/data/SUUR0000SA0"
+    retrieved_date: "2026-10-23"
+    notes: "Sep 2024-Aug 2025 vs Sep 2023-Aug 2024 change ~2.4%; 3,350 x 2.4% = 81, rounded down to 50."

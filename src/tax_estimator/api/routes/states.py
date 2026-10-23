@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 
 from tax_estimator.api.dependencies import SettingsDep
 from tax_estimator.api.errors import NotFoundError
+from tax_estimator.calculation.coverage import enabled_us_states
 from tax_estimator.calculation.locals.loader import LocalRulesLoader
 from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
 from tax_estimator.calculation.states.loader import StateRulesLoader, StateRulesLoaderError
@@ -152,6 +153,8 @@ class StateDataProvider:
         summaries = []
 
         for state_code in self._loader.list_available_states():
+            if not self._published(state_code, tax_year):
+                continue
             try:
                 rules = self._loader.load_state_rules(state_code, tax_year)
 
@@ -186,8 +189,18 @@ class StateDataProvider:
         summaries.sort(key=lambda s: s.code)
         return summaries
 
+    def _published(self, state_code: str, tax_year: int) -> bool:
+        """2026 rules are public only when the coverage registry enables the state."""
+        if tax_year == 2025:
+            return True
+        return state_code.upper() in enabled_us_states(
+            tax_year, rules_root=self._loader.rules_dir.parent
+        )
+
     def get_state_detail(self, state_code: str, tax_year: int = 2025) -> StateDetailResponse:
         """Get detailed info for a state."""
+        if not self._published(state_code, tax_year):
+            raise NotFoundError("State", state_code)
         try:
             rules = self._loader.load_state_rules(state_code.upper(), tax_year)
         except StateRulesLoaderError:

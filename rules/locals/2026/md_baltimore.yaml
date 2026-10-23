@@ -1,0 +1,58 @@
+# =============================================================================
+# Baltimore City - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-MD-BAL"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "Baltimore City"
+parent_jurisdiction_id: "US-MD"
+parent_state: "MD"
+has_income_tax: true
+tax_type: "county_piggyback"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+policy_2025:  # loader key name; values are 2026
+  poverty_income_guideline: 15960
+rate_schedule:
+  rate_type: "piggyback"
+  tax_base: "state_taxable_income"
+  piggyback:
+    rate: 0.032
+local_config:
+  special_notes:
+    - "3.20% of Maryland taxable income (FAGI - $3,400 standard deduction - phased $3,200 exemption here)."
+    - "Local EIC = federal EIC x 10 x 3.20% capped at local tax (asserted EIC only), nonrefundable."
+    - "Local poverty credit: FAGI and earned income not over the 2026 HHS guideline ($15,960)."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 resident cases; consumes MD state taxable income."
+references:
+  - evidence_id: "BAL-2026-SRC-1"
+    source_name: "MD Comptroller Central Payroll Bureau, 2026 State and Local Withholding Information (Feb 4, 2026)"
+    url: "https://www.marylandcomptroller.gov/content/dam/mdcomp/md/state-payroll/memos/2026/2026-maryland-state-and-local-withholding-information.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Baltimore City (04) local rate 3.20 for 2026."
+  - evidence_id: "BAL-2026-SRC-2"
+    source_name: "MD DLS, Local Income Tax Rates in Maryland CY2022-CY2026"
+    url: "https://dls.maryland.gov/pubs/prod/NoPblTabPDF/2026CountyLocalTaxRates.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Baltimore City 3.20% in CY2026."
+  - evidence_id: "BAL-2026-SRC-3"
+    source_name: "MD Tax-General 10-704"
+    url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-704&enactments=false"
+    retrieved_date: "2026-10-23"
+    notes: "(d)(1) county EIC = federal EIC x 10 x county rate, capped at county tax."
+  - evidence_id: "BAL-2026-SRC-4"
+    source_name: "MD Tax-General 10-709"
+    url: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gtg&section=10-709&enactments=false"
+    retrieved_date: "2026-10-23"
+    notes: "(a) FAGI and earned income not exceeding HHS guideline available July 1; (d) county credit = county rate x earned income, capped."
+  - evidence_id: "HHS-2026-POVERTY"
+    source_name: "HHS ASPE 2026 poverty guidelines"
+    url: "https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines"
+    retrieved_date: "2026-10-23"
+    notes: "Household of one, 48 states/DC: $15,960."

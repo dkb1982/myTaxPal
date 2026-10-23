@@ -9,7 +9,7 @@ function element() {
   let text = '', html = '';
   const children = [], listeners = new Map();
   return {
-    hidden: true, disabled: false, className: '', style: {}, value: '', children,
+    hidden: true, disabled: false, className: '', style: {}, value: '', children, options: [],
     set textContent(value) { text = String(value); html = text.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); },
     get textContent() { return text; },
     set innerHTML(value) { html = String(value); children.length = 0; }, get innerHTML() { return html; },
@@ -175,4 +175,12 @@ assert.equal(elements.get('us-philly-first-half-wages').value, '');
 assert.equal(elements.get('us-philly-six-month-gains').value, '');
 const html = fs.readFileSync(path.join(__dirname, '../static/index.html'), 'utf8');
 for (const id of requestedIds) assert.ok(html.includes(`id="${id}"`), `Missing real form element: ${id}`);
+// 2026 Compare offers Philadelphia and Arizona, so their fact inputs stay visible;
+// only country profiles are hidden.
+vm.runInContext('updateSelectionCount = () => {}; updateChips = () => {};', context);
+document.getElementById('compare-tax-year').value = '2026';
+context.setComparisonYearMode();
+assert.notEqual(elements.get('compare-state-details')?.style.display, 'none');
+assert.notEqual(elements.get('compare-country-details')?.style.display, 'none');
+assert.equal(elements.get('compare-country-profiles').style.display, 'none');
 console.log('Frontend runtime contracts passed');

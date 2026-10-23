@@ -1,0 +1,84 @@
+# Arizona individual income-tax rule for the narrow 2026 US estimator profile
+# (single, age 40, full-year resident, W-2 wages, dividends and capital gains).
+# The policy (policies_2026_g1._az) also applies the A.R.S. 43-1022(22) 25%
+# subtraction for net long-term gain on assets acquired after 2011.
+
+jurisdiction_id: "US-AZ"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Arizona"
+jurisdiction_abbreviation: "AZ"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.025
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      # PROVISIONAL: A.R.S. 43-1041(A) base $15,750 adjusted under 43-1041(H) in the
+      # same manner as the federal basic standard deduction (Rev. Proc. 2025-32: $16,100).
+      - filing_status: "single"
+        amount: 16100
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  federal_conformity: "static"
+  federal_conformity_date: "2026-01-01"
+  special_notes:
+    - "Arizona 2026 flat rate is 2.5% of Arizona taxable income."
+    - "Arizona conforms to the Internal Revenue Code as in effect on January 1, 2026 (A.R.S. 43-105(A), HB 4168 of 2026)."
+    - "Arizona allows a 25% subtraction for net long-term capital gain from assets acquired after December 31, 2011."
+
+verification:
+  status: "source_checked_limited_scenarios"
+  last_verified: "2026-10-23"
+  verified_by: "source review (agent); not professional sign-off"
+  notes: "Rate 2.5% (ADOR 2026 Form 140-ES; A.R.S. 43-1011). Standard deduction computed from A.R.S. 43-1041 as amended by HB 4168 (signed 2026-06-13): $15,750 base indexed like the federal basic standard deduction; ADOR has not yet published the 2026 amount (its 2026 140-ES says to use the 2025 deduction), so the $16,100 figure is provisional."
+
+references:
+  - source_name: "Arizona Revised Statutes 43-1041 (optional standard deduction), current text"
+    url: "https://www.azleg.gov/ars/43/01041.htm"
+    retrieved_date: "2026-10-23"
+    notes: "Subsection A single $15,750; subsection H: adjust annually in the same manner as the federal basic standard deduction under IRC 63."
+  - source_name: "Arizona Revised Statutes 43-105 (IRC conformity), current text"
+    url: "https://www.azleg.gov/ars/43/00105.htm"
+    retrieved_date: "2026-10-23"
+    notes: "For taxable years after 2025, IRC as in effect January 1, 2026."
+  - source_name: "Arizona Legislature, HB 4168 (2026, taxation omnibus), House engrossed"
+    url: "https://www.azleg.gov/legtext/57leg/2R/bills/HB4168H.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Amends 43-105, 43-1022 and 43-1041 ($12,200 base replaced by $15,750)."
+  - source_name: "Arizona Revised Statutes 43-1022 (subtractions), current text"
+    url: "https://www.azleg.gov/ars/43/01022.htm"
+    retrieved_date: "2026-10-23"
+    notes: "Paragraph 22(c): 25% of net long-term capital gain from assets acquired after December 31, 2011."
+  - source_name: "Arizona Department of Revenue, 2026 Form 140-ES booklet"
+    url: "https://azdor.gov/sites/default/files/document/FORMS_INDIVIDUAL_2026_140ESBooklet.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "States the 2.5% rate for estimating 2026 liability (text seen via search index; the azdor.gov file blocked automated retrieval)."
+  - source_name: "IRS Revenue Procedure 2025-32"
+    url: "https://www.irs.gov/irb/2025-45_IRB"
+    retrieved_date: "2026-10-23"
+    notes: "2026 federal basic standard deduction for single filers $16,100 (input to A.R.S. 43-1041(H))."

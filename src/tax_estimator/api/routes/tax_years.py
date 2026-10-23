@@ -23,7 +23,7 @@ from tax_estimator.api.schemas import (
     TaxYearListResponse,
     TaxYearSummary,
 )
-from tax_estimator.calculation.coverage import enabled_us_states
+from tax_estimator.calculation.coverage import enabled_us_cities, enabled_us_states
 from tax_estimator.rules.loader import RulesLoadError, get_rules_for_jurisdiction
 
 router = APIRouter()
@@ -168,7 +168,7 @@ async def get_tax_year(
         # The legacy discovery loader scans a different state layout; coverage
         # is the explicit source-reviewed state registry, not file presence.
         state_count = len(enabled_us_states(2026, rules_root=settings.rules_dir))
-        local_count = 0
+        local_count = len(enabled_us_cities(2026, rules_root=settings.rules_dir))
 
     # Build key thresholds from rules if available
     key_thresholds = None

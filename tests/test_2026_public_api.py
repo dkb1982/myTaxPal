@@ -32,26 +32,36 @@ def _compare(income, *, regions=None, currency="USD", year=2026):
 
 
 def test_2026_discovery_is_limited_to_supported_states():
+    from tax_estimator.calculation.comparison_regions import US_STATES
+    from tax_estimator.calculation.coverage import enabled_us_cities, enabled_us_states
+
+    enabled = enabled_us_states(2026)
+    cities = enabled_us_cities(2026)
+    supported = {f"US-{code}" for code in enabled}
+    # Washington taxes only long-term capital gains, so it has no income tax.
+    no_tax = {"US-AK", "US-FL", "US-NV", "US-NH", "US-SD", "US-TN", "US-TX", "US-WA", "US-WY"}
     response = client.get("/v1/comparison/regions?tax_year=2026")
     assert response.status_code == 200, response.text
-    supported = {"US-AK", "US-FL", "US-NV", "US-NH", "US-SD", "US-TN", "US-TX", "US-WY"}
     assert {state["region_id"] for state in response.json()["us_states"]} == supported
-    assert response.json()["us_cities"] == []
+    assert {city["region_id"] for city in response.json()["us_cities"]} == cities
     assert response.json()["international"] == []
     states_group = client.get("/v1/comparison/regions/us-states?tax_year=2026")
     assert states_group.status_code == 200, states_group.text
     assert states_group.json()["total"] == len(supported)
-    assert set(states_group.json()["no_income_tax_states"]) == supported
-    assert client.get("/v1/comparison/regions/us-cities?tax_year=2026").json()["total"] == 0
+    assert set(states_group.json()["no_income_tax_states"]) == no_tax
+    assert client.get("/v1/comparison/regions/us-cities?tax_year=2026").json()["total"] == len(cities)
     assert client.get("/v1/comparison/regions/international?tax_year=2026").json()["total"] == 0
     assert client.get("/v1/comparison/regions/US-TX?tax_year=2026").status_code == 200
-    assert client.get("/v1/comparison/regions/US-NC?tax_year=2026").status_code == 404
+    for region_id in sorted(set(US_STATES) - supported)[:1]:
+        assert client.get(f"/v1/comparison/regions/{region_id}?tax_year=2026").status_code == 404
     years = client.get("/v1/tax-years")
     assert years.status_code == 200, years.text
     assert 2026 in [item["year"] for item in years.json()["data"]]
     details = client.get("/v1/tax-years/2026")
     assert details.status_code == 200, details.text
-    assert details.json()["supported_jurisdictions"] == {"federal": 1, "states": 8, "local": 0}
+    assert details.json()["supported_jurisdictions"] == {
+        "federal": 1, "states": len(enabled), "local": len(cities),
+    }
     jurisdictions = client.get("/v1/jurisdictions?tax_year=2026")
     assert jurisdictions.status_code == 200, jurisdictions.text
     assert {item["id"] for item in jurisdictions.json()["data"]} == {"US", *supported}
@@ -140,8 +150,7 @@ def test_2026_niit_and_no_2025_fx_claim():
 
 
 @pytest.mark.parametrize(("income", "regions", "currency"), [
-    ({"employment_wages": "100000"}, ["US-NC"], "USD"),
-    ({"employment_wages": "100000"}, ["US-PA-PHL"], "USD"),
+    ({"employment_wages": "100000"}, ["US-CO"], "USD"),
     ({"employment_wages": "100000"}, ["US-TX"], "GBP"),
     ({"employment_wages": "100000", "interest": "1"}, ["US-TX"], "USD"),
 ])
@@ -151,10 +160,10 @@ def test_unsupported_2026_compare_requests_fail_closed(income, regions, currency
 
 
 def test_unsupported_2026_estimates_fail_closed():
-    assert _estimate("NC").status_code == 422
+    assert _estimate("CO").status_code == 422
     assert _estimate("TX", age=41).status_code == 422
     assert client.get("/v1/comparison/regions?tax_year=2027").status_code == 422
-    assert client.get("/v1/jurisdictions/US-NC?tax_year=2026").status_code == 404
+    assert client.get("/v1/jurisdictions/US-CO?tax_year=2026").status_code == 404
     assert _compare({"employment_wages": "100000"}, year=2027).status_code == 422
 
 

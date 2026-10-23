@@ -1,0 +1,89 @@
+# Kansas individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-KS"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Kansas"
+jurisdiction_abbreviation: "KS"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "KS-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 23000
+      rate: 0.052
+      base_tax: 0
+    - bracket_id: "KS-2026-S-2"
+      filing_status: "single"
+      income_from: 23000
+      income_to: null
+      rate: 0.0558
+      base_tax: 1196
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 3605
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 9160
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Kansas 2026 rates 5.2% to $23,000 and 5.58% above (K.S.A. 79-32,110); no SB 269 reduction for 2026 (KDOR Notice 25-06)."
+    - "Standard deduction $3,605 single (K.S.A. 79-32,119(c)(2)); personal exemption $9,160 (K.S.A. 79-32,121)."
+    - "Taxable income to $100,000 uses the K-40 $50-row tax table midpoint convention."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 2)"
+  notes: "K.S.A. 79-32,110, 79-32,119, 79-32,121 (current revisor text) and KDOR Notices 25-06 and 26-11."
+
+references:
+  - source_name: "KDOR Notice 25-06 (October 2, 2025)"
+    url: "https://ksrevenue.gov/taxnotices/notice25-06.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "SB 269 certification: no income tax rate reduction for tax year 2026."
+  - source_name: "KDOR Notice 26-11 (October 15, 2026)"
+    url: "https://ksrevenue.gov/taxnotices/notice26-11.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "No rate reduction for tax year 2027 either (no later change to 2026)."
+  - source_name: "K.S.A. 79-32,110"
+    url: "https://www.ksrevisor.gov/statutes/chapters/ch79/079_032_0110.html"
+    retrieved_date: "2026-10-23"
+    notes: "Tax year 2024 and thereafter, single: not over $23,000 5.2%; over $23,000 $1,196 plus 5.58%."
+  - source_name: "K.S.A. 79-32,119"
+    url: "https://www.ksrevisor.gov/statutes/chapters/ch79/079_032_0119.html"
+    retrieved_date: "2026-10-23"
+    notes: "Tax year 2024 and thereafter: single standard deduction $3,605."
+  - source_name: "K.S.A. 79-32,121"
+    url: "https://www.ksrevisor.gov/statutes/chapters/ch79/079_032_0121.html"
+    retrieved_date: "2026-10-23"
+    notes: "Tax year 2025 and thereafter: single personal exemption $9,160."
+  - source_name: "KDOR 2025 Individual Income Tax booklet (ip25)"
+    url: "https://www.ksrevenue.gov/pdf/ip25.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Tax table for taxable income to $100,000 in $50 rows (verified midpoint convention); EIC 17% of federal."

@@ -19,7 +19,7 @@ class USScenarioFacts(BaseModel):
         None, ge=0, description="Portion of supplied net ST securities gains held six months or less"
     )
     philly_first_half_wages: Decimal | None = Field(
-        None, ge=0, description="Portion of annual wages paid January through June 2025"
+        None, ge=0, description="Portion of annual wages paid January through June of the tax year"
     )
 
     def validate_income(self, wages: Decimal, short_term: Decimal, long_term: Decimal) -> None:

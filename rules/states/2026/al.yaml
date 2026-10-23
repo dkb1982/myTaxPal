@@ -1,0 +1,92 @@
+# Alabama individual income-tax rule for the narrow 2026 US estimator profile
+# (single, age 40, full-year resident, W-2 wages, dividends and capital gains).
+# The policy (policies_2026_g1._al) applies the AGI-based single standard
+# deduction chart, the $1,500 personal exemption and the federal income-tax
+# deduction; the values below are the published single-filer schedule.
+
+jurisdiction_id: "US-AL"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Alabama"
+jurisdiction_abbreviation: "AL"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "AL-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 500
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "AL-2026-S-2"
+      filing_status: "single"
+      income_from: 500
+      income_to: 3000
+      rate: 0.04
+      base_tax: 10
+    - bracket_id: "AL-2026-S-3"
+      filing_status: "single"
+      income_from: 3000
+      income_to: null
+      rate: 0.05
+      base_tax: 110
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      # Maximum single amount; the policy applies the AGI chart ($3,000 to $2,500).
+      - filing_status: "single"
+        amount: 3000
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 1500
+    dependent_exemption_available: true
+    dependent_exemption_amount: 1000
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Alabama 2026 rates are 2% on the first $500, 4% on the next $2,500 and 5% above $3,000 of taxable income (single)."
+    - "Alabama allows a deduction for federal income tax liability; the single standard deduction slides from $3,000 to $2,500 as AGI rises from $26,000 to $35,500."
+    - "Act 2026-604 overtime-premium deduction (2026-2028) is outside the supported profile."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (agent); not professional sign-off"
+  notes: "Rates from ADOR 2026 Form 40ES; standard-deduction chart and personal exemption from ADOR withholding booklet effective January 2026 (Ala. Code 40-18-15(b), 40-18-19). No 2026 enacted change to rates, standard deduction or exemption found (2026 session enacted the overtime-premium deduction, Act 2026-604, outside profile)."
+
+references:
+  - source_name: "Alabama Department of Revenue, 2026 Form 40ES estimated tax worksheet"
+    url: "https://www.revenue.alabama.gov/wp-content/uploads/2026/01/26f40esblk.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 worksheet: AGI less standard deduction and federal income tax liability, less personal exemption; 2%/4%/5% single rates on $500/$2,500/over $3,000."
+  - source_name: "Alabama Department of Revenue, Withholding Tax Tables and Instructions (01/26)"
+    url: "https://www.revenue.alabama.gov/wp-content/uploads/2026/01/whbooklet_0126.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Schedule of Standard Deduction Amounts by Alabama AGI (single $3,000 to $2,500) and $1,500 single personal exemption."
+  - source_name: "Alabama Department of Revenue, 2025 Form 40 booklet"
+    url: "https://www.revenue.alabama.gov/wp-content/uploads/2026/01/25f40bk.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Federal income-tax deduction worksheet structure (Form 1040 tax plus NIIT less refundable credits) carried into 2026."
+  - source_name: "Alabama Department of Revenue, Overtime Premium Deduction (Act 2026-604)"
+    url: "https://www.revenue.alabama.gov/individual-corporate/overtime-premium-deduction-act-2026-604/"
+    retrieved_date: "2026-10-23"
+    notes: "Only 2026 individual change found; overtime is outside the supported profile."

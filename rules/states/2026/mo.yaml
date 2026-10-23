@@ -1,0 +1,124 @@
+# Missouri individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-MO"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Missouri"
+jurisdiction_abbreviation: "MO"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "MO-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 1348
+      rate: 0
+      base_tax: 0
+    - bracket_id: "MO-2026-S-2"
+      filing_status: "single"
+      income_from: 1348
+      income_to: 2696
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "MO-2026-S-3"
+      filing_status: "single"
+      income_from: 2696
+      income_to: 4044
+      rate: 0.025
+      base_tax: 27
+    - bracket_id: "MO-2026-S-4"
+      filing_status: "single"
+      income_from: 4044
+      income_to: 5392
+      rate: 0.03
+      base_tax: 61
+    - bracket_id: "MO-2026-S-5"
+      filing_status: "single"
+      income_from: 5392
+      income_to: 6740
+      rate: 0.035
+      base_tax: 101
+    - bracket_id: "MO-2026-S-6"
+      filing_status: "single"
+      income_from: 6740
+      income_to: 8088
+      rate: 0.04
+      base_tax: 148
+    - bracket_id: "MO-2026-S-7"
+      filing_status: "single"
+      income_from: 8088
+      income_to: 9436
+      rate: 0.045
+      base_tax: 202
+    - bracket_id: "MO-2026-S-8"
+      filing_status: "single"
+      income_from: 9436
+      income_to: null
+      rate: 0.047
+      base_tax: 263
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 16100
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "2026 top rate 4.7%: no further RSMo 143.011 reduction for 2026 (DOR 2026 withholding formula still 0%-4.7%)."
+    - "2026 bracket width $1,348 (RSMo 143.011 indexing) from the DOR 2026 withholding formula; base amounts sum the per-band whole-dollar amounts shown in the formula example (27/34/40/47/54/61), matching the 2025 tax-chart convention (provisional until the 2026 MO-1040 chart)."
+    - "Standard deduction equals the federal amount: $16,100 single (RSMo 143.131; DOR 2026 withholding formula)."
+    - "100% subtraction of federal capital-gain income (RSMo 143.121, HB 594 2025, from tax year 2025)."
+    - "Federal income tax deduction: 35/25/15/5/0% by Missouri AGI, capped at $5,000 single (RSMo 143.171)."
+    - "Kansas City and St. Louis earnings taxes are separate and not included."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 4)"
+  notes: "Rates/brackets from DOR 2026 withholding formula (cross-checked: the 2025 formula equals the 2025 tax chart); capital-gain and federal-tax deduction rules from DOR year-changes page and RSMo."
+
+references:
+  - source_name: "Missouri DOR 2026 Withholding Tax Formula"
+    url: "https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Annual bands $1,348 wide, 0%-4.7%, 4.7% over $9,436; single standard deduction $16,100; example shows per-band tax 27/34/40/47/54/61 = 263."
+  - source_name: "Missouri DOR 2025 Withholding Tax Formula"
+    url: "https://dor.mo.gov/forms/Withholding%20Formula_2025.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2025 bands ($1,313; 4.7% over $9,191) identical to the 2025 MO-1040 tax chart, supporting use of the 2026 formula."
+  - source_name: "Missouri DOR individual income tax year changes"
+    url: "https://dor.mo.gov/taxation/individual/tax-types/income/year-changes/"
+    retrieved_date: "2026-10-23"
+    notes: "100% capital gains subtraction (143.121) effective Jan 1 2025; OBBBA tips/overtime/car-loan/senior deductions not allowed on MO return."
+  - source_name: "RSMo 143.171"
+    url: "https://revisor.mo.gov/main/OneSection.aspx?section=143.171"
+    retrieved_date: "2026-10-23"
+    notes: "Federal tax deduction percentages by income and $5,000 single cap."
+  - source_name: "Show-Me Institute 2026 end-of-session report (lead only)"
+    url: "https://showmeinstitute.org/article/state-and-local-government/2026-end-of-the-legislative-session-report/"
+    retrieved_date: "2026-10-23"
+    notes: "2026 session passed an income-tax-elimination constitutional amendment for the ballot; no 2026 tax-year rate change found."

@@ -1,0 +1,88 @@
+# Ohio individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-OH"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Ohio"
+jurisdiction_abbreviation: "OH"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "OH-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 26050
+      rate: 0
+      base_tax: 0
+    - bracket_id: "OH-2026-S-2"
+      filing_status: "single"
+      income_from: 26050
+      income_to: null
+      rate: 0.0275
+      base_tax: 332
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 1900
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: true
+  reciprocity_states:
+    - "IN"
+    - "KY"
+    - "MI"
+    - "PA"
+    - "WV"
+  special_notes:
+    - "Ohio 2026 nonbusiness income tax: none if Ohio AGI less exemptions is $26,050 or less; otherwise $332 plus 2.75% of the excess over $26,050 (R.C. 5747.02(A)(3)(c), H.B. 96)."
+    - "Personal exemption $2,400 (MAGI <= $40,000), $2,150 (<= $80,000), $1,900 above, and none at MAGI of $500,000 or more (R.C. 5747.025; indexing suspended for 2025-2026 by H.B. 96 Section 757.120(A)). YAML carries the $1,900 tier; the policy selects the tier."
+    - "$20 exemption credit when MAGI less exemptions is under $30,000 (R.C. 5747.022)."
+    - "Municipal and school-district income taxes are separate."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 5)"
+  notes: "R.C. 5747.02, 5747.022, 5747.025 (codes.ohio.gov, H.B. 96 versions); LSC H.B. 96 final analysis; 2025 Ohio IT 1040 instructions."
+
+references:
+  - source_name: "Ohio Revised Code 5747.02 (H.B. 96, effective Sept 30, 2025; Wayback snapshot 2026-08-04)"
+    url: "https://codes.ohio.gov/ohio-revised-code/section-5747.02"
+    retrieved_date: "2026-10-23"
+    notes: "(A)(3): no tax if balance <= $26,050; (c) for taxable years beginning in 2026 and thereafter, $332.00 plus 2.75% of the amount in excess of $26,050."
+  - source_name: "Ohio Revised Code 5747.025 (H.B. 96)"
+    url: "https://codes.ohio.gov/ohio-revised-code/section-5747.025"
+    retrieved_date: "2026-10-23"
+    notes: "Personal exemption tiers by MAGI; exemption allowed only if MAGI is less than $500,000 for 2026 and thereafter; annual GDP-deflator indexing."
+  - source_name: "Ohio Revised Code 5747.022"
+    url: "https://codes.ohio.gov/ohio-revised-code/section-5747.022"
+    retrieved_date: "2026-10-23"
+    notes: "$20 per exemption credit when MAGI less exemptions is less than $30,000."
+  - source_name: "Ohio LSC, H.B. 96 Final Analysis (Department of Taxation)"
+    url: "https://www.lsc.ohio.gov/assets/legislation/136/hb96/en0/files/hb96-tax-bill-analysis-as-enacted-136th-general-assembly.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "TY 2026: more than $26,050 -> $332 plus 2.75%; Section 757.120(A) suspends inflation indexing of brackets and personal exemptions for taxable years 2025 and 2026."
+  - source_name: "Ohio Department of Taxation, 2025 Ohio IT 1040 / SD 100 instructions"
+    url: "https://dam.assets.ohio.gov/image/upload/tax.ohio.gov/forms/ohio_individual/individual/2025/it1040-booklet.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2025 exemption amounts $2,400/$2,150/$1,900 (carried to 2026 by the indexing suspension); line 9 exemption credit; tax reported in whole dollars."

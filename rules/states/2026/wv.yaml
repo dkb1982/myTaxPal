@@ -1,0 +1,102 @@
+# West Virginia individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-WV"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "West Virginia"
+jurisdiction_abbreviation: "WV"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# W. Va. Code §11-21-4j (2026 Enr. CS for SB 392), taxable years beginning on and
+# after January 1, 2026; base taxes as enacted.
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "WV-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 10000
+      rate: 0.0211
+      base_tax: 0
+    - bracket_id: "WV-2026-S-2"
+      filing_status: "single"
+      income_from: 10000
+      income_to: 25000
+      rate: 0.0281
+      base_tax: 211
+    - bracket_id: "WV-2026-S-3"
+      filing_status: "single"
+      income_from: 25000
+      income_to: 40000
+      rate: 0.0316
+      base_tax: 632.50
+    - bracket_id: "WV-2026-S-4"
+      filing_status: "single"
+      income_from: 40000
+      income_to: 60000
+      rate: 0.0422
+      base_tax: 1106.50
+    - bracket_id: "WV-2026-S-5"
+      filing_status: "single"
+      income_from: 60000
+      income_to: null
+      rate: 0.0458
+      base_tax: 1950.50
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 2000
+    dependent_exemption_available: true
+    dependent_exemption_amount: 2000
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: ["KY", "MD", "OH", "PA", "VA"]
+  special_notes:
+    - "West Virginia 2026 rates 2.11%-4.58% (2026 SB 392, retroactive to January 1, 2026); further revenue-triggered cuts apply no earlier than 2027."
+    - "No standard deduction; $2,000 personal exemption (W. Va. Code §11-21-16)."
+    - "Low-income family tax credit uses the 2026 HHS poverty guideline ($15,960 for one) with $300 steps (§11-21-22a/22b); provisional until the 2026 Schedule FTC-1 is published."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 6)"
+  notes: "Rates from the signed enrolled SB 392 (2026); exemption and family tax credit from current W. Va. Code."
+
+references:
+  - source_name: "W. Va. 2026 Enrolled Committee Substitute for SB 392 (signed)"
+    url: "https://code.wvlegislature.gov/signed_bills/2026/2026-RS-SB392-SUB1%20ENR_signed.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "New §11-21-4j: 2026 single schedule 2.11% / $211 + 2.81% / $632.50 + 3.16% / $1,106.50 + 4.22% / $1,950.50 + 4.58% over $60,000; §11-21-4k triggers apply from 2027."
+  - source_name: "W. Va. Code §11-21-16"
+    url: "https://code.wvlegislature.gov/11-21-16/"
+    retrieved_date: "2026-10-23"
+    notes: "$2,000 per exemption for taxable years beginning on or after January 1, 1987."
+  - source_name: "W. Va. Code §11-21-22a"
+    url: "https://code.wvlegislature.gov/11-21-22a/"
+    retrieved_date: "2026-10-23"
+    notes: "Federal poverty guidelines available June 30 of each year; qualified taxpayer MFAGI up to guideline + $2,700."
+  - source_name: "W. Va. Code §11-21-22b"
+    url: "https://code.wvlegislature.gov/11-21-22b/"
+    retrieved_date: "2026-10-23"
+    notes: "Credit 100% of tax at or below the guideline, then 10% less per $300 above it."
+  - source_name: "HHS ASPE 2026 Poverty Guidelines"
+    url: "https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines"
+    retrieved_date: "2026-10-23"
+    notes: "2026 guideline, household of one, 48 states/DC: $15,960."

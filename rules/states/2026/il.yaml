@@ -1,0 +1,62 @@
+# Illinois individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-IL"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Illinois"
+jurisdiction_abbreviation: "IL"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0495
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 2925
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Illinois 2026 flat rate 4.95% (35 ILCS 5/201(b))."
+    - "2026 exemption allowance $2,925; not allowed when federal AGI exceeds $250,000 single (35 ILCS 5/204)."
+    - "Illinois earned income credit is 20% of the federal credit, refundable."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 2)"
+  notes: "Illinois DOR 2026 Booklet IL-700-T states the 2026 rate and exemption allowance."
+
+references:
+  - source_name: "Illinois DOR, 2026 Booklet IL-700-T (effective January 1, 2026)"
+    url: "https://tax.illinois.gov/content/dam/soi/en/web/tax/forms/withholding/documents/currentyear/il-700-t.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "The income tax rate is 4.95 percent and the exemption allowance is $2,925."
+  - source_name: "Illinois DOR, Earned income tax credit information"
+    url: "https://tax.illinois.gov/research/publications/pubs/illinois-earned-income-tax-credit-information.html"
+    retrieved_date: "2026-10-23"
+    notes: "20% of the federal EIC, refundable."
+  - source_name: "Illinois DOR, 2025 Form IL-1040 Instructions (Line 10)"
+    url: "https://tax.illinois.gov/content/dam/soi/en/web/tax/forms/incometax/documents/currentyear/individual/il-1040-instr.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Single filer with federal AGI greater than $250,000 is not entitled to an exemption allowance (35 ILCS 5/204)."

@@ -1,0 +1,84 @@
+# Nebraska individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-NE"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Nebraska"
+jurisdiction_abbreviation: "NE"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "NE-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 4130
+      rate: 0.0246
+      base_tax: 0
+    - bracket_id: "NE-2026-S-2"
+      filing_status: "single"
+      income_from: 4130
+      income_to: 24760
+      rate: 0.0351
+      base_tax: 101.60
+    - bracket_id: "NE-2026-S-3"
+      filing_status: "single"
+      income_from: 24760
+      income_to: null
+      rate: 0.0455
+      base_tax: 825.71
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 8850
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "2026 schedule (LB 754 top-rate reduction to 4.55%): 2.46% to $4,130, 3.51% to $24,760, 4.55% above."
+    - "2026 standard deduction $8,850 single; personal exemption credit $176 (Form 1040N line 18)."
+    - "E-filers must use the Tax Calculation Schedule; paper filers may use the tax table."
+    - "Nebraska EIC is 10% of the federal EIC; refundable."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 4)"
+  notes: "All amounts from the final 2026 Form 1040N and 2026 Tax Calculation Schedule published by NDOR."
+
+references:
+  - source_name: "NDOR 2026 Tax Calculation Schedule for Individual Income Tax"
+    url: "https://revenue.nebraska.gov/sites/default/files/doc/tax-forms/2026/2026_tax_calculation_schedule.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Single: 2.46% to $4,130; $101.60 + 3.51% to $24,760; $825.71 + 4.55% above (the $39,900 row continues 4.55%)."
+  - source_name: "NDOR 2026 Form 1040N"
+    url: "https://revenue.nebraska.gov/sites/default/files/doc/tax-forms/2026/f_1040n.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Line 6 standard deduction $8,850 single; line 15 e-filers use the schedule; line 18 $176 personal exemption credit; line 44 EIC 10% of federal."
+  - source_name: "NDOR 2026 final income tax forms"
+    url: "https://revenue.nebraska.gov/tax-professionals/2026-final-income-tax-forms"
+    retrieved_date: "2026-10-23"
+    notes: "Lists the 2026 Form 1040N, tax table and tax calculation schedule."

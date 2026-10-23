@@ -1,0 +1,137 @@
+# California individual income-tax rule for the narrow 2026 US estimator profile
+# (single, age 40, full-year resident, W-2 wages, dividends and capital gains).
+# The policy (policies_2026_g1._ca) applies the personal exemption credit, its
+# AGI phase-out and the 1% Behavioral Health Services Tax on taxable income
+# over $1,000,000.
+
+jurisdiction_id: "US-CA"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "California"
+jurisdiction_abbreviation: "CA"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # FTB 2026 Schedule X (Tax News, October 2026); published base-tax constants.
+    - bracket_id: "CA-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 11456
+      rate: 0.01
+      base_tax: 0
+    - bracket_id: "CA-2026-S-2"
+      filing_status: "single"
+      income_from: 11456
+      income_to: 27157
+      rate: 0.02
+      base_tax: 114.56
+    - bracket_id: "CA-2026-S-3"
+      filing_status: "single"
+      income_from: 27157
+      income_to: 42861
+      rate: 0.04
+      base_tax: 428.58
+    - bracket_id: "CA-2026-S-4"
+      filing_status: "single"
+      income_from: 42861
+      income_to: 59498
+      rate: 0.06
+      base_tax: 1056.74
+    - bracket_id: "CA-2026-S-5"
+      filing_status: "single"
+      income_from: 59498
+      income_to: 75197
+      rate: 0.08
+      base_tax: 2054.96
+    - bracket_id: "CA-2026-S-6"
+      filing_status: "single"
+      income_from: 75197
+      income_to: 384109
+      rate: 0.093
+      base_tax: 3310.88
+    - bracket_id: "CA-2026-S-7"
+      filing_status: "single"
+      income_from: 384109
+      income_to: 460927
+      rate: 0.103
+      base_tax: 32039.70
+    - bracket_id: "CA-2026-S-8"
+      filing_status: "single"
+      income_from: 460927
+      income_to: 768213
+      rate: 0.113
+      base_tax: 39951.95
+    - bracket_id: "CA-2026-S-9"
+      filing_status: "single"
+      income_from: 768213
+      income_to: null
+      rate: 0.123
+      base_tax: 74675.27
+  surtaxes:
+    - surtax_id: "CA-BHST-2026"
+      name: "Behavioral Health Services Tax"
+      threshold: 1000000
+      rate: 0.01
+      filing_status: "all"
+      description: "1% additional tax on taxable income over $1 million (applied by the policy)."
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 5900
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    treatment: "credit"
+    personal_exemption_available: true
+    personal_exemption_amount: 158
+    dependent_exemption_available: true
+    dependent_exemption_amount: 491
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  federal_conformity: "static"
+  federal_conformity_date: "2025-01-01"
+  special_notes:
+    - "California 2026 brackets, standard deduction and exemption credits are indexed by the 3.4% California CPI change (June 2025 to June 2026)."
+    - "California taxes capital gains and qualified dividends as ordinary income."
+    - "1% Behavioral Health Services Tax applies to taxable income over $1,000,000."
+
+verification:
+  status: "source_checked_limited_scenarios"
+  last_verified: "2026-10-23"
+  verified_by: "source review (agent); not professional sign-off"
+  notes: "Single brackets/base taxes, $5,900 standard deduction and $158 personal exemption credit published by FTB (Tax News, October 2026). The exemption-credit AGI phase-out threshold ($260,778 = $252,203 x 1.034, rounded) is computed from R&TC 17054.1 indexing and the DIR CCPI; FTB has not yet published it (provisional). CalEITC 2026 table unpublished; not computed."
+
+references:
+  - source_name: "Franchise Tax Board, Tax News October 2026, 2026 Indexing"
+    url: "https://www.ftb.ca.gov/about-ftb/newsroom/tax-news/index.html"
+    retrieved_date: "2026-10-23"
+    notes: "CCPI June 2025-June 2026 3.4%; 2026 Schedule X; standard deduction $5,900; personal exemption credit $158; renter's credit AGI limit $55,830."
+  - source_name: "California Department of Industrial Relations, CCPI percentage changes 2025-2026"
+    url: "https://www.dir.ca.gov/OPRL/CPI/PresentCCPIchange.PDF"
+    retrieved_date: "2026-10-23"
+    notes: "California all-urban CPI June 2026 change 3.4% (June 2025 3.0%)."
+  - source_name: "Franchise Tax Board, 2025 Form 540 booklet (AGI limitation worksheet)"
+    url: "https://www.ftb.ca.gov/forms/2025/2025-540-booklet.html"
+    retrieved_date: "2026-10-23"
+    notes: "2025 single threshold $252,203; credits reduced $6 per $2,500 or fraction of AGI above it (structure applied for 2026)."
+  - source_name: "Franchise Tax Board, 2025 California tax rate schedules"
+    url: "https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2025 single schedule; 2026 values equal 2025 x 1.034 rounded to the dollar, matching the FTB 2026 publication."

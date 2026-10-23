@@ -1,0 +1,80 @@
+# North Dakota individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-ND"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "North Dakota"
+jurisdiction_abbreviation: "ND"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "ND-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 49575
+      rate: 0
+      base_tax: 0
+    - bracket_id: "ND-2026-S-2"
+      filing_status: "single"
+      income_from: 49575
+      income_to: 250400
+      rate: 0.0195
+      base_tax: 0
+    - bracket_id: "ND-2026-S-3"
+      filing_status: "single"
+      income_from: 250400
+      income_to: null
+      rate: 0.025
+      base_tax: 3916.09
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_taxable_income"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "North Dakota 2026 single schedule: 0% to $49,575, 1.95% to $250,400, 2.5% above (Form ND-1ES 2026 tax rate schedule)."
+    - "ND taxable income starts from federal taxable income (N.D.C.C. 57-38-30.3(2)) and excludes 40% of qualified dividends and net capital gain (57-38-30.3(2)(d))."
+    - "No North Dakota standard deduction or exemption; the federal standard deduction is embedded in federal taxable income."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 5)"
+  notes: "Office of State Tax Commissioner Form ND-1ES 2026 (SFN 28709 12-2025) and 2026 withholding booklet; N.D.C.C. 57-38-30.3."
+
+references:
+  - source_name: "ND Office of State Tax Commissioner, Form ND-1ES 2026 (SFN 28709, 12-2025)"
+    url: "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2025-iit/28709-form-nd-1es-2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 Forms ND-1 and ND-EZ Tax Rate Schedules, single: $0-$49,575 0%; $49,575-$250,400 1.95% of excess over $49,575; over $250,400 $3,916.09 plus 2.50%."
+  - source_name: "N.D.C.C. chapter 57-38 (section 57-38-30.3)"
+    url: "https://ndlegis.gov/cencode/t57c38.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Rate schedules indexed by the IRC 1(f) cost-of-living adjustment; ND taxable income = federal taxable income adjusted; 40% exclusion of net long-term capital gain and qualified dividends."
+  - source_name: "ND 2026 Income Tax Withholding Rates and Instructions"
+    url: "https://www.tax.nd.gov/sites/www/files/documents/forms/individual/2026-iit/2026-income-tax-withholding-rates-booklet.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 rates 1.95%/2.50% (withholding brackets corroborate the 2026 bracket width $200,825)."

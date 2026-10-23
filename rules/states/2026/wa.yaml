@@ -1,0 +1,74 @@
+# Washington rule for the narrow 2026 US estimator profile (single filer).
+# Washington has no tax on wages; individuals owe the capital gains excise
+# (RCW 82.87) on long-term capital gains above the standard deduction.
+
+jurisdiction_id: "US-WA"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Washington"
+jurisdiction_abbreviation: "WA"
+parent_jurisdiction_id: "US"
+
+# Mirrors the 2025 rule: no individual income tax; the capital gains excise is
+# computed by policies_2026_g6._wa (income_tax_type routes the policy).
+has_income_tax: false
+income_tax_type: "capital_gains_excise"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "none"
+  flat_rate: null
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "not_applicable"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Washington has no state tax on wages, salaries or dividends for 2026."
+    - "Capital gains excise: 7% of Washington long-term capital gains above the standard deduction, plus 2.9% on the portion above $1,000,000 (RCW 82.87.040)."
+    - "2026 standard deduction $290,000 computed under RCW 82.87.150 (provisional until DOR publishes it)."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 6)"
+  notes: "Rates from current RCW 82.87.040 (2025 c 421); 2026 deduction reconstructed from RCW 82.87.150 with BLS Seattle CPI-U (method reproduces DOR's 2023-2025 amounts); DOR table lists through 2025 only."
+
+references:
+  - source_name: "RCW 82.87.040"
+    url: "https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.040"
+    retrieved_date: "2026-10-23"
+    notes: "7% of Washington capital gains; additional 2.90% of the portion exceeding $1,000,000 beginning January 1, 2025."
+  - source_name: "RCW 82.87.150"
+    url: "https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.150"
+    retrieved_date: "2026-10-23"
+    notes: "October adjustment of the standard deduction by Seattle-area CPI-U, rounded to the nearest $1,000, effective for taxes due the following calendar year."
+  - source_name: "RCW 82.87.020"
+    url: "https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.020"
+    retrieved_date: "2026-10-23"
+    notes: "Adjusted capital gain starts from federal net long-term capital gain."
+  - source_name: "Washington DOR, Do you owe capital gains tax?"
+    url: "https://dor.wa.gov/taxes-rates/other-taxes/capital-gains-tax/do-you-owe-capital-gains-tax"
+    retrieved_date: "2026-10-23"
+    notes: "Published standard deductions 250,000 (2022), 262,000 (2023), 270,000 (2024), 278,000 (2025); 2026 not yet listed."
+  - source_name: "BLS CPI-U Seattle-Tacoma-Bellevue, all items, NSA (CUURS49DSA0)"
+    url: "https://data.bls.gov/timeseries/CUURS49DSA0"
+    retrieved_date: "2026-10-23"
+    notes: "Aug 2026 381.123 / Aug 2025 365.211 = 1.04357; 278,000 x 1.04357 = 290,112 -> 290,000."

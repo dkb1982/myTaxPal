@@ -1,0 +1,108 @@
+# Vermont individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-VT"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Vermont"
+jurisdiction_abbreviation: "VT"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# 32 V.S.A. §5822(a)(3) single amounts (38,700 / 93,700 / 195,450; 2017 base) indexed
+# under §5822(b)(2): x CPI-U 12-month average to Aug 2025 (319.205) / to Aug 2017
+# (243.392), rounded down to $50 (IRC §1(f)(7)). PROVISIONAL until the Department
+# publishes the 2026 rate schedules. Cross-check: GB-1210-2026 annual withholding
+# table = these brackets + $3,925 offset (54,675 / 126,775 / 260,225). Base taxes
+# rounded to whole dollars cumulatively, as on the published 2025 schedule.
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "VT-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 50750
+      rate: 0.0335
+      base_tax: 0
+    - bracket_id: "VT-2026-S-2"
+      filing_status: "single"
+      income_from: 50750
+      income_to: 122850
+      rate: 0.066
+      base_tax: 1700
+    - bracket_id: "VT-2026-S-3"
+      filing_status: "single"
+      income_from: 122850
+      income_to: 256300
+      rate: 0.076
+      base_tax: 6459
+    - bracket_id: "VT-2026-S-4"
+      filing_status: "single"
+      income_from: 256300
+      income_to: null
+      rate: 0.0875
+      base_tax: 16601
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 7850
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 5400
+    dependent_exemption_available: true
+    dependent_exemption_amount: 5400
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Vermont 2026 brackets, $7,850 standard deduction and $5,400 exemption are computed from statute (provisional until the Department publishes 2026 schedules)."
+    - "Publicly traded securities qualify only for the flat $5,000 capital gain exclusion, capped at 40% of federal taxable income (32 V.S.A. §5811(21)(B)(ii))."
+    - "Above $150,000 federal AGI the tax is at least 3% of federal AGI (§5822(a)(6))."
+    - "Vermont EITC for filers without qualifying children is 100% of the federal EITC, refundable (§5828b)."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 6)"
+  notes: "Statutory indexing reproduces the published 2024 and 2025 Vermont schedules exactly and matches the 2026 withholding tables; 2025 IN-111 instructions confirm the 2025 values (49,400 / 119,700 / 249,700; $7,650; $5,300)."
+
+references:
+  - source_name: "32 V.S.A. §5822 (Vermont Statutes Online, includes 2026 session)"
+    url: "https://legislature.vermont.gov/statutes/section/32/151/05822"
+    retrieved_date: "2026-10-23"
+    notes: "(a)(3) single table; (a)(6) 3% of FAGI minimum above $150,000; (b)(2) CPI-U indexing in the manner of federal tables."
+  - source_name: "32 V.S.A. §5811 (Vermont Statutes Online)"
+    url: "https://legislature.vermont.gov/statutes/section/32/151/05811"
+    retrieved_date: "2026-10-23"
+    notes: "(21)(B)(ii) $5,000 capital gain exclusion (2026 version); (21)(C) $4,150 exemption and $6,000 single standard deduction; (21)(D) CPI-U indexing from 2018 per IRC §1(f)(3)."
+  - source_name: "32 V.S.A. §5828b"
+    url: "https://legislature.vermont.gov/statutes/section/32/151/05828b"
+    retrieved_date: "2026-10-23"
+    notes: "EITC 100% of federal for filers without qualifying children; refundable."
+  - source_name: "Vermont Department of Taxes, 2026 Income Tax Withholding Instructions, Tables, and Charts (GB-1210-2026)"
+    url: "https://tax.vermont.gov/sites/tax/files/documents/GB-1210-2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Annual single table 3,925 / 54,675 / 126,775 / 260,225; one withholding allowance = $5,400 (cross-check of computed 2026 amounts)."
+  - source_name: "Vermont 2025 Form IN-111 Instructions"
+    url: "https://tax.vermont.gov/sites/tax/files/documents/IN-111-Instr-2025.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2025 rate schedule (49,400 / 119,700 / 249,700, base taxes 1,655 / 6,295 / 16,175), $7,650 standard deduction, $5,300 exemption used to validate the indexing method."
+  - source_name: "BLS CPI-U U.S. city average, all items, NSA (CUUR0000SA0)"
+    url: "https://data.bls.gov/timeseries/CUUR0000SA0"
+    retrieved_date: "2026-10-23"
+    notes: "12-month averages ending Aug 2017 (243.392) and Aug 2025 (319.205); factor 1.311486."

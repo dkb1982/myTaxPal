@@ -1,0 +1,90 @@
+# Oklahoma individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-OK"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Oklahoma"
+jurisdiction_abbreviation: "OK"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "OK-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 3750
+      rate: 0
+      base_tax: 0
+    - bracket_id: "OK-2026-S-2"
+      filing_status: "single"
+      income_from: 3750
+      income_to: 4900
+      rate: 0.025
+      base_tax: 0
+    - bracket_id: "OK-2026-S-3"
+      filing_status: "single"
+      income_from: 4900
+      income_to: 7200
+      rate: 0.035
+      base_tax: 28.75
+    - bracket_id: "OK-2026-S-4"
+      filing_status: "single"
+      income_from: 7200
+      income_to: null
+      rate: 0.045
+      base_tax: 109.25
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 6350
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 1000
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Oklahoma 2026 single rates: 0% on first $3,750, 2.5% on next $1,150, 3.5% on next $2,300, 4.5% on the remainder (68 O.S. 2355(D) as amended by HB 2764, 2025)."
+    - "Standard deduction $6,350 single and $1,000 personal exemption (68 O.S. 2358; 2025 Form 511 instructions)."
+    - "HB 2764 revenue-trigger cuts of 0.25 point can take effect no earlier than January 1, 2028 (December 2026 / February 2027 certifications); none affects 2026."
+    - "Form 511 uses a $50-row tax table below $100,000 of taxable income; the estimator applies the exact schedule."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 5)"
+  notes: "Enrolled HB 2764 (2025) text; OTC 2025 Form 511 packet for the deduction/exemption amounts."
+
+references:
+  - source_name: "Oklahoma Enrolled House Bill 2764 (2025), passed May 20/22, 2025; effective Nov 1, 2025"
+    url: "https://www.oklegislature.gov/cf_pdf/2025-26%20ENR/hB/HB2764%20ENR.PDF"
+    retrieved_date: "2026-10-23"
+    notes: "68 O.S. 2355(D)(1): for tax year 2026 single 0% first $3,750; 2.5% next $1,150; 3.5% next $2,300; 4.5% remainder. 2355(E) and 62 O.S. 34.103(D): trigger reductions effective Jan 1 after a February certification, first preliminary certification December 2026."
+  - source_name: "OTC Bill Impact statement, 2025 HB 2764"
+    url: "https://otcportal.tax.ok.gov/billimpact/Home/GetPDF/2025HB2764"
+    retrieved_date: "2026-10-23"
+    notes: "OTC revenue impact of the tax year 2026 rate reduction."
+  - source_name: "Oklahoma Tax Commission, 2025 Form 511 packet"
+    url: "https://oklahoma.gov/content/dam/ok/en/tax/documents/forms/individuals/current/511-Pkt.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Single standard deduction $6,350; $1,000 exemption; tax table for taxable income under $100,000 built at $50-row midpoints."

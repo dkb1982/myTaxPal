@@ -1,0 +1,70 @@
+# Pennsylvania individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-PA"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Pennsylvania"
+jurisdiction_abbreviation: "PA"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0307
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "state_defined"
+  has_local_income_tax: true
+  local_tax_mandatory: true
+  reciprocity_states:
+    - "IN"
+    - "MD"
+    - "NJ"
+    - "OH"
+    - "VA"
+    - "WV"
+  special_notes:
+    - "Pennsylvania 2026 flat 3.07% on each class of income (72 P.S. 7302); no standard deduction or exemption."
+    - "Compensation, dividends and net gains are separate classes; a net loss in one class cannot offset another."
+    - "Tax Forgiveness (Schedule SP): single eligibility income $6,500 forgives 100%, reduced 10% per $250 to $8,750."
+    - "Working Pennsylvanians Tax Credit: refundable, 10% of the federal EITC."
+    - "Local earned income taxes are separate."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 5)"
+  notes: "PA Department of Revenue PIT, Tax Forgiveness and WPTC pages (2026)."
+
+references:
+  - source_name: "PA Department of Revenue, Personal Income Tax"
+    url: "https://www.pa.gov/agencies/revenue/resources/tax-types-and-information/personal-income-tax"
+    retrieved_date: "2026-10-23"
+    notes: "PIT levied at 3.07% against taxable income; eight classes of income."
+  - source_name: "PA Department of Revenue, Tax Forgiveness"
+    url: "https://www.pa.gov/agencies/revenue/resources/tax-types-and-information/personal-income-tax/tax-forgiveness"
+    retrieved_date: "2026-10-23"
+    notes: "Schedule SP eligibility income table, unmarried: $6,500 (100%) through $8,750 (10%) in $250 steps."
+  - source_name: "PA Department of Revenue, Working Pennsylvanians Tax Credit"
+    url: "https://www.pa.gov/agencies/revenue/resources/tax-types-and-information/personal-income-tax/working-pennsylvanians-tax-credit"
+    retrieved_date: "2026-10-23"
+    notes: "State credit equals 10% of the federal EITC; maximum $805."

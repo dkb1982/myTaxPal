@@ -36,6 +36,7 @@ from tax_estimator.calculation.countries import calculate_international_tax
 from tax_estimator.calculation.countries.base import UnsupportedIncomeError, get_country_name
 from tax_estimator.calculation.coverage import (
     UnsupportedCoverageError,
+    enabled_us_cities,
     enabled_us_states,
     require_aligned_earnings_period,
     require_coverage,
@@ -310,7 +311,7 @@ class EnhancedComparisonEngine:
             supported_regions = {
                 f"US-{code}"
                 for code in enabled_us_states(2026, rules_root=self._rules_dir)
-            }
+            } | enabled_us_cities(2026, rules_root=self._rules_dir)
             unsupported = sorted(set(regions) - supported_regions)
             if unsupported:
                 raise UnsupportedComparisonCoverageError(
@@ -328,9 +329,21 @@ class EnhancedComparisonEngine:
                 raise UnsupportedComparisonCoverageError(
                     "2026 US comparison does not support country profiles"
                 )
-            if us_scenario is not None and us_scenario.model_dump(exclude_defaults=True):
+            facts = us_scenario or USScenarioFacts()
+            required = []
+            if "US-AZ" in regions and income_breakdown.capital_gains_long_term > 0:
+                required.append("az_post_2011_eligible_long_term_gains")
+            if "US-PA-PHL" in regions:
+                if income_breakdown.employment_wages > 0:
+                    required.append("philly_first_half_wages")
+                if income_breakdown.capital_gains_short_term > 0:
+                    required.append("philly_gains_held_six_months_or_less")
+            missing = [name for name in required if getattr(facts, name) is None]
+            if missing:
                 raise UnsupportedComparisonCoverageError(
-                    "2026 US comparison does not support state or city scenario adjustments"
+                    "Required tax facts are missing: " + ", ".join(
+                        f"us_scenario.{name}" for name in missing
+                    ) + " (zero is accepted when applicable)"
                 )
             active_income = frozenset(
                 name for name, amount in income_breakdown.to_dict().items() if amount
@@ -434,7 +447,7 @@ class EnhancedComparisonEngine:
         )
         if tax_year == 2026:
             comparison.disclaimers = [
-                "2026 US estimate for the listed supported states only; not a complete tax return.",
+                "2026 US estimate for the listed supported states and cities only; not a complete tax return.",
                 "Single, age 40, no dependants, full-year same-state employee; "
                 "standard deduction and direct securities gains.",
                 "Qualified tips and overtime, car-loan interest, charity, itemization, "
@@ -896,12 +909,16 @@ def get_all_comparison_regions(
             f"US-{code}"
             for code in enabled_us_states(2026, rules_root=rules_dir)
         }
+        supported_cities = enabled_us_cities(2026, rules_root=rules_dir)
         return {
             "us_states": [
                 state for state in regions["us_states"]
                 if state["region_id"] in supported_regions
             ],
-            "us_cities": [],
+            "us_cities": [
+                city for city in regions["us_cities"]
+                if city["region_id"] in supported_cities
+            ],
             "international": [],
         }
     raise UnsupportedComparisonCoverageError(

@@ -1,0 +1,41 @@
+# =============================================================================
+# Detroit - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-MI-DET"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "Detroit"
+parent_jurisdiction_id: "US-MI"
+parent_state: "MI"
+has_income_tax: true
+tax_type: "city_income_tax"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+policy_2025:  # loader key name; values are 2026
+  personal_exemption: 600
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "all_income"
+  flat_rates:
+    resident_rate: 0.024
+local_config:
+  special_notes:
+    - "Resident rate 2.4% on all income (wages, dividends, capital gains) less $600 personal exemption."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 resident cases only."
+references:
+  - evidence_id: "DET-2026-SRC-1"
+    source_name: "Michigan Treasury Form 5469 (2026) City of Detroit Income Tax Withholding Guide"
+    url: "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/City-Withholding/TY2026/5469_ty2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Resident rate 2.4%; each exemption $600 per year (retrieved via Wayback copy 2026-05-18; michigan.gov blocks automated fetch)."
+  - evidence_id: "DET-2026-SRC-2"
+    source_name: "2025 Detroit resident income tax instructions (Form 5313 book)"
+    url: "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/City-IIT/TY2025/5313_City-Book.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Resident base includes dividends and capital gains; carried to 2026."

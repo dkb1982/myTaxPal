@@ -1,0 +1,104 @@
+# Virginia individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-VA"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Virginia"
+jurisdiction_abbreviation: "VA"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# Va. Code §58.1-320 (unchanged for 2026; no 2026 bracket legislation enacted per the
+# Virginia Tax 2026 Legislative Summary).
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "VA-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 3000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "VA-2026-S-2"
+      filing_status: "single"
+      income_from: 3000
+      income_to: 5000
+      rate: 0.03
+      base_tax: 60
+    - bracket_id: "VA-2026-S-3"
+      filing_status: "single"
+      income_from: 5000
+      income_to: 17000
+      rate: 0.05
+      base_tax: 120
+    - bracket_id: "VA-2026-S-4"
+      filing_status: "single"
+      income_from: 17000
+      income_to: null
+      rate: 0.0575
+      base_tax: 720
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 8750
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 930
+    dependent_exemption_available: true
+    dependent_exemption_amount: 930
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: ["DC", "KY", "MD", "PA", "WV"]
+  special_notes:
+    - "Virginia 2026 single standard deduction is $8,750 (§58.1-322.03(1)(b)(v), taxable years 2025-2026); $930 personal exemption."
+    - "Single filers with Virginia AGI below $11,950 owe no Virginia income tax (§58.1-321)."
+    - "Virginia conforms to the IRC as of December 31, 2025 (2026 HB 29, Chapter 7)."
+    - "Credit for low-income individuals ($300, AGI at or below the 2026 poverty guideline) or the refundable 20% EITC, not both (§58.1-339.8)."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 6)"
+  notes: "Code of Virginia (2026 updates) and Virginia Tax 2026 Legislative Summary (July 6, 2026)."
+
+references:
+  - source_name: "Va. Code §58.1-320"
+    url: "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-320/"
+    retrieved_date: "2026-10-23"
+    notes: "2% / 3% / 5% / 5.75% schedule (over $17,000)."
+  - source_name: "Va. Code §58.1-322.03"
+    url: "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-322.03/"
+    retrieved_date: "2026-10-23"
+    notes: "$8,750 single standard deduction for taxable years 2025-2026 ($9,200 for 2027); $930 per personal exemption."
+  - source_name: "Va. Code §58.1-321"
+    url: "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-321/"
+    retrieved_date: "2026-10-23"
+    notes: "No tax for single filers with Virginia AGI less than $11,950."
+  - source_name: "Va. Code §58.1-339.8"
+    url: "https://law.lis.virginia.gov/vacode/title58.1/chapter3/section58.1-339.8/"
+    retrieved_date: "2026-10-23"
+    notes: "$300 low-income credit (poverty guidelines published during the taxable year) or 20% refundable EITC, not both."
+  - source_name: "Virginia Tax, 2026 Legislative Summary"
+    url: "https://www.tax.virginia.gov/sites/default/files/inline-files/2026-legislative-summary.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Fixed IRC conformity date Dec 31, 2025; standard deduction increases begin 2027; refundable EITC extended through 2029; no 2026 rate change."
+  - source_name: "HHS ASPE 2026 Poverty Guidelines"
+    url: "https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines"
+    retrieved_date: "2026-10-23"
+    notes: "2026 guideline, household of one, 48 states/DC: $15,960."

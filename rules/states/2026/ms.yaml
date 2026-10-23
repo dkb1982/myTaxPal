@@ -1,0 +1,73 @@
+# Mississippi individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-MS"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Mississippi"
+jurisdiction_abbreviation: "MS"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "MS-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 10000
+      rate: 0
+      base_tax: 0
+    - bracket_id: "MS-2026-S-2"
+      filing_status: "single"
+      income_from: 10000
+      income_to: null
+      rate: 0.04
+      base_tax: 0
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 2300
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 6000
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Miss. Code 27-7-5 (HB 1, 2025): 0% on the first $10,000 of taxable income and 4% above for calendar year 2026 (3.75% in 2027)."
+    - "Standard deduction $2,300 single (27-7-17); personal exemption $6,000 single (27-7-21); not indexed."
+    - "Mississippi has no state earned income credit."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 4)"
+  notes: "Rate from enrolled HB 1 (2025) and DOR individual tax-rates page; deduction/exemption from DOR page (unchanged statutory amounts)."
+
+references:
+  - source_name: "Mississippi HB 1 (2025 Regular Session), as sent to Governor"
+    url: "https://billstatus.ls.state.ms.us/documents/2025/pdf/HB/0001-0099/HB0001SG.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Amends 27-7-5: 4% for calendar year 2026 on taxable income over $10,000; 3.75% 2027 ... 3% 2030."
+  - source_name: "Mississippi DOR Individual Income Tax Rates"
+    url: "https://www.dor.ms.gov/individual/tax-rates"
+    retrieved_date: "2026-10-23"
+    notes: "2026: excess of $10,000 taxed at 4%; 0% on first $10,000; single exemption $6,000; single standard deduction $2,300."

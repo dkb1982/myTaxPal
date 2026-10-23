@@ -1,0 +1,50 @@
+# =============================================================================
+# Philadelphia - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-PA-PHL"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "Philadelphia"
+parent_jurisdiction_id: "US-PA"
+parent_state: "PA"
+has_income_tax: true
+tax_type: "city_wage_tax"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+policy_2025:  # loader key name; values are 2026
+  resident_first_half_wage_rate: 0.0374
+  resident_second_half_wage_rate: 0.03735
+  school_income_tax_rate: 0.03735
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "wages_only"
+  flat_rates:
+    resident_rate: 0.03735
+local_config:
+  special_notes:
+    - "Resident Wage Tax 3.74% on pay dates through 30 June 2026, 3.735% from 1 July 2026."
+    - "School Income Tax 3.735% for tax year 2026 on dividends and gains on assets held six months or less."
+    - "Long-term (more than six months) securities gains are not taxed."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 resident; supplied Jan-Jun wages and six-month gains required."
+references:
+  - evidence_id: "PHL-2026-SRC-1"
+    source_name: "City of Philadelphia, Tax rate history"
+    url: "https://www.phila.gov/documents/tax-rate-schedule/"
+    retrieved_date: "2026-10-23"
+    notes: "SIT 2026: 3.735% on unearned income; Wage Tax resident 3.74% (Jul 2025-Jun 2026) and 3.735% (Jul 2026-Jun 2027)."
+  - evidence_id: "PHL-2026-SRC-2"
+    source_name: "City of Philadelphia, Wage Tax (employers)"
+    url: "https://www.phila.gov/services/payments-assistance-taxes/business-taxes/wage-tax-employers/"
+    retrieved_date: "2026-10-23"
+    notes: "Rate table: effective July 1, 2026 resident 3.735%, non-resident 3.425%; July 1, 2025 3.74%."
+  - evidence_id: "PHL-2026-SRC-3"
+    source_name: "2025 Philadelphia School Income Tax instructions"
+    url: "https://www.phila.gov/media/20260128151226/2025-School-Income-Tax-SIT-instructions.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "SIT base: dividends and net gains on assets held six months or less (carried to 2026)."

@@ -41,8 +41,12 @@ def _mixed_income_input(state: str) -> StateTaxInput:
 def test_2026_zero_tax_registry_exactly_matches_loadable_rules() -> None:
     loader = StateRulesLoader()
 
-    assert SUPPORTED_2026_US_STATES == ZERO_TAX_STATES_2026
-    assert set(loader.list_available_states(2026)) == ZERO_TAX_STATES_2026
+    assert ZERO_TAX_STATES_2026 <= SUPPORTED_2026_US_STATES
+    untaxed_files = {
+        state for state in loader.list_available_states(2026)
+        if loader.load_state_rules(state, 2026).tax_type == StateTaxType.NONE
+    }
+    assert untaxed_files == ZERO_TAX_STATES_2026
 
     for state in ZERO_TAX_STATES_2026:
         assert loader.get_rules_file_path(state, 2026).parent.name == "2026"
@@ -70,7 +74,11 @@ def test_2026_mixed_supported_income_has_zero_state_liability(state: str) -> Non
 
 
 @pytest.mark.parametrize("state", ["CA", "WA"])
-def test_direct_2026_state_calculation_rejects_unsupported_states(state: str) -> None:
+def test_direct_2026_state_calculation_rejects_unsupported_states(state: str, monkeypatch) -> None:
+    monkeypatch.setattr(
+        "tax_estimator.calculation.states.calculator.enabled_us_states",
+        lambda *args, **kwargs: ZERO_TAX_STATES_2026,
+    )
     with pytest.raises(StateCalculationError, match=rf"not supported for {state}"):
         StateCalculator().calculate(_mixed_income_input(state))
 

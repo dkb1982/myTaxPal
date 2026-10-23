@@ -1,0 +1,45 @@
+# =============================================================================
+# Columbus - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-OH-CMH"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "Columbus"
+parent_jurisdiction_id: "US-OH"
+parent_state: "OH"
+has_income_tax: true
+tax_type: "municipal_income_tax"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "earned_income"
+  flat_rates:
+    resident_rate: 0.025
+local_config:
+  special_notes:
+    - "2.5% of qualifying wages; intangible income exempt under ORC 718.01(C)(2)."
+    - "Assumes W-2 wages equal Ohio qualifying wages (Medicare wages)."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 resident living and working in Columbus."
+references:
+  - evidence_id: "CMH-2026-SRC-1"
+    source_name: "Columbus City Auditor, General Income Tax Information"
+    url: "https://www.columbus.gov/Government/City-Auditor/Income-Tax-Division/General-Income-Tax-Information"
+    retrieved_date: "2026-10-23"
+    notes: "Columbus residents pay a total of 2.5%; 100% credit up to 2.5%."
+  - evidence_id: "CMH-2026-SRC-2"
+    source_name: "Columbus City Auditor 2026 Official Revenue Estimate (Oct 30, 2025)"
+    url: "https://www.columbus.gov/files/sharedassets/city/v/2/city-auditor/news/2026-official-revenue-estimate-of-the-city-auditor.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "The City's current income tax rate is 2.5% on wages and other compensation."
+  - evidence_id: "ORC-718.01"
+    source_name: "Ohio Revised Code 718.01 (effective Sept 30, 2025)"
+    url: "https://codes.ohio.gov/ohio-revised-code/section-718.01"
+    retrieved_date: "2026-10-23"
+    notes: "(C)(2)(a) intangible income (dividends, capital gains, interest) is exempt income; (R) qualifying wages. Retrieved via Wayback copy."

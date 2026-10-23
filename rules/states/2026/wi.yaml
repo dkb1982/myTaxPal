@@ -1,0 +1,104 @@
+# Wisconsin individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-WI"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Wisconsin"
+jurisdiction_abbreviation: "WI"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# Wis. Stat. §71.06(1r) amounts (14,680 / 50,480 / 323,290; 2025 Act 15) indexed under
+# §71.06(2e)(bm): x CPI-U Aug 2025 (323.976) / Aug 2024 (314.796), rounded to the
+# nearest $10 -> 15,110 / 51,950 / 332,720. PROVISIONAL until DOR publishes 2026
+# amounts. Base taxes are exact cumulative amounts (as in DOR's Tax Computation
+# Worksheet subtraction amounts).
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "WI-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 15110
+      rate: 0.035
+      base_tax: 0
+    - bracket_id: "WI-2026-S-2"
+      filing_status: "single"
+      income_from: 15110
+      income_to: 51950
+      rate: 0.044
+      base_tax: 528.85
+    - bracket_id: "WI-2026-S-3"
+      filing_status: "single"
+      income_from: 51950
+      income_to: 332720
+      rate: 0.053
+      base_tax: 2149.81
+    - bracket_id: "WI-2026-S-4"
+      filing_status: "single"
+      income_from: 332720
+      income_to: null
+      rate: 0.0765
+      base_tax: 17030.62
+  surtaxes: []
+
+# Maximum single standard deduction; the income-dependent amount is computed in
+# policies_2026_g6._wi (12% reduction above $20,120 of Wisconsin AGI).
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 13960
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 700
+    dependent_exemption_available: true
+    dependent_exemption_amount: 700
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: ["IL", "IN", "KY", "MI"]
+  special_notes:
+    - "Wisconsin 2026 brackets and sliding standard deduction are computed from statute (provisional until DOR publishes 2026 amounts)."
+    - "30% exclusion of net capital gain on assets held more than one year (Wis. Stat. §71.05(6)(b)9.)."
+    - "Wisconsin follows the IRC as amended to December 31, 2022 for 2026 (Wisconsin Tax Bulletin 234); OBBBA changes do not apply."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 6)"
+  notes: "Statutory indexing reproduces the published 2024 and 2025 brackets and 2025 standard deduction table; no 2026 legislation changed rates or the standard deduction (WTB 232-234)."
+
+references:
+  - source_name: "Wisconsin Statutes ch. 71 (updated 2023-24, published March 1, 2026; archived copy)"
+    url: "https://web.archive.org/web/20260307092226/https://docs.legis.wisconsin.gov/statutes/statutes/71.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "§71.06(1r) post-2024 single brackets; §71.06(2e)(bm) August CPI-U indexing vs Aug 2024, nearest $10; §71.05(22)(dp)1. $7,200/$10,380/12% and (dt) indexing vs Aug 1999; §71.05(6)(b)9. 30% exclusion. Live site docs.legis.wisconsin.gov was unreachable."
+  - source_name: "Wisconsin 2025 Form 1 Instructions"
+    url: "https://www.revenue.wi.gov/TaxForms2025/2025-Form1-Inst.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2025 single maximum standard deduction $13,560 and table; Tax Computation Worksheet subtraction amounts; $700 exemption; used to validate the indexing method."
+  - source_name: "Wisconsin Tax Bulletin 234 (July 2026)"
+    url: "https://www.revenue.wi.gov/WisconsinTaxBulletin/234-07-31-WTB.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 IRC conformity remains December 31, 2022."
+  - source_name: "Wisconsin Tax Bulletin 233 (April 2026)"
+    url: "https://www.revenue.wi.gov/WisconsinTaxBulletin/233-04-30-WTB.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2025-26 session individual income tax law changes; none alter rates, brackets, standard deduction or the capital gain exclusion for this profile."
+  - source_name: "BLS CPI-U U.S. city average, all items, NSA (CUUR0000SA0)"
+    url: "https://data.bls.gov/timeseries/CUUR0000SA0"
+    retrieved_date: "2026-10-23"
+    notes: "August values: 1999 167.1, 2024 314.796, 2025 323.976."

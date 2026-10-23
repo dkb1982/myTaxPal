@@ -1,0 +1,67 @@
+# =============================================================================
+# New York City - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-NY-NYC"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "New York City"
+parent_jurisdiction_id: "US-NY"
+parent_state: "NY"
+has_income_tax: true
+tax_type: "city_income_tax"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+policy_2025:  # loader key name; values are 2026
+  school_fixed_credit: 63
+  school_fixed_income_limit: 250000
+  school_rate_income_limit: 500000
+  school_rate_threshold: 12000
+  school_lower_rate: 0.00171
+  school_upper_base_credit: 21
+  school_upper_rate: 0.00228
+  household_credit_income_limit: 12500
+  household_credit_lower_limit: 10000
+  household_credit: 15
+  household_credit_upper: 10
+rate_schedule:
+  rate_type: "graduated"
+  tax_base: "state_taxable_income"
+  brackets:
+    - {bracket_id: "NYC-2026-S-1", filing_status: "single", income_from: 0, income_to: 12000, rate: 0.03078, base_tax: 0}
+    - {bracket_id: "NYC-2026-S-2", filing_status: "single", income_from: 12000, income_to: 25000, rate: 0.03762, base_tax: 369}
+    - {bracket_id: "NYC-2026-S-3", filing_status: "single", income_from: 25000, income_to: 50000, rate: 0.03819, base_tax: 858}
+    - {bracket_id: "NYC-2026-S-4", filing_status: "single", income_from: 50000, income_to: null, rate: 0.03876, base_tax: 1813}
+local_config:
+  special_notes:
+    - "Base is NY taxable income (IT-201 line 47 = NYAGI less $8,000 standard deduction here)."
+    - "Published whole-dollar base amounts 369/858/1,813 (Tax Law 11-1701; IT-2105-I) plus the rate on the excess."
+    - "Household credit (Tax Law 1310(c)) single: $15 to $10,000 FAGI, $10 to $12,500; unchanged statute."
+    - "NYC EIC (IT-215 rate table) only with an asserted federal EIC; IT-270 elimination credit needs dependants."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 resident wages/dividends/gains cases; FY2027 NY budget made no NYC rate or credit change found."
+references:
+  - evidence_id: "NYC-2026-SRC-1"
+    source_name: "NYS IT-2105-I (2026) estimated tax instructions"
+    url: "https://www.tax.ny.gov/pdf/current_forms/it/it2105i.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 NYC single rate schedule (3.078/3.762/3.819/3.876 at 12,000/25,000/50,000); school credit fixed $63 (income <= $250,000); rate-reduction table; Yonkers 16.75%."
+  - evidence_id: "NYC-2026-SRC-2"
+    source_name: "NYS IT-201-I (2025) lines 47-70a"
+    url: "https://www.tax.ny.gov/pdf/current_forms/it/it201i.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Household credit table, school credits, NYC EIC (IT-215) and IT-270 references; carried to 2026 with unchanged statute."
+  - evidence_id: "NYC-2026-SRC-3"
+    source_name: "NYS IT-270-I NYC income tax elimination credit"
+    url: "https://www.tax.ny.gov/pdf/current_forms/it/it270i.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Credit requires one or more dependants; not applicable to this profile."
+  - evidence_id: "NYC-2026-SRC-4"
+    source_name: "Hodgson Russ summary of enacted 2026-27 NY budget (lead only)"
+    url: "https://www.hodgsonruss.com/newsroom/alerts/tax-provisions-of-interest-in-the-enacted-2026-27-new-york-budget-bill"
+    retrieved_date: "2026-10-23"
+    notes: "Only NYC PIT change: child and dependent care credit cross-reference; no rate change."

@@ -1,0 +1,93 @@
+# Oregon individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-OR"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Oregon"
+jurisdiction_abbreviation: "OR"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "OR-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 4550
+      rate: 0.0475
+      base_tax: 0
+    - bracket_id: "OR-2026-S-2"
+      filing_status: "single"
+      income_from: 4550
+      income_to: 11400
+      rate: 0.0675
+      base_tax: 216
+    - bracket_id: "OR-2026-S-3"
+      filing_status: "single"
+      income_from: 11400
+      income_to: 125000
+      rate: 0.0875
+      base_tax: 678
+    - bracket_id: "OR-2026-S-4"
+      filing_status: "single"
+      income_from: 125000
+      income_to: null
+      rate: 0.099
+      base_tax: 10618
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 2910
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Oregon 2026 single rate chart: 4.75% to $4,550; $216 + 6.75% to $11,400; $678 + 8.75% to $125,000; $10,618 + 9.9% above (DOR 2026 Publication OR-ESTIMATE Chart S; ORS 316.037)."
+    - "2026 standard deduction $2,910 single (ORS 316.695(1)(c)); personal exemption credit $263, none above $100,000 federal AGI (ORS 316.085); federal tax subtraction limit $8,750 below $125,000 AGI phasing to zero at $145,000 (ORS 316.695(3)). All computed from BLS CPI-U and matching DOR 150-206-436 (Rev. 12-31-25)."
+    - "The 2025 kicker credit applies to 2025 returns only; no kicker applies to 2026 liability."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 5)"
+  notes: "ORS 316.037, 316.085, 316.695 (2025 edition); DOR 2026 OR-ESTIMATE and 2026 withholding formulas; BLS CPI-U."
+
+references:
+  - source_name: "Oregon DOR, 2026 Publication OR-ESTIMATE (150-101-026, Rev. 10-07-25)"
+    url: "https://www.oregon.gov/dor/forms/FormsPubs/publication-or-estimate_101-026_2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Chart S 2026 brackets $4,550/$11,400/$125,000 with $216/$678/$10,618 bases; federal tax subtraction $0 to $8,750; exemption credit $0 above $100,000 AGI (single). Its estimated $2,900 deduction / $260 credit were superseded by the December figures."
+  - source_name: "Oregon DOR, Oregon Withholding Tax Formulas 2026 (150-206-436, Rev. 12-31-25)"
+    url: "https://www.oregon.gov/dor/forms/FormsPubs/withholding-tax-formulas_206-436_2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Updated 2026 inflation-adjusted amounts: standard deduction $2,910 single, exemption credit $263, federal tax subtraction $8,750 with phase-out $7,000/$5,250/$3,500/$1,750/$0 at $125k/$130k/$135k/$140k/$145k."
+  - source_name: "Oregon Revised Statutes chapter 316 (2025 edition; Wayback 2026 snapshot)"
+    url: "https://www.oregonlegislature.gov/bills_laws/ors/ors316.html"
+    retrieved_date: "2026-10-23"
+    notes: "316.037 bracket indexing (Q2 1992 base, $50 rounding); 316.085 $90 credit indexed to H1 1986, $100,000 AGI limit; 316.695(1)(c) $1,640 basic standard deduction indexed to Q2 2002 ($5 rounding); 316.695(3) federal tax limits indexed to Sept 2005-Aug 2006 ($50 rounding)."
+  - source_name: "BLS CPI-U U.S. city average, all items (CUUR0000SA0)"
+    url: "https://data.bls.gov/timeseries/CUUR0000SA0"
+    retrieved_date: "2026-10-23"
+    notes: "Sept 2024-Aug 2025 average 319.205; Q2 1992 139.8; Q2 2002 179.833; H1 1986 109.117; Sept 2005-Aug 2006 200.292."

@@ -1,0 +1,39 @@
+# =============================================================================
+# Marion County (Indianapolis) - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-IN-IND"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "Indianapolis / Marion County"
+parent_jurisdiction_id: "US-IN"
+parent_state: "IN"
+has_income_tax: true
+tax_type: "county_piggyback"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+rate_schedule:
+  rate_type: "piggyback"
+  tax_base: "state_taxable_income"
+  piggyback:
+    rate: 0.0202
+local_config:
+  special_notes:
+    - "2.02% of Indiana AGI less the $1,000 personal exemption (state taxable income here)."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 resident cases; consumes IN state taxable income."
+references:
+  - evidence_id: "IND-2026-SRC-1"
+    source_name: "Indiana DOR Departmental Notice #1 (effective Oct 1, 2026)"
+    url: "https://www.in.gov/dor/files/dn01.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Marion (49) 0.0202 with no asterisk, i.e. unchanged since the Jan 1, 2026 notice; $1,000 per exemption."
+  - evidence_id: "IND-2026-SRC-2"
+    source_name: "Indiana DOR, your Indiana tax return line-by-line"
+    url: "https://www.in.gov/dor/i-am-a/individual/first-time-filer/your-indiana-tax-return-line-by-line/"
+    retrieved_date: "2026-10-23"
+    notes: "County tax base is Indiana AGI less exemptions."

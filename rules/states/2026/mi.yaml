@@ -1,0 +1,67 @@
+# Michigan individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-MI"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Michigan"
+jurisdiction_abbreviation: "MI"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0425
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 5900
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Michigan 2026 rate is 4.25%: Treasury determined on Apr 15 2026 that the rate-reduction conditions were not met."
+    - "2026 personal exemption $5,900 (Treasury 2026 withholding guide, Form 446)."
+    - "Michigan EITC is 30% of the federal EIC and refundable."
+    - "City income taxes are separate and not included."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 3)"
+  notes: "Rate from Treasury 2026 determination; exemption from Treasury Form 446 (Rev. 02-26). michigan.gov blocks automated retrieval; figures confirmed via search extracts of these Treasury pages."
+
+references:
+  - source_name: "Michigan Treasury notice: 4.25% rate for 2026 tax year (Apr 15 2026)"
+    url: "https://www.michigan.gov/treasury/reference/taxpayer-notices/2026/04/15/425-income-tax-rate-for-individuals-and-fiduciaries-in-2026-tax-year"
+    retrieved_date: "2026-10-23"
+    notes: "FY2025 GF/GP revenue fell 1.56% vs 2.70% inflation; no reduction; 2026 rate 4.25%."
+  - source_name: "Michigan Treasury Form 446 (Rev. 02-26) 2026 Withholding Guide"
+    url: "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/SUW/TY2026/446_Withholding-Guide_2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Withholding rate 4.25%; personal exemption amount $5,900."
+  - source_name: "Michigan Treasury withholding information by calendar year"
+    url: "https://www.michigan.gov/taxes/business-taxes/withholding/calendar-year-tax-information"
+    retrieved_date: "2026-10-23"
+    notes: "Personal exemption $5,900 (2026), $5,800 (2025), $5,600 (2024)."
+  - source_name: "2025 MI-1040 instruction book"
+    url: "https://www.michigan.gov/taxes/-/media/Project/Websites/taxes/Forms/IIT/TY2025/MI-1040-Book.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Reviewed 2025 baseline: EITC 30% of federal EIC, refundable."

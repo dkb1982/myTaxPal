@@ -29,6 +29,7 @@ from tax_estimator.calculation.states.models import (
 )
 from tax_estimator.calculation.states.policies_2025_a_m import POLICIES_2025_A_M
 from tax_estimator.calculation.states.policies_2025_n_w import POLICIES_2025_N_W
+from tax_estimator.calculation.states.policies_2026 import POLICIES_2026
 from tax_estimator.calculation.states.policy_common import (
     StatePolicyError,
     build_state_result,
@@ -120,10 +121,17 @@ class StateCalculator:
                     f"Loaded 2026 state rules are not allowlisted: {rules.state_code}"
                 )
             if rules.has_income_tax or rules.tax_type != StateTaxType.NONE:
-                raise StateCalculationError(
-                    f"No reviewed 2026 income-tax policy is registered for {rules.state_code}"
-                )
-            result = self._create_no_tax_result(tax_input, rules)
+                policy = POLICIES_2026.get(rules.state_code)
+                if policy is None:
+                    raise StateCalculationError(
+                        f"No reviewed 2026 income-tax policy is registered for {rules.state_code}"
+                    )
+                try:
+                    result = build_state_result(tax_input, rules, policy(tax_input, rules))
+                except StatePolicyError as exc:
+                    raise StateCalculationError(str(exc)) from exc
+            else:
+                result = self._create_no_tax_result(tax_input, rules)
             result.notes.extend(rules.special_notes)
             result.assumptions.append(
                 f"2026 {rules.state_name} result covers individual state income tax only; property, "

@@ -1,0 +1,66 @@
+# Massachusetts individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-MA"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Massachusetts"
+jurisdiction_abbreviation: "MA"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.05
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 4400
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "5% on Part A dividends, Part B wages and Part C long-term gains; 8.5% on short-term gains (M.G.L. c. 62 s. 4)."
+    - "4% surtax on taxable income above $1,107,750 for tax year 2026 (DOR certification Nov 20 2025)."
+    - "Employee FICA deduction up to $2,000 and $4,400 personal exemption (M.G.L. c. 62 s. 3)."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 3)"
+  notes: "Surtax threshold from the DOR certification; rates and exemptions statutory and unchanged from the reviewed 2025 policy. mass.gov/malegislature.gov block automated retrieval; 2026 Form 1-ES/draft Form 1 figures were confirmed via search extracts only."
+
+references:
+  - source_name: "MA DOR FY26 Period 4 Surtax Certification (July 20 2026)"
+    url: "https://www.mass.gov/doc/fy26-surtax-certification-period-4/download"
+    retrieved_date: "2026-10-23"
+    notes: "Footnote 2: on Nov 20 2025 DOR certified the TY2026 surtax threshold as $1,107,750.00 (retrieved via mirror arizent.brightspotcdn.com)."
+  - source_name: "MA DOR 2026 Form 1-ES"
+    url: "https://www.mass.gov/doc/2026-form-1-es-estimated-tax-payment-vouchers-instructions-and-worksheets/download"
+    retrieved_date: "2026-10-23"
+    notes: "2026 worksheet separates taxable 8.5% income (short-term capital gains) from 5% income; surtax filers must pay electronically."
+  - source_name: "MA DOR Personal Income Tax Exemptions"
+    url: "https://www.mass.gov/info-details/massachusetts-personal-income-tax-exemptions"
+    retrieved_date: "2026-10-23"
+    notes: "Single personal exemption $4,400."
+  - source_name: "2025 Massachusetts Form 1 instructions"
+    url: "https://www.mass.gov/doc/2025-form-1-instructions/download"
+    retrieved_date: "2026-10-23"
+    notes: "Reviewed 2025 baseline: FICA deduction cap $2,000, No Tax Status/limited income credit worksheets, EIC 40% of federal EIC (refundable)."

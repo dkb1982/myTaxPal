@@ -1,0 +1,66 @@
+# Utah individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-UT"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Utah"
+jurisdiction_abbreviation: "UT"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0445
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Utah 2026 rate is 4.45% of state taxable income (Utah Code §59-10-104, amended by 2026 General Session ch. 250)."
+    - "Nonrefundable taxpayer tax credit: 6% of the federal standard deduction, reduced by 1.3% of state taxable income above $18,696 (provisional 2026 base computed under §59-10-1018(5))."
+    - "Utah EITC: 20% of the federal EITC, nonrefundable, limited to Utah W-2 wages (§59-10-1044)."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 6)"
+  notes: "Rate and credit text from current Utah Code; 2026 phase-out base reconstructed with BLS CPI-U (method reproduces published 2023-2025 bases); Tax Commission publications blocked to automated retrieval."
+
+references:
+  - source_name: "Utah Code §59-10-104 (effective 1/1/2026)"
+    url: "https://le.utah.gov/xcode/Title59/Chapter10/C59-10-S104_2026050620260506.html"
+    retrieved_date: "2026-10-23"
+    notes: "Tax equals state taxable income x 4.45% (amended by ch. 250, 2026 General Session)."
+  - source_name: "Utah Code §59-10-1018 (effective 1/1/2026)"
+    url: "https://le.utah.gov/xcode/Title59/Chapter10/C59-10-S1018_2026050620260506.html"
+    retrieved_date: "2026-10-23"
+    notes: "6% of federal standard deduction; reduced $.013 per dollar of state taxable income over $15,095 (single), indexed under (5) by CPI per IRC §1(f)(4)-(5) vs 2020, rounded to the nearest dollar."
+  - source_name: "Utah Code §59-10-1044"
+    url: "https://le.utah.gov/xcode/Title59/Chapter10/C59-10-S1044_2023050320230503.html"
+    retrieved_date: "2026-10-23"
+    notes: "Nonrefundable EITC = lesser of 20% of the federal EITC or Utah W-2 wages."
+  - source_name: "BLS CPI-U U.S. city average, all items, NSA (CUUR0000SA0)"
+    url: "https://data.bls.gov/timeseries/CUUR0000SA0"
+    retrieved_date: "2026-10-23"
+    notes: "12-month averages ending Aug 2020 (257.721) and Aug 2025 (319.205): 15,095 x 319.205/257.721 = 18,696.20 -> 18,696; same method gives the published 16,742 (2023), 17,652 (2024), 18,213 (2025)."

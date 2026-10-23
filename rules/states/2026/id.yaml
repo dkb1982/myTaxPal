@@ -1,0 +1,71 @@
+# Idaho individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-ID"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Idaho"
+jurisdiction_abbreviation: "ID"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.053
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_taxable_income"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Idaho 2026: 5.3% of Idaho taxable income over an indexed zero-rate amount (Idaho Code 63-3024)."
+    - "2026 single zero-rate amount $4,938 computed: 2,500 x CPI-U 2025 (321.943) / CPI-U 1998 (163.0) - provisional until the Tax Commission publishes it."
+    - "Idaho conforms to the IRC as of Jan 1 2026 (HB 559, 2026); the federal standard deduction applies."
+    - "Food Tax Credit $155 per person (Idaho Code 63-3024A)."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 2)"
+  notes: "Idaho Code 63-3024 and 63-3024A (2026 snapshots), Tax Commission 2025 Form 40 instructions and July 2026 withholding tables, BLS CPI-U."
+
+references:
+  - source_name: "Idaho Code 63-3024 (Idaho Legislature; archived 2026-04-06)"
+    url: "https://legislature.idaho.gov/statutesrules/idstat/title63/t63ch30/sect63-3024/"
+    retrieved_date: "2026-10-23"
+    notes: "5.3% of taxable income over $2,500 (single); threshold indexed by CPI-U prior calendar year / CPI-U 1998."
+  - source_name: "Idaho Code 63-3024A (Idaho Legislature; archived 2026-03-14)"
+    url: "https://legislature.idaho.gov/statutesrules/idstat/title63/t63ch30/sect63-3024a/"
+    retrieved_date: "2026-10-23"
+    notes: "Food tax credit $155 per person for tax year 2025 and each year thereafter; refundable."
+  - source_name: "Idaho State Tax Commission, 2025 Form 40 instructions (EIN00046 03-02-2026)"
+    url: "https://tax.idaho.gov/wp-content/uploads/forms/EIN00046/EIN00046_03-02-2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "IRC conformity as of Jan 1 2026; 2025 worksheet: taxable income less $4,811 times 5.3% (verifies the indexing formula)."
+  - source_name: "Idaho State Tax Commission, 2026 percentage withholding tables (EPB00744 07-23-2026)"
+    url: "https://tax.idaho.gov/wp-content/uploads/pubs/EPB00744/EPB00744_07-23-2026.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 rate 5.3% unchanged."
+  - source_name: "BLS CPI-U U.S. city average, all items (CUUR0000SA0) annual averages"
+    url: "https://data.bls.gov/timeseries/CUUR0000SA0"
+    retrieved_date: "2026-10-23"
+    notes: "2025 annual average 321.943; 2024 313.689; 1998 163.0."

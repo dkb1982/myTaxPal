@@ -1,0 +1,40 @@
+# =============================================================================
+# Louisville Metro - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-KY-LOU"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "Louisville"
+parent_jurisdiction_id: "US-KY"
+parent_state: "KY"
+has_income_tax: true
+tax_type: "occupational_tax"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "earned_income"
+  flat_rates:
+    resident_rate: 0.022
+local_config:
+  special_notes:
+    - "Resident employee: 1.25% Metro + 0.20% transit (TARC) + 0.75% school boards = 2.20% of compensation."
+    - "Measured by wages/compensation and business net profit; investment income not taxed. No wage cap."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 resident employee working in Louisville Metro (JCPS district)."
+references:
+  - evidence_id: "LOU-2026-SRC-1"
+    source_name: "Louisville Metro Revenue Commission Regulations (2026), effective Jan 1, 2026"
+    url: "https://louisvilleky.gov/sites/default/files/2026-01/Louisville%20Metro%20Revenue%20Commission%20Regulations%20(2026).1.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Sec. 1.02: 1.25% occupational license tax, 0.20% transit tax, 0.75% school boards tax (residents) on wages and compensation."
+  - evidence_id: "LOU-2026-SRC-2"
+    source_name: "LMRC OL-3D instructions (2025)"
+    url: "https://louisvilleky.gov/sites/default/files/2024-12/ol-3d_instructions_2025.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Resident rate 2.2% (.0220); non-residents do not pay the school board tax."

@@ -1,0 +1,71 @@
+# Iowa individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-IA"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Iowa"
+jurisdiction_abbreviation: "IA"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.038
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_taxable_income"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Iowa 2026 flat rate 3.8% of taxable income (Iowa Code 422.5, SF 2442 of 2024)."
+    - "Starts from federal taxable income with rolling IRC conformity (federal standard deduction applies)."
+    - "Personal exemption credit $40 (Iowa Code 422.12); earned income credit 15% of federal, refundable (422.12B)."
+    - "Local school district income surtax is not included."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 2)"
+  notes: "Iowa Code 2026 sections 422.5, 422.12, 422.12B; IDR 2026 rate press release; 2026 session fiscal report shows no rate change."
+
+references:
+  - source_name: "Iowa Code 2026, section 422.5"
+    url: "https://www.legis.iowa.gov/docs/code/422.5.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Tax imposed on taxable income at a rate of three and eight-tenths percent."
+  - source_name: "Iowa Code 2026, section 422.12"
+    url: "https://www.legis.iowa.gov/docs/code/422.12.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Personal exemption credit forty dollars (single)."
+  - source_name: "Iowa Code 2026, section 422.12B"
+    url: "https://www.legis.iowa.gov/docs/code/422.12B.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Earned income credit fifteen percent of the federal credit; excess refundable."
+  - source_name: "Iowa DOR press release 2025-10-21: 2026 individual income tax and interest rates"
+    url: "https://revenue.iowa.gov/press-release/2025-10-21/idr-announces-2026-individual-income-tax-and-interest-rates"
+    retrieved_date: "2026-10-23"
+    notes: "In 2026 all levels of taxable individual income are subject to the flat 3.8% rate."
+  - source_name: "Iowa LSA 2026 Session Fiscal Report"
+    url: "https://www.legis.iowa.gov/docs/publications/FR/1611991.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "No 2026 session change to the individual rate."

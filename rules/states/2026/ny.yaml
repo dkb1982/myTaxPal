@@ -1,0 +1,124 @@
+# New York State individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-NY"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "New York"
+jurisdiction_abbreviation: "NY"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "NY-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 8500
+      rate: 0.039
+      base_tax: 0
+    - bracket_id: "NY-2026-S-2"
+      filing_status: "single"
+      income_from: 8500
+      income_to: 11700
+      rate: 0.044
+      base_tax: 332
+    - bracket_id: "NY-2026-S-3"
+      filing_status: "single"
+      income_from: 11700
+      income_to: 13900
+      rate: 0.0515
+      base_tax: 473
+    - bracket_id: "NY-2026-S-4"
+      filing_status: "single"
+      income_from: 13900
+      income_to: 80650
+      rate: 0.054
+      base_tax: 586
+    - bracket_id: "NY-2026-S-5"
+      filing_status: "single"
+      income_from: 80650
+      income_to: 215400
+      rate: 0.059
+      base_tax: 4191
+    - bracket_id: "NY-2026-S-6"
+      filing_status: "single"
+      income_from: 215400
+      income_to: 1077550
+      rate: 0.0685
+      base_tax: 12141
+    - bracket_id: "NY-2026-S-7"
+      filing_status: "single"
+      income_from: 1077550
+      income_to: 5000000
+      rate: 0.0965
+      base_tax: 71198
+    - bracket_id: "NY-2026-S-8"
+      filing_status: "single"
+      income_from: 5000000
+      income_to: 25000000
+      rate: 0.103
+      base_tax: 449714
+    - bracket_id: "NY-2026-S-9"
+      filing_status: "single"
+      income_from: 25000000
+      income_to: null
+      rate: 0.109
+      base_tax: 2509714
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 8000
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Tax Law 601(c)(1)(B)(vii) (Ch. 59, Laws of 2025): 2026 single schedule with the five lowest rates cut 0.1 point (3.9%-5.9%)."
+    - "Supplemental tax (recapture) per 601(d-5)(3) for 2026: NY AGI over $107,650; recapture base/incremental benefit 0/567, 567/2,047, 2,614/30,172, 32,786/32,500; 10.9% flat above $25,000,000 NY AGI."
+    - "Standard deduction $8,000 single (Tax Law 614); household credit table 606(b)(2)(A); NYS EIC 30% of federal less household credit."
+    - "NYC and Yonkers taxes are separate local computations."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 4)"
+  notes: "Rates and supplemental-tax amounts from the Tax Law text on nysenate.gov; FY2027 budget (May 2026) did not change rates, household credit or EIC."
+
+references:
+  - source_name: "NY Tax Law 601"
+    url: "https://www.nysenate.gov/legislation/laws/TAX/601"
+    retrieved_date: "2026-10-23"
+    notes: "(c)(1)(B)(vii) 2026 single schedule; (d-5)(3) 2026 supplemental tax amounts and $50,000 phase-in."
+  - source_name: "NY Tax Law 606"
+    url: "https://www.nysenate.gov/legislation/laws/TAX/606"
+    retrieved_date: "2026-10-23"
+    notes: "(b) household credit single table and cap; (d)(1) EIC 30% reduced by household credit."
+  - source_name: "NY Tax Law 614"
+    url: "https://www.nysenate.gov/legislation/laws/TAX/614"
+    retrieved_date: "2026-10-23"
+    notes: "Standard deduction $8,000 single."
+  - source_name: "Hodgson Russ: tax provisions of the enacted 2026-27 NY budget (lead only)"
+    url: "https://www.hodgsonruss.com/newsroom/alerts/tax-provisions-of-interest-in-the-enacted-2026-27-new-york-budget-bill"
+    retrieved_date: "2026-10-23"
+    notes: "FY2027 PIT changes: child care credit, tips subtraction, POWER rebate (advance-paid); no rate/household/EIC change."

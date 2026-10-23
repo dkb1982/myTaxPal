@@ -1,0 +1,66 @@
+# North Carolina individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-NC"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "North Carolina"
+jurisdiction_abbreviation: "NC"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0399
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 12750
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "North Carolina 2026 flat rate 3.99% (G.S. 105-153.7 as set by S.L. 2023-134; NCDOR NC-30 2026)."
+    - "2026 standard deduction $12,750 single (G.S. 105-153.5; NCDOR NC-30 2026)."
+    - "S.L. 2026-41 (S.B. 257) replaces the trigger schedule with fixed cuts starting tax year 2027 (3.49%); 2026 is unchanged."
+    - "IRC reference updated to July 5, 2025 by S.L. 2026-31; no effect on wages, dividends or capital gains in AGI."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 5)"
+  notes: "NCDOR NC-30 (2026) states the tax year 2026 rate and single standard deduction; NCDOR July 2026 notice on S.L. 2026-31/2026-41."
+
+references:
+  - source_name: "NCDOR NC-30, 2026 Income Tax Withholding Tables and Instructions for Employers (Web 11-25)"
+    url: "https://www.ncdor.gov/income-tax-withholding-tables-and-instructions-employers/open"
+    retrieved_date: "2026-10-23"
+    notes: "New for 2026: under S.L. 2023-134 the individual income tax rate for tax year 2026 is 3.99%; for tax year 2026 the single standard deduction is $12,750."
+  - source_name: "NCDOR Important Notice: Impact of Recently Enacted Laws on NC Individual and Corporate Income Tax Returns (July 23, 2026; updated Oct 9, 2026)"
+    url: "https://www.ncdor.gov/important-notice-impact-recently-enacted-laws-north-carolina-individual-and-corporate-income-tax"
+    retrieved_date: "2026-10-23"
+    notes: "S.L. 2026-31 and 2026-41: IRC reference updated to July 5, 2025; R&E decoupling, timber casualty and gambling-loss deductions; individual taxable income starts with federal AGI."
+  - source_name: "EY Tax News 2026-1630 (secondary lead only)"
+    url: "https://taxnews.ey.com/news/2026-1630-north-carolina-law-progressively-lowers-personal-income-tax-rate-over-several-years"
+    retrieved_date: "2026-10-23"
+    notes: "S.B. 257 signed July 7, 2026: 3.49% for 2027-2029, 3.24% 2030-2032, 2.99% 2033-2034; no change for 2026."

@@ -1,0 +1,112 @@
+# Delaware individual income-tax rule for the narrow 2026 US estimator profile
+# (single, age 40, full-year resident, W-2 wages, dividends and capital gains).
+# The policy (policies_2026_g1._de) applies the $110 personal credit and the
+# Delaware EITC election.
+
+jurisdiction_id: "US-DE"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Delaware"
+jurisdiction_abbreviation: "DE"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # 30 Del. C. 1102 schedule; $2,943.50 base at $60,000 per the DOR resident
+    # tax schedule (the 2026 PIT-EST worksheet rounds it to $2,943.00).
+    - bracket_id: "DE-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 2000
+      rate: 0
+      base_tax: 0
+    - bracket_id: "DE-2026-S-2"
+      filing_status: "single"
+      income_from: 2000
+      income_to: 5000
+      rate: 0.022
+      base_tax: 0
+    - bracket_id: "DE-2026-S-3"
+      filing_status: "single"
+      income_from: 5000
+      income_to: 10000
+      rate: 0.039
+      base_tax: 66
+    - bracket_id: "DE-2026-S-4"
+      filing_status: "single"
+      income_from: 10000
+      income_to: 20000
+      rate: 0.048
+      base_tax: 261
+    - bracket_id: "DE-2026-S-5"
+      filing_status: "single"
+      income_from: 20000
+      income_to: 25000
+      rate: 0.052
+      base_tax: 741
+    - bracket_id: "DE-2026-S-6"
+      filing_status: "single"
+      income_from: 25000
+      income_to: 60000
+      rate: 0.0555
+      base_tax: 1001
+    - bracket_id: "DE-2026-S-7"
+      filing_status: "single"
+      income_from: 60000
+      income_to: null
+      rate: 0.066
+      base_tax: 2943.5
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 3250
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    treatment: "credit"
+    personal_exemption_available: true
+    personal_exemption_amount: 110
+    dependent_exemption_available: true
+    dependent_exemption_amount: 110
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Delaware 2026 rates run from 0% on the first $2,000 to 6.6% over $60,000 of taxable income."
+    - "Delaware allows a $3,250 single standard deduction and a $110 personal credit."
+
+verification:
+  status: "source_checked_limited_scenarios"
+  last_verified: "2026-10-23"
+  verified_by: "source review (agent); not professional sign-off"
+  notes: "2026 rates, $3,250 standard deduction and $110 personal credit from DOR 2026 PIT-EST instructions (rev. 11/10/25). 153rd General Assembly: bracket bill HS 2 for HB 13 and EITC increase HB 99 not enacted (still in committee); HB 255 (signed) decouples only business depreciation/expensing from OBBBA."
+
+references:
+  - source_name: "Delaware Division of Revenue, 2026 Declaration of Estimated Income Tax instructions (PIT-EST)"
+    url: "https://revenuefiles.delaware.gov/2025/PITForms_Instructions/Instructions/PIT-EST_Instructions_2026-01.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 tax computation table, $3,250 single standard deduction, $110 personal credit."
+  - source_name: "Delaware Division of Revenue, 2024 tax table and state income tax schedule"
+    url: "https://revenuefiles.delaware.gov/2024/PIT_2024_Forms/TY24_taxtable.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Tax on $60,000 is $2,943.50 plus 6.6% of the excess (unchanged statute)."
+  - source_name: "Delaware General Assembly, 153rd GA legislation search (HS 2 for HB 13, HB 99, HB 255)"
+    url: "https://legis.delaware.gov/AllLegislation"
+    retrieved_date: "2026-10-23"
+    notes: "HS 2 for HB 13 (brackets) and HB 99 (EITC) not enacted; HB 255 signed (business depreciation decoupling only)."

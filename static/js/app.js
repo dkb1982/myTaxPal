@@ -471,14 +471,15 @@ function setComparisonYearMode() {
     const scope = document.getElementById('compare-year-scope');
     if (scope) scope.hidden = !limited;
     const legend = document.getElementById('compare-region-legend');
-    if (legend) legend.textContent = limited ? 'Verified 2026 US states (choose 1 or more)' : 'Places to compare (2–6)';
+    if (legend) legend.textContent = limited ? 'Verified 2026 US places (choose 1 or more)' : 'Places to compare (2–6)';
     const submit = document.getElementById('compare-calculate-btn');
     if (submit) submit.textContent = limited ? 'Calculate 2026 take-home pay' : 'Compare take-home pay';
     const scopeDisclosure = document.getElementById('compare-us-scope');
     if (scopeDisclosure) scopeDisclosure.textContent = limited
-        ? '2026 estimates cover the listed verified states only: single, age 40, full-year resident and employee in each state, no dependants, standard deduction, wages, dividends and direct securities gains. Special deductions and local taxes are outside scope.'
+        ? '2026 estimates cover the listed verified states and cities only: single, age 40, full-year resident and employee in each place, no dependants, standard deduction, wages, dividends and direct securities gains. Special deductions are outside scope.'
         : 'Each place is modelled as a full-year resident and worker. US places assume age 40, no dependants and the standard deduction; only single filers with wages, dividends and direct securities gains are source-checked.';
-    for (const id of ['compare-country-details', 'compare-country-profiles', 'compare-state-details', 'us-cities-section']) {
+    // 2026 has no countries, but Arizona and Philadelphia facts still apply.
+    for (const id of ['compare-country-profiles']) {
         const section = document.getElementById(id);
         if (section) section.style.display = limited ? 'none' : '';
     }
@@ -566,6 +567,8 @@ function populateUSStates(states) {
 function populateUSCities(cities) {
     const grid = document.getElementById('us-cities-grid');
     if (!grid) return;
+    const section = document.getElementById('us-cities-section');
+    if (section) section.hidden = cities.length === 0;
 
     // Clear loading text
     grid.innerHTML = '';
@@ -1272,11 +1275,11 @@ async function calculateComparison() {
 
     const formData = gatherCompareFormData();
 
-    // A single verified 2026 state can also produce a standalone estimate.
+    // A single verified 2026 place can also produce a standalone estimate.
     const minimumRegions = formData.tax_year === 2026 ? 1 : 2;
     if (formData.regions.length < minimumRegions) {
         showError({ error: { message: minimumRegions === 1
-            ? 'Please select at least one verified 2026 state.'
+            ? 'Please select at least one verified 2026 state or city.'
             : 'Please select at least 2 regions to compare.' } });
         return;
     }
@@ -1584,7 +1587,7 @@ function displayCompareResults(result) {
     // Handle both old format (countries) and new format (regions)
     const regions = result.regions || result.countries || [];
     document.getElementById('compare-assumptions').innerHTML = is2026
-        ? `<p>Only verified 2026 states are shown. Single, age 40, full-year resident and employee in each state, with standard deduction; special deductions and state/local employee payroll programmes are outside scope.${single2026 ? ' One destination is an estimate, not a location ranking.' : ''}</p>`
+        ? `<p>Only verified 2026 states and cities are shown. Single, age 40, full-year resident and employee in each place, with standard deduction; special deductions and state/local employee payroll programmes are outside scope.${single2026 ? ' One destination is an estimate, not a location ranking.' : ''}</p>`
         : buildCompareAssumptionsHtml(regions);
     const skippedEl = document.getElementById('compare-skipped');
     if (skippedEl) {

@@ -1,0 +1,104 @@
+# New Mexico individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-NM"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "New Mexico"
+jurisdiction_abbreviation: "NM"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "NM-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 5500
+      rate: 0.015
+      base_tax: 0
+    - bracket_id: "NM-2026-S-2"
+      filing_status: "single"
+      income_from: 5500
+      income_to: 16500
+      rate: 0.032
+      base_tax: 82.50
+    - bracket_id: "NM-2026-S-3"
+      filing_status: "single"
+      income_from: 16500
+      income_to: 33500
+      rate: 0.043
+      base_tax: 434.50
+    - bracket_id: "NM-2026-S-4"
+      filing_status: "single"
+      income_from: 33500
+      income_to: 66500
+      rate: 0.047
+      base_tax: 1165.50
+    - bracket_id: "NM-2026-S-5"
+      filing_status: "single"
+      income_from: 66500
+      income_to: 210000
+      rate: 0.049
+      base_tax: 2716.50
+    - bracket_id: "NM-2026-S-6"
+      filing_status: "single"
+      income_from: 210000
+      income_to: null
+      rate: 0.059
+      base_tax: 9748
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_taxable_income"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "NMSA 7-2-7 (Laws 2024 ch. 67) rates for taxable years beginning on or after Jan 1 2025; brackets are not indexed."
+    - "Starting point: federal AGI less the federal standard deduction ($16,100 for 2026); no QBI line."
+    - "Net capital gain deduction up to $2,500 (NMSA 7-2-34); low/middle-income exemption $2,500 phased out 15% above $20,000 AGI, none above $36,667 (NMSA 7-2-5.8)."
+    - "PIT-1 tax rate table ($100 bands, midpoint, whole dollars) at or below $100,000 taxable income; statutory schedule above."
+    - "Working Families Tax Credit is 25% of the federal EIC; refundable."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 4)"
+  notes: "Statutory rates from TRD 'Personal Income Tax Rates for Tax Years Starting 2025' (NBER mirror; tax.newmexico.gov serves it dynamically); PIT-1 2025 instructions and 2025 tax rate table for method; 2026 session SB 151 changed only corporate/business items."
+
+references:
+  - source_name: "NM TRD: Personal income tax rates 2005-2025 (7-2-7 text, Laws 2024 ch. 67 s. 5)"
+    url: "https://taxsim.nber.org/historical_state_tax_forms/NM/2025/PIT%20rates_2005_2025.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Single: 1.5% to $5,500; $82.50+3.2% to $16,500; $434.50+4.3% to $33,500; $1,165.50+4.7% to $66,500; $2,716.50+4.9% to $210,000; $9,748+5.9% above; no indexing clause."
+  - source_name: "NM TRD 2025 PIT-1 instructions"
+    url: "https://realfile.tax.newmexico.gov/2025pit-1-ins.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Line 18 use rate tables; capital gain deduction up to $2,500; low/middle income exemption worksheet ($36,667 single, $20,000, 0.15, $2,500)."
+  - source_name: "NM TRD 2025 PIT-1 tax rate table"
+    url: "https://realfile.tax.newmexico.gov/2025trt.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "$100 bands to $100,000 at midpoint tax; above $100,000 TRD prints single $4,356 + 4.9% (statute gives $4,358) - statute used here."
+  - source_name: "NM Senate: 2026 tax package (SB 151)"
+    url: "https://www.nmsenate.com/senate-tax-committee-passes-comprehensive-tax-package-bill/"
+    retrieved_date: "2026-10-23"
+    notes: "2026 omnibus changed corporate income tax/GRT/credits; no personal income tax rate or deduction change."

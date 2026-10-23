@@ -1,0 +1,79 @@
+# Montana individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-MT"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Montana"
+jurisdiction_abbreviation: "MT"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "MT-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 47500
+      rate: 0.047
+      base_tax: 0
+    - bracket_id: "MT-2026-S-2"
+      filing_status: "single"
+      income_from: 47500
+      income_to: null
+      rate: 0.0565
+      base_tax: 2232.50
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_taxable_income"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Starting point is federal taxable income (federal standard deduction $16,100 flows through); QBI deduction added back."
+    - "2026 (HB 337, 2025; MCA 15-30-2103 temporary version): 4.7% on taxable income to $47,500, 5.65% above; brackets fixed (not indexed) for 2026."
+    - "Net long-term capital gains: 3.0% up to $47,500 less ordinary taxable income, 4.1% above; qualified dividends are ordinary."
+    - "Montana EITC is 20% of the federal EIC from tax year 2026 (HB 337); refundable."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 4)"
+  notes: "Rates and thresholds from DOR HB 337 notice and MCA 15-30-2103 (temporary version effective through Dec 31 2026)."
+
+references:
+  - source_name: "Montana DOR: HB 337 individual income tax changes"
+    url: "https://revenue.mt.gov/news/recent-news/HB-337"
+    retrieved_date: "2026-10-23"
+    notes: "TY2026 single: 4.7% to $47,500, 5.65% above; LTCG 3.0%/4.1% with brackets matching; EITC 20% of federal from 2026."
+  - source_name: "MCA 15-30-2103"
+    url: "https://mca.legmt.gov/bills/mca/title_0150/chapter_0300/part_0210/section_0030/0150-0300-0210-0030.html"
+    retrieved_date: "2026-10-23"
+    notes: "Temporary version through 2026: single $47,500 threshold, 4.7%/5.65%, LTCG 3.0% up to $47,500 reduced by nonqualified taxable income, 4.1% above; no 2026 inflation adjustment (indexing resumes in the 2027 version)."
+  - source_name: "Montana LFD: HR1 provisions and impacts"
+    url: "https://archive.legmt.gov/content/Publications/fiscal/2027-Biennium/Committees/LFC/Interim/HR1-Provisions-and-Impacts.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "OBBBA standard deduction changes flow through to Montana taxable income."
+  - source_name: "Montana Governor: HB 337 signing"
+    url: "https://news.mt.gov/Governors-Office/Governor_Gianforte_Celebrates_Largest_Income_Tax_Cut_in_State-_History"
+    retrieved_date: "2026-10-23"
+    notes: "HB 337 enacted."

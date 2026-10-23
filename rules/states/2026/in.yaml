@@ -1,0 +1,62 @@
+# Indiana individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-IN"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Indiana"
+jurisdiction_abbreviation: "IN"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  flat_rate: 0.0295
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 1000
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: true
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Indiana 2026 state adjusted gross income tax rate 2.95% (IC 6-3-2-1); 2.90% from 2027."
+    - "Personal exemption $1,000 (IC 6-3-1-3.5)."
+    - "County income taxes are separate and not included."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 2)"
+  notes: "Indiana DOR rates page and Departmental Notice #1 (2026)."
+
+references:
+  - source_name: "Indiana DOR, Rates, fees and penalties"
+    url: "https://www.in.gov/dor/resources/tax-rates-and-reports/rates-fees-and-penalties/"
+    retrieved_date: "2026-10-23"
+    notes: "The Indiana individual adjusted gross income tax rate for 2026 is 2.95% and will adjust in 2027 to 2.90%."
+  - source_name: "Indiana DOR, Departmental Notice #1 (effective Oct. 1, 2026)"
+    url: "https://www.in.gov/dor/files/dn01.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "For 2026 the state AGI tax rate for individuals is 2.95%; personal exemption $1,000 per exemption."
+  - source_name: "Indiana DOR, Income Tax Information Bulletin #92 (March 2024)"
+    url: "https://www.in.gov/dor/files/ib92.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Indiana EITC is 10% of the federal EITC (IRC 32 as of Jan 1 2023), refundable."

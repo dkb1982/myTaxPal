@@ -1,0 +1,79 @@
+# Rhode Island individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-RI"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Rhode Island"
+jurisdiction_abbreviation: "RI"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "RI-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 82050
+      rate: 0.0375
+      base_tax: 0
+    - bracket_id: "RI-2026-S-2"
+      filing_status: "single"
+      income_from: 82050
+      income_to: 186450
+      rate: 0.0475
+      base_tax: 3076.88
+    - bracket_id: "RI-2026-S-3"
+      filing_status: "single"
+      income_from: 186450
+      income_to: null
+      rate: 0.0599
+      base_tax: 8035.88
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 11200
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 5250
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Rhode Island 2026 schedule: 3.75% to $82,050; $3,076.88 + 4.75% to $186,450; $8,035.88 + 5.99% above (ADV 2025-22)."
+    - "2026 standard deduction $11,200 single and $5,250 exemption, phased out in 20% steps of $7,450 between $261,000 and $290,800 modified federal AGI (ADV 2025-22)."
+    - "The surtax on income over $1 million (FY2027 budget) starts in tax year 2027."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 5)"
+  notes: "RI Division of Taxation ADV 2025-22 (Nov 3, 2025); House Fiscal Staff FY2027 Budget as Enacted."
+
+references:
+  - source_name: "RI Division of Taxation ADV 2025-22, Inflation-adjusted amounts set for Tax Year 2026 (Nov 3, 2025)"
+    url: "https://tax.ri.gov/sites/g/files/xkgbur541/files/2025-11/ADV_2025_22_Inflation_Adjustments.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "TY2026: standard deduction $11,200 single; exemption $5,250; phase-out $261,000-$290,800, increment $7,450; brackets $82,050/$186,450 with $3,076.88/$8,035.88."
+  - source_name: "RI House Fiscal Advisory Staff, FY 2027 Budget as Enacted - Budget at a Glance"
+    url: "https://rilegislature.gov/housefiscalreport/2020/FY%202027%20Budget%20as%20Enacted%20-%20Budget%20at%20a%20Glance.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Rate increase on income over $1.0 million effective beginning tax year 2027; top rate 5.99% above $186,450 for tax year 2026."

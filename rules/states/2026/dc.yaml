@@ -1,0 +1,111 @@
+# District of Columbia individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-DC"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "District of Columbia"
+jurisdiction_abbreviation: "DC"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "DC-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 10000
+      rate: 0.04
+      base_tax: 0
+    - bracket_id: "DC-2026-S-2"
+      filing_status: "single"
+      income_from: 10000
+      income_to: 40000
+      rate: 0.06
+      base_tax: 400
+    - bracket_id: "DC-2026-S-3"
+      filing_status: "single"
+      income_from: 40000
+      income_to: 60000
+      rate: 0.065
+      base_tax: 2200
+    - bracket_id: "DC-2026-S-4"
+      filing_status: "single"
+      income_from: 60000
+      income_to: 250000
+      rate: 0.085
+      base_tax: 3500
+    - bracket_id: "DC-2026-S-5"
+      filing_status: "single"
+      income_from: 250000
+      income_to: 500000
+      rate: 0.0925
+      base_tax: 19650
+    - bracket_id: "DC-2026-S-6"
+      filing_status: "single"
+      income_from: 500000
+      income_to: 1000000
+      rate: 0.0975
+      base_tax: 42775
+    - bracket_id: "DC-2026-S-7"
+      filing_status: "single"
+      income_from: 1000000
+      income_to: null
+      rate: 0.1075
+      base_tax: 91525
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 15000
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "DC 2026 rates per D.C. Code 47-1806.03(a)(10) (unchanged from 2025)."
+    - "2026 basic standard deduction $15,000: D.C. Law 26-189 sets $15,000 plus a cost-of-living adjustment with base year 2025, which is zero for 2026 (provisional until OTR publishes 2026 forms)."
+    - "Personal exemption repealed (D.C. Law 26-189). DC childless EITC 2026 thresholds are not yet published; low-income EITC claims are not supported."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 2)"
+  notes: "Rates from D.C. Code 47-1806.03; standard deduction from the FY2027 Budget Support Act (D.C. Law 26-189, effective 2026-10-02) as summarized by Thomson Reuters and the Council ANS text."
+
+references:
+  - source_name: "Council of the District of Columbia, FY2027 Budget Support Act of 2026 (B26-0661), Amendment in the Nature of a Substitute, Subtitle VII-I Tax Code Conformity and Clarification"
+    url: "https://lims.dccouncil.gov/downloads/LIMS/61627/Meeting3/Amendment/B26-0661-Amendment1.pdf?Id=242559"
+    retrieved_date: "2026-10-23"
+    notes: "Sec. 7112(b): new 47-1801.04(3A) basic standard deduction $15,000 (single) for 2025; for 2026-2029 increased by COLA with base year 2025; repeals 47-1806.02 personal exemption; EITC with qualifying child 85% for 2026-2028."
+  - source_name: "Thomson Reuters Tax & Accounting, DC 2027 budget support legislation becomes law"
+    url: "https://tax.thomsonreuters.com/news/district-of-columbia-2027-budget-support-legislation-becomes-law/"
+    retrieved_date: "2026-10-23"
+    notes: "Lead only: Act 26-418 / D.C. Law 26-189 effective 2026-10-02; confirms the standard-deduction amendment as enacted."
+  - source_name: "D.C. Code 47-1801.04 (definitions, COLA paragraph (11))"
+    url: "https://code.dccouncil.gov/us/dc/council/code/sections/47-1801.04"
+    retrieved_date: "2026-10-23"
+    notes: "COLA = amount x (CPI preceding calendar year - CPI base year) / CPI base year."
+  - source_name: "DC OTR 2025 D-40 booklet"
+    url: "https://otr.cfo.dc.gov/sites/default/files/dc/sites/otr/publication/attachments/2025_D40_Book_082026_v1.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Tax rate schedule (47-1806.03(a)(10)) and Schedule ELC childless EITC worksheet (2025 values)."

@@ -1,0 +1,39 @@
+# =============================================================================
+# Birmingham - 2026 resident policy (single, age 40, lives and works in the city).
+# Resident-only scope: nonresident rules are intentionally not encoded here.
+# =============================================================================
+jurisdiction_id: "US-AL-BHM"
+tax_year: 2026
+jurisdiction_type: "city"
+jurisdiction_name: "Birmingham"
+parent_jurisdiction_id: "US-AL"
+parent_state: "AL"
+has_income_tax: true
+tax_type: "occupational_tax"
+applies_to: "residents_only"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+rate_schedule:
+  rate_type: "flat"
+  tax_base: "wages_only"
+  flat_rates:
+    resident_rate: 0.01
+local_config:
+  special_notes:
+    - "Occupational license tax: 1% of all wages for work done within city limits; investment income not taxed."
+verification:
+  status: "validated_cases_only"
+  last_verified: "2026-10-23"
+  verified_by: "2026 local source review"
+  notes: "2026 single age-40 employee working in Birmingham."
+references:
+  - evidence_id: "BHM-2026-SRC-1"
+    source_name: "City of Birmingham FY2026 Official Budget Book"
+    url: "https://s3.us-east-2.amazonaws.com/assets.birminghamal.gov/s3fs-public/2026-09/FY26%20Offical%20Budget%20Book%20Merged%20with%20Tabs.pdf%20(v2).pdf"
+    retrieved_date: "2026-10-23"
+    notes: "417-001 Occupational License Tax: payroll deduction at 1% on all wages paid for work within the city; FY2026 = Jul 2025-Jun 2026."
+  - evidence_id: "BHM-2026-SRC-2"
+    source_name: "Birmingham Code, Title 3 Chapter 2 Occupational Tax"
+    url: "https://library.municode.com/al/birmingham/codes/code_of_ordinances?nodeId=PT1THCOGEOR_TIT3ARETA_CH2OCTA"
+    retrieved_date: "2026-10-23"
+    notes: "Ordinance (not re-fetched in 2026: site blocks automated access)."

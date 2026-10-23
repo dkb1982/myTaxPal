@@ -32,9 +32,15 @@ def test_texas_2026_contract_is_complete_and_executable() -> None:
 
 
 def test_unregistered_or_missing_rule_coverage_is_rejected() -> None:
-    assert coverage_entry("US-WA", 2026) is None
+    # Newark has 2025 rules but is not registered for 2026.
+    assert coverage_entry("US-NJ-NEW", 2026) is None
     with pytest.raises(UnsupportedCoverageError, match="no supported"):
-        require_coverage("US-WA", 2026)
+        require_coverage("US-NJ-NEW", 2026)
+    # A pending state is discoverable but never computable.
+    pending = coverage_entry("US-CO", 2026)
+    assert pending is not None and pending.unavailable_reason
+    with pytest.raises(UnsupportedCoverageError, match="Colorado"):
+        require_coverage("US-CO", 2026)
     with pytest.raises(UnsupportedCoverageError, match="required rules are missing"):
         require_coverage(
             "US-TX", 2026,

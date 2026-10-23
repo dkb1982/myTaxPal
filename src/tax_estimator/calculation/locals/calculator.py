@@ -18,7 +18,10 @@ from tax_estimator.calculation.locals.models import (
     LocalTaxType,
     ResidencyApplicability,
 )
+from tax_estimator.calculation.comparison_regions import get_city_for_local_jurisdiction
+from tax_estimator.calculation.coverage import enabled_us_cities
 from tax_estimator.calculation.locals.policies_2025 import calculate_2025_local
+from tax_estimator.calculation.locals.policies_2026 import LOCAL_POLICIES_2026
 from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
 
 
@@ -64,8 +67,10 @@ class LocalCalculator:
         Raises:
             LocalCalculationError: If calculation fails
         """
-        # Local policies are currently source-reviewed only for 2025. Reject a
-        # selected 2026 city before loading or entering the legacy calculation.
+        # 2026 cities run only through their reviewed policy; there is no
+        # generic fallback. Other years are unsupported.
+        if tax_input.tax_year == 2026:
+            return self._calculate_2026(tax_input)
         if tax_input.tax_year != 2025:
             raise LocalCalculationError(
                 f"No local income-tax calculation is supported for tax year "
@@ -113,6 +118,30 @@ class LocalCalculator:
         result.nonrefundable_credits = result.credit_for_taxes_paid_elsewhere
         result.warnings.append("Local result uses the unvalidated legacy profile; the 2025 single/age-40 policies and automatic credits were not applied.")
         return result
+
+    def _calculate_2026(self, tax_input: LocalTaxInput) -> LocalTaxResult:
+        city = get_city_for_local_jurisdiction(tax_input.jurisdiction_id)
+        rules_root = self.loader.rules_dir.parent
+        if city is None or city.region_id not in enabled_us_cities(2026, rules_root=rules_root):
+            raise LocalCalculationError(
+                f"No local income-tax policy is enabled for {tax_input.jurisdiction_id} in tax year 2026"
+            )
+        if not tax_input.baseline_profile_supported:
+            raise LocalCalculationError(
+                "Tax year 2026 local calculation requires the supported single-age-40 baseline profile"
+            )
+        try:
+            rules = self.loader.load_local_rules(city.region_id, 2026)
+        except Exception as e:
+            # Loader errors can include server paths; keep them out of responses.
+            raise LocalCalculationError(f"2026 rules for {city.region_id} could not be loaded") from e
+        policy = LOCAL_POLICIES_2026.get(city.region_id)
+        if policy is None:
+            raise LocalCalculationError(f"No reviewed 2026 local policy is registered for {city.region_id}")
+        try:
+            return policy(tax_input, rules, self)
+        except ValueError as exc:
+            raise LocalCalculationError(f"{rules.jurisdiction_name}: {exc}") from exc
 
     def _tax_applies(self, tax_input: LocalTaxInput, rules: LocalRules) -> bool:
         """Check if the local tax applies based on residency."""

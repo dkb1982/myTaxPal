@@ -1,0 +1,110 @@
+# New Jersey gross income tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-NJ"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "New Jersey"
+jurisdiction_abbreviation: "NJ"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "NJ-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 20000
+      rate: 0.014
+      base_tax: 0
+    - bracket_id: "NJ-2026-S-2"
+      filing_status: "single"
+      income_from: 20000
+      income_to: 35000
+      rate: 0.0175
+      base_tax: 280
+    - bracket_id: "NJ-2026-S-3"
+      filing_status: "single"
+      income_from: 35000
+      income_to: 40000
+      rate: 0.035
+      base_tax: 542.50
+    - bracket_id: "NJ-2026-S-4"
+      filing_status: "single"
+      income_from: 40000
+      income_to: 75000
+      rate: 0.05525
+      base_tax: 717.50
+    - bracket_id: "NJ-2026-S-5"
+      filing_status: "single"
+      income_from: 75000
+      income_to: 500000
+      rate: 0.0637
+      base_tax: 2651.25
+    - bracket_id: "NJ-2026-S-6"
+      filing_status: "single"
+      income_from: 500000
+      income_to: 1000000
+      rate: 0.0897
+      base_tax: 29723.75
+    - bracket_id: "NJ-2026-S-7"
+      filing_status: "single"
+      income_from: 1000000
+      income_to: null
+      rate: 0.1075
+      base_tax: 74573.75
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 1000
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "state_defined"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "N.J.S.A. 54A:2-1 rates unchanged for 2026 (Table A, single): 1.4% to 10.75%."
+    - "State-defined gross income: wages, dividends and net gains; net-gains losses do not offset other categories."
+    - "$1,000 personal exemption; no standard deduction; single gross income of $10,000 or less is not taxed."
+    - "Taxable income under $100,000 may use the rate schedule or the tax table."
+    - "NJ EITC is 40% of the federal EIC; refundable."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 4)"
+  notes: "Rate schedule from Division of Taxation (2020-and-after schedule); FY2027 budget (signed Jun 30 2026) did not change GIT rates for individuals."
+
+references:
+  - source_name: "NJ Division of Taxation tax rate schedules (2020 and after)"
+    url: "https://www.nj.gov/treasury/taxation/pdf/current/njtaxratesch.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "Table A single: 1.4%/1.75%/3.5%/5.525%/6.37%/8.97%/10.75% with $20k/$35k/$40k/$75k/$500k/$1M breakpoints."
+  - source_name: "NJ Division of Taxation tax tables page"
+    url: "https://www.nj.gov/treasury/taxation/taxtables.shtml"
+    retrieved_date: "2026-10-23"
+    notes: "Taxable income under $100,000 may use either the tax table or the rate schedules."
+  - source_name: "NJ Governor: FY2027 Appropriations Act signed"
+    url: "https://www.nj.gov/governor/news/2026/20260630d.shtml"
+    retrieved_date: "2026-10-23"
+    notes: "FY2027 budget; individual changes limited to credits (child tax credit) - no GIT rate change."
+  - source_name: "2025 NJ-1040 instructions (reviewed 2025 baseline)"
+    url: "https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "$1,000 exemption, $10,000 single filing threshold, EITC 40% of federal."

@@ -1,0 +1,80 @@
+# South Carolina individual income-tax rule for the narrow 2026 US estimator profile (single filer).
+
+jurisdiction_id: "US-SC"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "South Carolina"
+jurisdiction_abbreviation: "SC"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# S.C. Code §12-6-510(C) as amended by Act 110 of 2026 (H.4216); SCDOR IL #26-20:
+# 1.99% of taxable income under $30,000; (5.21% x taxable income) - $966 at $30,000
+# or more. Base tax 597 = 30,000 x 1.99% (= 30,000 x 5.21% - 966).
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - bracket_id: "SC-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 30000
+      rate: 0.0199
+      base_tax: 0
+    - bracket_id: "SC-2026-S-2"
+      filing_status: "single"
+      income_from: 30000
+      income_to: null
+      rate: 0.0521
+      base_tax: 597
+  surtaxes: []
+
+# The SCIAD ($15,000 single, phased out between $40,000 and $95,000 federal AGI)
+# is income-dependent and applied in policies_2026_g6._sc; the YAML amount is the
+# unreduced maximum.
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 15000
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "South Carolina 2026 (Act 110 of 2026): two brackets, 1.99% and 5.21%; future cuts begin no earlier than 2027."
+    - "From 2026 South Carolina decouples from IRC §63(b)-(g) and starts from federal AGI; the SC Income Adjusted Deduction (SCIAD) replaces the federal standard deduction."
+    - "44% net capital gain deduction (S.C. Code §12-6-1150) applies to long-term gains."
+    - "SC EITC is 125% of the federal EITC, capped at $200, nonrefundable."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "source review (group 6)"
+  notes: "Rates, SCIAD and EITC cap from Act 110 of 2026 enrolled text and SCDOR Information Letter #26-20 (Aug 31, 2026)."
+
+references:
+  - source_name: "SCDOR Information Letter #26-20, Individual Income Tax Reform"
+    url: "https://dor.sc.gov/sites/dor/files/policies/IL26-20.pdf"
+    retrieved_date: "2026-10-23"
+    notes: "2026 computation 1.99% under $30,000 / 5.21% x TI - $966; SCIAD table and $10 rounding; federal AGI starting point; EITC capped at $200."
+  - source_name: "S.C. H.4216 (Act 110 of 2026), ratified text"
+    url: "https://www.scstatehouse.gov/sess126_2025-2026/bills/4216.htm"
+    retrieved_date: "2026-10-23"
+    notes: "Amends §§12-6-50, 12-6-510, 12-6-1140(15) (SCIAD), 12-6-3632; applies to tax years beginning after 2025; §12-6-1150 (44% deduction) not amended."
