@@ -200,10 +200,11 @@ class TestWellKnownOrderings:
     """Tax orderings that are common knowledge should hold."""
 
     def test_japan_higher_than_hong_kong(self):
-        """Japan's overall tax burden is higher than Hong Kong's."""
-        income = Decimal("300000")
-        jp_rate = _effective_rate("JP", income)
-        hk_rate = _effective_rate("HK", income)
+        """Japan's overall tax burden is higher than Hong Kong's at comparable pay."""
+        # Comparable real incomes (~US$38k each); the same nominal figure in
+        # JPY and HKD would differ about 20x in value.
+        jp_rate = _effective_rate("JP", Decimal("6000000"))
+        hk_rate = _effective_rate("HK", Decimal("300000"))
         assert jp_rate > hk_rate, (
             f"Japan ({jp_rate}) should have higher rate than HK ({hk_rate})"
         )
@@ -227,7 +228,6 @@ class TestWellKnownOrderings:
         assert au_rate > hk_rate, (
             f"AU ({au_rate}) should be > HK ({hk_rate})"
         )
-        # AU can be close to DE depending on rates, so just check it's not absurdly higher
-        assert au_rate < Decimal("0.55"), (
-            f"AU rate at 300k is {au_rate} (too high)"
+        assert au_rate < de_rate, (
+            f"AU ({au_rate}) should be below DE ({de_rate})"
         )

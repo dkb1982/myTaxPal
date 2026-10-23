@@ -1,20 +1,26 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Japan - 2025 income (令和7年分 income tax; 令和8年度 resident tax on 2025 income)
 # =============================================================================
-# Japan Tax Year: January 1 to December 31
-# Uses quick deduction method for income tax
+# Japan tax year: calendar year (1 January - 31 December 2025).
+# Resident tax (住民税) on 2025 income is assessed and paid from June 2026
+# (令和8年度). The estimator attributes it to the 2025 income year.
+#
+# Loaded by src/tax_estimator/calculation/countries/jp.py (single source of
+# truth for the JP calculator). Values below were checked against the primary
+# sources listed under `references` on 2026-10-23.
 # =============================================================================
 
 jurisdiction_id: "JP"
 tax_year: 2025
 jurisdiction_type: "country"
-jurisdiction_name: "Japan (PLACEHOLDER)"
+jurisdiction_name: "Japan"
 jurisdiction_abbreviation: "JP"
 parent_jurisdiction_id: null
 
 country_code: "JP"
 currency_code: "JPY"
 tax_year_format: "calendar"
+period_label: "2025 income (令和7年分 income tax; 令和8年度 resident tax)"
 
 has_income_tax: true
 income_tax_type: "graduated"
@@ -22,107 +28,206 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Japan uses quick deduction method
-# Tax = (Taxable Income * Rate) - Quick Deduction
+# National income tax, quick-deduction form (所得税の速算表, NTA No.2260).
+# Tax = taxable income (rounded down to ¥1,000) * rate - quick deduction
 quick_deduction_brackets:
-  - min: 0
-    max: 1950000
-    rate: 0.05
-    quick_deduction: 0
-  - min: 1950000
-    max: 3300000
-    rate: 0.10
-    quick_deduction: 97500
-  - min: 3300000
-    max: 6950000
-    rate: 0.20
-    quick_deduction: 427500
-  - min: 6950000
-    max: 9000000
-    rate: 0.23
-    quick_deduction: 636000
-  - min: 9000000
-    max: 18000000
-    rate: 0.33
-    quick_deduction: 1536000
-  - min: 18000000
-    max: 40000000
-    rate: 0.40
-    quick_deduction: 2796000
-  - min: 40000000
-    max: null
-    rate: 0.45
-    quick_deduction: 4796000
+  - {min: 0, max: 1950000, rate: 0.05, quick_deduction: 0}
+  - {min: 1950000, max: 3300000, rate: 0.10, quick_deduction: 97500}
+  - {min: 3300000, max: 6950000, rate: 0.20, quick_deduction: 427500}
+  - {min: 6950000, max: 9000000, rate: 0.23, quick_deduction: 636000}
+  - {min: 9000000, max: 18000000, rate: 0.33, quick_deduction: 1536000}
+  - {min: 18000000, max: 40000000, rate: 0.40, quick_deduction: 2796000}
+  - {min: 40000000, max: null, rate: 0.45, quick_deduction: 4796000}
 
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
-  brackets: []  # Using quick_deduction_brackets instead
+  brackets: []  # quick_deduction_brackets above are authoritative
   surtaxes: []
 
-# Reconstruction Tax (until 2037)
+# 復興特別所得税: 2.1% of base income tax, 2013-2037 (NTA No.2260)
 reconstruction_tax_rate: 0.021
 
-social_insurance:
-  components:
-    - component_id: "JP-HEALTH"
-      name: "Kenko Hoken (Health)"
-      type: "health"
-      employee_rate: 0.05
-      employer_rate: 0.05
-      ceiling: 16680000  # Monthly 1,390,000 * 12
-      floor: 0
-      notes: "Rate varies by health insurance association"
-    - component_id: "JP-PENSION"
-      name: "Kousei Nenkin (Pension)"
-      type: "pension"
-      employee_rate: 0.0915
-      employer_rate: 0.0915
-      ceiling: 7800000  # Monthly 650,000 * 12
-      floor: 1056000   # Monthly 88,000 * 12
-      notes: "Employees pension insurance"
-    - component_id: "JP-EMPLOYMENT"
-      name: "Koyou Hoken (Employment)"
-      type: "unemployment"
-      employee_rate: 0.006
-      employer_rate: 0.0095
-      ceiling: null
-      floor: 0
-      notes: "Employment insurance"
-    - component_id: "JP-CARE"
-      name: "Kaigo Hoken (Long-term Care)"
-      type: "long_term_care"
-      employee_rate: 0.009
-      employer_rate: 0.009
-      ceiling: 16680000
-      floor: 0
-      age_restrictions:
-        min_age: 40
-        max_age: 64
-      notes: "Long-term care (age 40-64 only)"
-  calculation_method: "percentage"
-  employer_contribution: true
-  employee_contribution: true
+# 給与所得控除 for 令和7年分 (NTA No.1410; 2025 reform raised the minimum to ¥650k).
+# Below ¥6.6M the statutory table 別表第五 applies; it is reproduced by
+# rounding salary down to a ¥4,000 multiple before applying the formula.
+employment_income_deduction:
+  minimum: 650000
+  minimum_applies_up_to: 1900000
+  table_rounding_unit: 4000
+  table_upper_limit: 6600000
+  bands:
+    - {up_to: 3600000, rate: 0.30, add: 80000}
+    - {up_to: 6600000, rate: 0.20, add: 440000}
+    - {up_to: 8500000, rate: 0.10, add: 1100000}
+  maximum: 1950000
 
-deductions:
-  standard_deduction:
-    available: false
-    amounts: []
-    additional_amounts: []
-  exemptions:
-    personal_exemption_available: true
-    personal_exemption_amount: 480000  # Basic deduction
-    dependent_exemption_available: true
-    dependent_exemption_amount: 380000
+# 基礎控除 (income tax) by 合計所得金額, 令和7年分 (NTA No.1199)
+basic_deduction_income_tax:
+  - {total_income_up_to: 1320000, amount: 950000}
+  - {total_income_up_to: 3360000, amount: 880000}
+  - {total_income_up_to: 4890000, amount: 680000}
+  - {total_income_up_to: 6550000, amount: 630000}
+  - {total_income_up_to: 23500000, amount: 580000}
+  - {total_income_up_to: 24000000, amount: 480000}
+  - {total_income_up_to: 24500000, amount: 320000}
+  - {total_income_up_to: 25000000, amount: 160000}
+  - {total_income_up_to: null, amount: 0}
+
+# 配偶者控除 / 扶養控除 (general categories only)
+spouse_deduction:
+  spouse_income_limit: 580000  # 合計所得金額 limit from 令和7年分 (was 480,000)
+  income_tax:
+    - {taxpayer_income_up_to: 9000000, amount: 380000}
+    - {taxpayer_income_up_to: 9500000, amount: 260000}
+    - {taxpayer_income_up_to: 10000000, amount: 130000}
+    - {taxpayer_income_up_to: null, amount: 0}
+  resident_tax:
+    - {taxpayer_income_up_to: 9000000, amount: 330000, adjustment_difference: 50000}
+    - {taxpayer_income_up_to: 9500000, amount: 220000, adjustment_difference: 40000}
+    - {taxpayer_income_up_to: 10000000, amount: 110000, adjustment_difference: 20000}
+    - {taxpayer_income_up_to: null, amount: 0, adjustment_difference: 0}
+dependent_deduction:
+  dependent_income_limit: 580000
+  general_income_tax: 380000   # 一般の控除対象扶養親族 (16-18, 23-69)
+  general_resident_tax: 330000
+  adjustment_difference: 50000
+
+# Resident tax (個人住民税), standard rates (地方税法)
+resident_tax:
+  municipal_rate: 0.06
+  prefectural_rate: 0.04
+  basic_deduction:  # unchanged at ¥430k for 令和8年度
+    - {total_income_up_to: 24000000, amount: 430000}
+    - {total_income_up_to: 24500000, amount: 290000}
+    - {total_income_up_to: 25000000, amount: 150000}
+    - {total_income_up_to: null, amount: 0}
+  adjustment_credit:
+    basic_deduction_difference: 50000
+    rate_municipal: 0.03
+    rate_prefectural: 0.02
+    threshold: 2000000
+    minimum_municipal: 1500
+    minimum_prefectural: 1000
+    not_applied_above_total_income: 25000000
+  per_capita:
+    municipal: 3000
+    prefectural: 1000
+    forest_environment_tax: 1000
+  # Non-taxable limits for 1級地 (e.g. Tokyo 23 wards):
+  # income levy: total income <= 350k*(1+n) + 100k (+320k if n>0)
+  # per-capita:  total income <= 350k*(1+n) + 100k (+210k if n>0)
+  non_taxable:
+    per_person: 350000
+    base: 100000
+    income_levy_dependent_addition: 320000
+    per_capita_dependent_addition: 210000
+
+# Separately taxed investment income (listed shares / deposits)
+separate_taxation:
+  national_rate: 0.15
+  reconstruction_rate: 0.00315
+  resident_rate: 0.05
+
+# Employee social insurance (assumes Kyokai Kenpo Tokyo; 令和7年度 rates
+# apply from March 2025 premiums, Jan-Feb 2025 were 9.98% / 1.60%).
+social_insurance:
+  health_rate: 0.04955          # 9.91% total, employee half
+  care_rate: 0.00795            # 1.59% total, employee half, age 40-64
+  pension_rate: 0.0915          # 18.3% total, employee half
+  employment_insurance_rate: 0.0055  # general business, from 2025-04-01 (0.6% Jan-Mar)
+  enrolment_monthly_wage_threshold: 88000
+  bonus_health_annual_cap: 5730000
+  bonus_pension_per_payment_cap: 1500000
+  pension_grade_min: 88000
+  pension_grade_max: 650000
+  # 標準報酬月額 table (health): [standard amount, lower bound of range]
+  health_grades:
+    - [58000, 0]
+    - [68000, 63000]
+    - [78000, 73000]
+    - [88000, 83000]
+    - [98000, 93000]
+    - [104000, 101000]
+    - [110000, 107000]
+    - [118000, 114000]
+    - [126000, 122000]
+    - [134000, 130000]
+    - [142000, 138000]
+    - [150000, 146000]
+    - [160000, 155000]
+    - [170000, 165000]
+    - [180000, 175000]
+    - [190000, 185000]
+    - [200000, 195000]
+    - [220000, 210000]
+    - [240000, 230000]
+    - [260000, 250000]
+    - [280000, 270000]
+    - [300000, 290000]
+    - [320000, 310000]
+    - [340000, 330000]
+    - [360000, 350000]
+    - [380000, 370000]
+    - [410000, 395000]
+    - [440000, 425000]
+    - [470000, 455000]
+    - [500000, 485000]
+    - [530000, 515000]
+    - [560000, 545000]
+    - [590000, 575000]
+    - [620000, 605000]
+    - [650000, 635000]
+    - [680000, 665000]
+    - [710000, 695000]
+    - [750000, 730000]
+    - [790000, 770000]
+    - [830000, 810000]
+    - [880000, 855000]
+    - [930000, 905000]
+    - [980000, 955000]
+    - [1030000, 1005000]
+    - [1090000, 1055000]
+    - [1150000, 1115000]
+    - [1210000, 1175000]
+    - [1270000, 1235000]
+    - [1330000, 1295000]
+    - [1390000, 1355000]
 
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER - Verify with NTA Japan"
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "engineering (primary-source check)"
+  notes: |
+    Verified: income tax brackets, reconstruction tax, 2025 employment income
+    deduction, 2025 basic deduction tiers, 58万 spouse/dependent income limit,
+    resident tax basic deduction 43万 and 110万 non-taxable salary line,
+    Kyokai Tokyo health 9.91% and care 1.59%, employment insurance 5.5/1000.
+    Unverified against a primary source in this pass: the 標準報酬月額 grade
+    boundaries (standard Kyokai table reproduced from memory) and the
+    resident-tax non-taxable formula, which varies by municipality class.
+    Not modelled: spouse special deduction, specific/elderly dependents,
+    所得金額調整控除, iDeCo/life-insurance deductions, furusato nozei.
 
 references:
-  - source_name: "NTA (National Tax Agency)"
-    url: "https://www.nta.go.jp"
+  - source_name: "NTA No.1410 給与所得控除"
+    url: "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1410.htm"
+    retrieved_date: "2026-10-23"
+  - source_name: "NTA No.1199 基礎控除"
+    url: "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1199.htm"
+    retrieved_date: "2026-10-23"
+  - source_name: "NTA 令和7年分 年末調整のしかた"
+    url: "https://www.nta.go.jp/publication/pamph/gensen/nencho2025/pdf/102.pdf"
     retrieved_date: null
-    notes: "Japan tax authority"
+  - source_name: "NTA No.2260 所得税の税率"
+    url: "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm"
+    retrieved_date: null
+  - source_name: "協会けんぽ 令和7年度都道府県単位保険料率"
+    url: "https://www.kyoukaikenpo.or.jp/about/business/insurance_rate/rate_prefectures/r07/index.html"
+    retrieved_date: "2026-10-23"
+  - source_name: "厚生労働省 令和7年度の雇用保険料率について"
+    url: "https://www.mhlw.go.jp/content/001401966.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "京都市 令和8年度課税 個人住民税 (基礎控除43万円据置き)"
+    url: "https://www2.city.kyoto.lg.jp/shikai/img/iinkai/soumushoubou/R08/data/080525gyouzai.pdf"
+    retrieved_date: "2026-10-23"

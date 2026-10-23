@@ -33,7 +33,7 @@ from tax_estimator.calculation.comparison_us import (
     USStateComparisonCalculator,
 )
 from tax_estimator.calculation.countries import calculate_international_tax
-from tax_estimator.calculation.countries.base import get_country_name
+from tax_estimator.calculation.countries.base import UnsupportedIncomeError, get_country_name
 from tax_estimator.calculation.coverage import (
     UnsupportedCoverageError,
     enabled_us_states,
@@ -156,6 +156,14 @@ class EnhancedRegionResult(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class SkippedRegion(BaseModel):
+    """A selected country that could not be modelled for the supplied income."""
+
+    region_id: str
+    region_name: str
+    reason: str
+
+
 class EnhancedComparisonResult(BaseModel):
     """Enhanced comparison result with US and international support."""
 
@@ -174,6 +182,9 @@ class EnhancedComparisonResult(BaseModel):
     # Results
     regions: list[EnhancedRegionResult] = Field(default_factory=list)
 
+    # Countries left out because an income type or profile is not modelled
+    skipped_regions: list[SkippedRegion] = Field(default_factory=list)
+
     # Rankings
     lowest_tax_region: str | None = None
     highest_net_income_region: str | None = None
@@ -182,7 +193,7 @@ class EnhancedComparisonResult(BaseModel):
     disclaimers: list[str] = Field(
         default_factory=lambda: [
             "This comparison is for informational purposes only.",
-            "US/UK repairs cover specified 2025 scenarios, not complete tax returns; other country/state/local rules remain unvalidated estimates.",
+            "Each place is estimated for a default profile checked against official 2025 sources; this is not a complete tax return, and personal circumstances outside that profile are not modelled.",
             "Default FX is the published IRS 2025 annual average, not a live or transaction-date rate.",
             "Independent full-year domestic scenarios with equal converted gross income; continuing home-country tax, treaties, immigration and cost of living are not modelled.",
             "Consult a tax professional before making relocation decisions.",
@@ -354,18 +365,33 @@ class EnhancedComparisonEngine:
 
         # Calculate for each region
         results: list[EnhancedRegionResult] = []
+        skipped: list[SkippedRegion] = []
         for region_id in regions:
-            result = self._calculate_for_region(
-                region_id=region_id,
-                income=income_breakdown,
-                base_currency=base_currency,
-                filing_status=filing_status,
-                tax_year=tax_year,
-                country_profiles=country_profiles or {},
-                us_scenario=us_scenario,
-                eitc_eligibility_asserted=eitc_eligibility_asserted,
-            )
+            try:
+                result = self._calculate_for_region(
+                    region_id=region_id,
+                    income=income_breakdown,
+                    base_currency=base_currency,
+                    filing_status=filing_status,
+                    tax_year=tax_year,
+                    country_profiles=country_profiles or {},
+                    us_scenario=us_scenario,
+                    eitc_eligibility_asserted=eitc_eligibility_asserted,
+                )
+            except UnsupportedIncomeError as exc:
+                # A country that cannot model this income (e.g. German
+                # self-employment) is listed as skipped instead of failing the
+                # whole comparison. Anything else, including US required-fact,
+                # coverage and configuration errors, still fails closed.
+                skipped.append(SkippedRegion(
+                    region_id=region_id,
+                    region_name=get_country_name(region_id),
+                    reason=str(exc),
+                ))
+                continue
             results.append(result)
+        if not results:
+            raise ValueError("; ".join(item.reason for item in skipped))
 
         # Find best options
         lowest_tax_region = None
@@ -402,6 +428,7 @@ class EnhancedComparisonEngine:
             income_breakdown=income_dict,
             exchange_rates=exchange_info,
             regions=results,
+            skipped_regions=skipped,
             lowest_tax_region=lowest_tax_region,
             highest_net_income_region=highest_net_region,
         )

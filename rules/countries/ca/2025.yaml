@@ -1,9 +1,10 @@
 # =============================================================================
-# Canada Tax Rules - 2025 Tax Year
+# Canada Tax Rules - 2025 Tax Year (calendar year)
 # =============================================================================
-# Canada Tax Year: January 1 to December 31
-# Federal tax brackets - Provincial taxes vary by province
-# Source: CRA (Canada Revenue Agency) via Wealthsimple
+# Single source of truth for ca.py.  `rate_schedule` = federal brackets; all
+# other parameters (credits, CPP/EI, provinces, dividends) are under
+# `country_parameters`.  Supported provinces: ON, BC, AB.  QC and all other
+# provinces/territories are rejected by the calculator.
 # =============================================================================
 
 jurisdiction_id: "CA"
@@ -23,41 +24,17 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Federal tax brackets (2025)
+# Federal brackets.  The lowest rate fell from 15% to 14% on 1 July 2025,
+# giving a full-year rate of 14.5% for 2025 (CRA).
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    - bracket_id: "CA-FED-2025-15"
-      filing_status: "all"
-      income_from: 0
-      income_to: 57375
-      rate: 0.15
-      base_tax: 0
-    - bracket_id: "CA-FED-2025-20.5"
-      filing_status: "all"
-      income_from: 57375
-      income_to: 114750
-      rate: 0.205
-      base_tax: 8606  # (57375-0) * 0.15
-    - bracket_id: "CA-FED-2025-26"
-      filing_status: "all"
-      income_from: 114750
-      income_to: 177882
-      rate: 0.26
-      base_tax: 20368  # 8606 + (114750-57375) * 0.205
-    - bracket_id: "CA-FED-2025-29"
-      filing_status: "all"
-      income_from: 177882
-      income_to: 253414
-      rate: 0.29
-      base_tax: 36802  # 20368 + (177882-114750) * 0.26
-    - bracket_id: "CA-FED-2025-33"
-      filing_status: "all"
-      income_from: 253414
-      income_to: null
-      rate: 0.33
-      base_tax: 58766  # 36802 + (253414-177882) * 0.29
+    - {bracket_id: "CA-FED-2025-1", filing_status: "all", income_from: 0, income_to: 57375, rate: 0.145, base_tax: 0}
+    - {bracket_id: "CA-FED-2025-2", filing_status: "all", income_from: 57375, income_to: 114750, rate: 0.205, base_tax: 8319.38}
+    - {bracket_id: "CA-FED-2025-3", filing_status: "all", income_from: 114750, income_to: 177882, rate: 0.26, base_tax: 20081.25}
+    - {bracket_id: "CA-FED-2025-4", filing_status: "all", income_from: 177882, income_to: 253414, rate: 0.29, base_tax: 36495.57}
+    - {bracket_id: "CA-FED-2025-5", filing_status: "all", income_from: 253414, income_to: null, rate: 0.33, base_tax: 58399.85}
   surtaxes: []
 
 social_insurance:
@@ -69,7 +46,15 @@ social_insurance:
       employer_rate: 0.0595
       ceiling: 71300
       floor: 3500
-      notes: "CPP base contributions (YMPE 2025)"
+      notes: "Base 4.95% (credit) + first enhanced 1% (deduction)"
+    - component_id: "CA-CPP2"
+      name: "Canada Pension Plan (second additional)"
+      type: "pension"
+      employee_rate: 0.04
+      employer_rate: 0.04
+      ceiling: 81200
+      floor: 71300
+      notes: "Deductible"
     - component_id: "CA-EI"
       name: "Employment Insurance"
       type: "unemployment"
@@ -77,7 +62,7 @@ social_insurance:
       employer_rate: 0.02296
       ceiling: 65700
       floor: 0
-      notes: "EI premiums 2025"
+      notes: "EI premiums 2025 (outside Quebec)"
   calculation_method: "percentage"
 
 deductions:
@@ -91,13 +76,121 @@ deductions:
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 
+country_parameters:
+  federal:
+    credit_rate: 0.145
+    bpa_max: 16129
+    bpa_min: 14538
+    bpa_phaseout_start: 177882
+    bpa_phaseout_end: 253414
+    canada_employment_amount: 1471
+  # No dividend gross-up / DTC parameters: Compare income_breakdown dividends use
+  # US-defined categories and are taxed as foreign dividends (fully taxable, no
+  # gross-up or DTC; foreign tax credit not modelled).
+  capital_gains_inclusion: 0.5
+  cpp:
+    ympe: 71300
+    yampe: 81200
+    basic_exemption: 3500
+    base_rate: 0.0495               # employee base part (credit)
+    first_enhanced_rate: 0.01       # employee first-enhanced part (deduction)
+    cpp2_rate: 0.04
+  ei:
+    rate: 0.0164
+    max_insurable: 65700
+  provinces:
+    "ON":
+      brackets:
+        - [0, 52886, 0.0505]
+        - [52886, 105775, 0.0915]
+        - [105775, 150000, 0.1116]
+        - [150000, 220000, 0.1216]
+        - [220000, null, 0.1316]
+      credit_rate: 0.0505
+      bpa: 12747
+      surtax:
+        - {threshold: 5710, rate: 0.20}
+        - {threshold: 7307, rate: 0.36}
+      tax_reduction_basic: 294       # x2, minus Ontario tax
+      lift:
+        max: 875
+        rate_on_employment: 0.0505
+        threshold: 32500
+        reduction_rate: 0.05
+      health_premium:                # [from, to, base, rate on excess over from, cap]
+        - [0, 20000, 0, 0, 0]
+        - [20000, 25000, 0, 0.06, 300]
+        - [25000, 36000, 300, 0, 300]
+        - [36000, 38500, 300, 0.06, 450]
+        - [38500, 48000, 450, 0, 450]
+        - [48000, 48600, 450, 0.25, 600]
+        - [48600, 72000, 600, 0, 600]
+        - [72000, 72600, 600, 0.25, 750]
+        - [72600, 200000, 750, 0, 750]
+        - [200000, 200600, 750, 0.25, 900]
+        - [200600, null, 900, 0, 900]
+    "BC":
+      brackets:
+        - [0, 49279, 0.0506]
+        - [49279, 98560, 0.077]
+        - [98560, 113158, 0.105]
+        - [113158, 137407, 0.1229]
+        - [137407, 186306, 0.147]
+        - [186306, 259829, 0.168]
+        - [259829, null, 0.205]
+      credit_rate: 0.0506
+      bpa: 12932
+      tax_reduction:
+        basic: 562
+        threshold: 25020
+        rate: 0.0356
+    "AB":
+      brackets:
+        - [0, 60000, 0.08]
+        - [60000, 151234, 0.10]
+        - [151234, 181481, 0.12]
+        - [181481, 241974, 0.13]
+        - [241974, 362961, 0.14]
+        - [362961, null, 0.15]
+      credit_rate: 0.08
+      bpa: 22323
+      supplemental_credit:           # Worksheet AB428 line 61545
+        base_amount: 4800
+        rate: 0.25
+
 verification:
   status: "verified"
-  last_verified: "2026-02-17"
-  verified_by: "external_consultant"
-  notes: "Federal brackets verified. Provincial taxes vary by province."
+  last_verified: "2026-10-23"
+  verified_by: "eu-b engineer (primary sources below)"
+  notes: >-
+    Verified against CRA 2025 rates page, CRA indexation page, and 2025
+    provincial forms ON428 / ON428-A / Worksheet ON428, BC428 / Worksheet
+    BC428, AB428 / Worksheet AB428, and federal Worksheet for the return.
+    CPP/EI 2025 maxima per CRA payroll
+    (YMPE 71,300; YAMPE 81,200; EI 1.64% to 65,700) were not re-fetched.
 
 references:
-  - source_name: "CRA - Federal tax rates"
-    url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/federal-tax-rates.html"
-    retrieved_date: "2026-02-17"
+  - source_name: "CRA - Tax rates and income brackets used on the 2025 return"
+    url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/tax-rates-brackets/last-year.html"
+    retrieved_date: "2026-10-23"
+  - source_name: "CRA - Adjustment of personal income tax and benefit amounts"
+    url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/frequently-asked-questions-individuals/adjustment-personal-income-tax-benefit-amounts.html"
+    retrieved_date: "2026-10-23"
+  - source_name: "CRA Form ON428 (5006-C) 2025"
+    url: "https://www.canada.ca/content/dam/cra-arc/formspubs/pbg/5006-c/5006-c-25e.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "CRA Schedule ON428-A (LIFT) 2025"
+    url: "https://www.canada.ca/content/dam/cra-arc/formspubs/pbg/5006-a/5006-a-25e.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "CRA Worksheet ON428 2025"
+    url: "https://www.canada.ca/content/dam/cra-arc/formspubs/pbg/5006-d/5006-d-25e.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "CRA Form BC428 (5010-C) 2025 and worksheet"
+    url: "https://www.canada.ca/content/dam/cra-arc/formspubs/pbg/5010-c/5010-c-25e.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "CRA Form AB428 (5009-C) 2025 and worksheet"
+    url: "https://www.canada.ca/content/dam/cra-arc/formspubs/pbg/5009-c/5009-c-25e.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "CRA Federal Worksheet 2025 (5000-D1)"
+    url: "https://www.canada.ca/content/dam/cra-arc/formspubs/pbg/5000-d1/5000-d1-25e.pdf"
+    retrieved_date: "2026-10-23"

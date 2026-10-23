@@ -4,8 +4,10 @@ United Arab Emirates (AE) tax calculator.
 The UAE has NO personal income tax on employment income.
 This calculator returns zero tax but provides explanatory information.
 
-IMPORTANT: This reflects that UAE has no personal income tax.
-However, there are other taxes (VAT, corporate tax) that may apply in other contexts.
+This reflects that the UAE has no personal income tax. Other taxes (VAT,
+corporate tax) may apply in other contexts. GPSSA pension contributions for
+UAE/GCC nationals are not modelled because the shared input model has no
+nationality field; the calculator assumes an expatriate employee.
 """
 
 from __future__ import annotations
@@ -38,8 +40,11 @@ class AECalculator(BaseCountryCalculator):
         notes: list[str] = [
             "The UAE has NO personal income tax.",
             "Employment income is not taxed.",
-            "There is no social security/pension requirement for expats.",
-            "UAE nationals may have GPSSA (pension) contributions.",
+            "There is no social security/pension requirement for expatriate employees.",
+            "Assumes an expatriate (non-GCC) employee. GPSSA pension contributions for UAE "
+            "nationals are not modelled: 11% employee share for those first insured on or "
+            "after 31 October 2023 (5% under the legacy scheme), on contributable salary "
+            "capped at AED 70,000/month; other GCC nationals follow their home scheme.",
         ]
 
         gross_income = tax_input.gross_income

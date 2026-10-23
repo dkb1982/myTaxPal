@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
 
-from tax_estimator.calculation.countries.base import BaseCountryCalculator
+from tax_estimator.calculation.countries.base import (
+    BaseCountryCalculator,
+    UnsupportedIncomeError,
+)
 from tax_estimator.calculation.countries.gb_loader import GBRules, get_gb_rules
 from tax_estimator.models.international import (
     InternationalTaxInput,
@@ -57,9 +60,9 @@ class GBCalculator(BaseCountryCalculator):
         pension_net = uk.pension_contributions if uk else ZERO
         gift_net = uk.gift_aid_donations if uk else ZERO
         if uk and uk.tax_code is not None:
-            raise ValueError("Custom UK tax codes are not supported by this annual calculator")
+            raise UnsupportedIncomeError("Custom UK tax codes are not supported by this annual calculator")
         if category not in (UKNICategory.A, UKNICategory.C):
-            raise ValueError(
+            raise UnsupportedIncomeError(
                 f"National Insurance category {category.value} is not supported; use A or C"
             )
         if plan == UKStudentLoanPlanType.POSTGRAD and postgrad:
@@ -70,25 +73,25 @@ class GBCalculator(BaseCountryCalculator):
         )
         pension_gross = pension_net / Decimal("0.8")
         if pension_gross > employment + se:
-            raise ValueError(
+            raise UnsupportedIncomeError(
                 "Relief-at-source pension payments above modelled relevant earnings "
                 "are not supported"
             )
         if pension_gross > Decimal("60000"):
-            raise ValueError(
+            raise UnsupportedIncomeError(
                 "Pension annual-allowance carry-forward and tapered allowances are not supported"
             )
         if employment and se:
-            raise ValueError(
+            raise UnsupportedIncomeError(
                 "Mixed employment and self-employment is not supported because the annual "
                 "Class 1/Class 4 National Insurance maximum cannot be inferred"
             )
         if category == UKNICategory.C and se:
-            raise ValueError("NI category C is only supported for employment income")
+            raise UnsupportedIncomeError("NI category C is only supported for employment income")
         if (plan != UKStudentLoanPlanType.NONE or postgrad) and (
             se or savings or dividends or rental or pension_income or other
         ):
-            raise ValueError("Student-loan estimates currently support employment income only")
+            raise UnsupportedIncomeError("Student-loan estimates currently support employment income only")
 
         nsnd = employment + se + rental + pension_income + other
         income_total = nsnd + savings + dividends
@@ -168,7 +171,7 @@ class GBCalculator(BaseCountryCalculator):
         cgt, parts = self._capital_gains(gains, taxable_income, extension)
         breakdown.extend(parts)
         if gift_net and income_tax + cgt < (gift_net / Decimal("0.8")) * Decimal("0.20"):
-            raise ValueError("Gift Aid requiring an additional donor tax charge is not supported")
+            raise UnsupportedIncomeError("Gift Aid requiring an additional donor tax charge is not supported")
         withheld = (uk.paye_deducted + uk.ni_deducted) if uk else ZERO
         return self._create_result(
             tax_input=tax_input,

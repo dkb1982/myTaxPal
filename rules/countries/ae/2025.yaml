@@ -37,7 +37,11 @@ rate_schedule:
   brackets: []
   surtaxes: []
 
-# No social insurance requirements for expats
+# No social insurance requirements for expatriate employees.
+# NOT MODELLED: GPSSA pension for UAE nationals (Federal Decree-Law No. 57 of
+# 2023): employee 11% for those first insured from 31 Oct 2023 (5% legacy),
+# contributable salary capped at AED 70,000/month. GCC nationals: home scheme
+# via GCC extension. The calculator assumes an expatriate employee.
 social_insurance: null
 
 # No deductions needed
@@ -55,7 +59,7 @@ deductions:
 # Verification
 verification:
   status: "verified"
-  last_verified: "2025-01-01"
+  last_verified: "2026-10-23"
   verified_by: null
   notes: |
     UAE has no personal income tax.
@@ -64,6 +68,8 @@ verification:
     - Corporate tax (9%) introduced in 2023 for businesses above threshold
     - No capital gains tax on personal investments
     - End-of-service gratuity is an employer obligation, not a tax
+    - GPSSA rates for nationals (11%/5% employee, AED 70k/month cap) are
+      documented but unverified against GPSSA in this pass and not modelled
 
 references:
   - source_name: "UAE Federal Tax Authority"

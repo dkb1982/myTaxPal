@@ -1,127 +1,139 @@
 """
-Japan (JP) tax calculator.
+Japan (JP) tax calculator - 2025 income (令和7年分).
 
-Calculates Japanese income tax (Shotokuzei), resident tax (Juminzei),
-reconstruction tax, and social insurance contributions.
+Calculates, for a Japanese tax resident employee:
+- Shotokuzei (national income tax) on aggregate income
+- Fukko Tokubetsu Shotokuzei (2.1% reconstruction surtax)
+- Juminzei (resident tax) on the same 2025 income (levied as 令和8年度)
+- Employee social insurance (health, long-term care, pension, employment)
+- Separate 20.315% taxation of listed-share dividends/gains and deposit interest
 
-IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
-These are NOT real tax rates and must be verified from NTA Japan.
-
-Tax year in Japan runs January 1 to December 31.
+Parameters are loaded from rules/countries/jp/<year>.yaml (single source of
+truth). Tax year runs January 1 to December 31.
 """
 
 from __future__ import annotations
 
-from decimal import Decimal
+import os
+from decimal import ROUND_DOWN, ROUND_HALF_DOWN, Decimal
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+import yaml
 
 from tax_estimator.calculation.countries.base import BaseCountryCalculator
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
-    TaxComponent,
     JPAgeCategory,
+    TaxComponent,
 )
 
+RULES_YEAR = 2025
 
-# =============================================================================
-# PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
 
-# Japan National Income Tax (Quick Deduction Method) (PLACEHOLDER)
-# Formula: Tax = (Taxable Income * Rate) - Quick Deduction
-JP_QUICK_DEDUCTION_BRACKETS = [
-    (Decimal(0), Decimal(1950000), Decimal("0.05"), Decimal(0)),
-    (Decimal(1950000), Decimal(3300000), Decimal("0.10"), Decimal(97500)),
-    (Decimal(3300000), Decimal(6950000), Decimal("0.20"), Decimal(427500)),
-    (Decimal(6950000), Decimal(9000000), Decimal("0.23"), Decimal(636000)),
-    (Decimal(9000000), Decimal(18000000), Decimal("0.33"), Decimal(1536000)),
-    (Decimal(18000000), Decimal(40000000), Decimal("0.40"), Decimal(2796000)),
-    (Decimal(40000000), None, Decimal("0.45"), Decimal(4796000)),
-]
+def _rules_dir() -> Path:
+    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
+    if env_dir:
+        return Path(env_dir) / "countries"
+    return Path(__file__).resolve().parents[4] / "rules" / "countries"
 
-# Reconstruction Tax (PLACEHOLDER)
-RECONSTRUCTION_TAX_RATE = Decimal("0.021")  # 2.1% of income tax
 
-# Resident Tax (PLACEHOLDER)
-RESIDENT_TAX_RATE = Decimal("0.10")  # 10% (6% prefectural + 4% municipal)
-RESIDENT_TAX_PER_CAPITA = Decimal(5000)  # Flat per-capita amount (均等割)
-# Per-capita levy is waived if total income is below this threshold
-# (varies by municipality; ~¥280k-¥350k for single person in most cities)
-RESIDENT_TAX_PER_CAPITA_THRESHOLD = Decimal(350000)
+@lru_cache(maxsize=4)
+def load_jp_rules(tax_year: int = RULES_YEAR) -> dict[str, Any]:
+    """Load the Japan rules YAML for a modelled year."""
+    path = _rules_dir() / "jp" / f"{tax_year}.yaml"
+    with path.open(encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
 
-# Employment Income Deduction (simplified) (PLACEHOLDER)
-EMPLOYMENT_DEDUCTION_RATE = Decimal("0.30")  # Simplified approximation
-EMPLOYMENT_DEDUCTION_MIN = Decimal(550000)
-EMPLOYMENT_DEDUCTION_MAX = Decimal(1950000)
 
-# Basic Deduction (PLACEHOLDER)
-BASIC_DEDUCTION = Decimal(480000)
-BASIC_DEDUCTION_TAPER_THRESHOLD = Decimal(24000000)
+def _d(value: Any) -> Decimal:
+    return Decimal(str(value))
 
-# Dependent Deduction (PLACEHOLDER)
-DEPENDENT_DEDUCTION = Decimal(380000)
-SPOUSE_DEDUCTION = Decimal(380000)
-SPOUSE_INCOME_LIMIT = Decimal(480000)  # Spouse income must be below this
 
-# Social Insurance Rates (employee portion) (PLACEHOLDER)
-HEALTH_INSURANCE_RATE = Decimal("0.05")   # ~5% (varies by association)
-PENSION_RATE = Decimal("0.0915")           # 9.15%
-EMPLOYMENT_INSURANCE_RATE = Decimal("0.006")  # 0.6%
-LONG_TERM_CARE_RATE = Decimal("0.009")     # ~0.9% (age 40-64 only)
+def _floor(amount: Decimal, unit: int = 1) -> Decimal:
+    """Round down to a multiple of ``unit`` yen (Japanese statutory rounding)."""
+    u = Decimal(unit)
+    return (amount / u).quantize(Decimal(1), rounding=ROUND_DOWN) * u
 
-# Standard monthly remuneration ceilings (PLACEHOLDER)
-HEALTH_INSURANCE_CEILING = Decimal(1390000)  # Monthly
-PENSION_CEILING = Decimal(650000)  # Monthly
+
+def _premium(amount: Decimal) -> Decimal:
+    """Employee premium deducted from pay: fractions of 50 sen or less dropped."""
+    return amount.quantize(Decimal(1), rounding=ROUND_HALF_DOWN)
+
+
+def _tier(table: list[dict[str, Any]], key: str, income: Decimal) -> dict[str, Any]:
+    for row in table:
+        limit = row[key]
+        if limit is None or income <= _d(limit):
+            return row
+    return table[-1]
 
 
 class JPCalculator(BaseCountryCalculator):
-    """
-    Japan tax calculator.
-
-    Calculates:
-    - Shotokuzei (National Income Tax)
-    - Fukko Tokubetsu Zei (Reconstruction Tax)
-    - Juminzei (Resident Tax)
-    - Shakai Hoken (Social Insurance)
-
-    PLACEHOLDER RATES - DO NOT USE FOR REAL TAX CALCULATIONS
-    """
+    """Japan tax calculator for 2025 income."""
 
     country_code = "JP"
     country_name = "Japan"
     currency_code = "JPY"
 
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        """Calculate Japanese tax."""
+        rules = load_jp_rules(RULES_YEAR)
         breakdown: list[TaxComponent] = []
+        warnings: list[str] = []
         notes: list[str] = [
-            "PLACEHOLDER RATES: All rates are for development only.",
-            "Using quick deduction method for income tax.",
-            "Resident tax is based on prior year income (simplified here).",
+            f"Period: {rules['period_label']}.",
+            "Assumes a Japanese tax resident employee enrolled in Kyokai Kenpo (Tokyo) "
+            "health insurance and employees' pension, with salary paid evenly over 12 months.",
+            "Resident tax on 2025 income is levied in fiscal 2026 (令和8年度); standard 10% "
+            "rate and a ¥5,000 per-capita levy (incl. ¥1,000 forest environment tax).",
         ]
+        if tax_input.tax_year != RULES_YEAR:
+            warnings.append(
+                f"Japan rules are modelled for {RULES_YEAR} income; tax year "
+                f"{tax_input.tax_year} uses {RULES_YEAR} parameters."
+            )
 
-        # Get Japan-specific input or use defaults
         jp = tax_input.jp
-        gross_income = tax_input.gross_income
+        bd = tax_input.income_breakdown
+        age_category = jp.age_category if jp else JPAgeCategory.UNDER_40
+        num_dependents = jp.num_dependents if jp else 0
+        has_spouse = jp.has_spouse if jp else False
+        spouse_income = jp.spouse_income if jp else Decimal(0)
+        social_insurance_paid = jp.social_insurance_paid if jp else Decimal(0)
+        income_tax_withheld = jp.income_tax_withheld if jp else Decimal(0)
 
-        if jp:
-            employment_income = jp.employment_income or gross_income
-            age_category = jp.age_category
-            num_dependents = jp.num_dependents
-            has_spouse = jp.has_spouse
-            spouse_income = jp.spouse_income
-            social_insurance_paid = jp.social_insurance_paid
-            income_tax_withheld = jp.income_tax_withheld
+        # ---- Route income ---------------------------------------------------
+        bonus = jp.bonus_income if jp else Decimal(0)
+        dividends = gains = interest = Decimal(0)
+        other_aggregate = Decimal(0)  # business, real estate, miscellaneous
+        if bd is not None:
+            wages = bd.employment_wages
+            dividends = bd.total_dividends
+            gains = bd.total_capital_gains
+            interest = bd.interest
+            other_aggregate = bd.self_employment + bd.rental
+            if bonus > wages:
+                bonus = Decimal(0)
+        elif jp and (
+            jp.employment_income or jp.bonus_income or jp.business_income
+            or jp.miscellaneous_income
+        ):
+            wages = jp.employment_income + jp.bonus_income
+            other_aggregate = jp.business_income + jp.miscellaneous_income
         else:
-            employment_income = gross_income
-            age_category = JPAgeCategory.UNDER_40
-            num_dependents = 0
-            has_spouse = False
-            spouse_income = Decimal(0)
-            social_insurance_paid = Decimal(0)
-            income_tax_withheld = Decimal(0)
+            wages = tax_input.gross_income
+            bonus = Decimal(0)
+        regular_wages = wages - bonus
+        if other_aggregate:
+            notes.append(
+                "Business/rental/miscellaneous income is added to aggregate income as net "
+                "income; National Health Insurance, national pension and enterprise tax on "
+                "it are not modelled."
+            )
 
-        # Calculate social insurance (if not already paid)
+        # ---- Social insurance ----------------------------------------------
         if social_insurance_paid > 0:
             social_insurance = social_insurance_paid
             breakdown.append(
@@ -129,236 +141,346 @@ class JPCalculator(BaseCountryCalculator):
                     component_id="JP-SI-PAID",
                     name="Social Insurance (Already Paid)",
                     amount=social_insurance,
-                    notes="Social insurance already deducted",
+                    notes="Social insurance supplied by user",
                 )
             )
         else:
-            social_insurance, si_breakdown = self._calculate_social_insurance(
-                employment_income, age_category
+            social_insurance, si_parts = self._social_insurance(
+                rules, regular_wages, bonus, age_category, notes
             )
-            breakdown.extend(si_breakdown)
+            breakdown.extend(si_parts)
 
-        # Calculate employment income deduction
-        employment_deduction = self._calculate_employment_deduction(employment_income)
+        # ---- Aggregate income (総所得金額) -----------------------------------
+        employment_income = self._employment_income(rules, wages)
         breakdown.append(
             TaxComponent(
                 component_id="JP-EMP-DED",
-                name="Kyuyo Shotoku Kojo (Employment Deduction)",
-                amount=-employment_deduction,
-                notes="Standard employment income deduction",
+                name="Kyuyo Shotoku Kojo (Employment Income Deduction)",
+                amount=-(wages - employment_income),
+                base=wages,
+                notes="2025 statutory employment income deduction (minimum ¥650,000)",
                 is_deductible=True,
             )
         )
+        total_income = employment_income + other_aggregate
 
-        # Calculate basic deduction
-        basic_deduction = self._calculate_basic_deduction(employment_income)
+        # ---- Personal deductions -------------------------------------------
+        basic_it = _d(_tier(rules["basic_deduction_income_tax"], "total_income_up_to",
+                            total_income)["amount"])
+        rt = rules["resident_tax"]
+        basic_rt = _d(_tier(rt["basic_deduction"], "total_income_up_to", total_income)["amount"])
         breakdown.append(
             TaxComponent(
                 component_id="JP-BASIC-DED",
                 name="Kiso Kojo (Basic Deduction)",
-                amount=-basic_deduction,
-                notes="Basic personal deduction",
+                amount=-basic_it,
+                notes=f"Income tax basic deduction (resident tax: ¥{basic_rt:,.0f})",
                 is_deductible=True,
             )
         )
 
-        # Spouse deduction
-        spouse_deduction = Decimal(0)
-        if has_spouse and spouse_income < SPOUSE_INCOME_LIMIT:
-            spouse_deduction = SPOUSE_DEDUCTION
-            breakdown.append(
-                TaxComponent(
-                    component_id="JP-SPOUSE-DED",
-                    name="Haigusha Kojo (Spouse Deduction)",
-                    amount=-spouse_deduction,
-                    notes="Deduction for qualifying spouse",
-                    is_deductible=True,
+        sp_rules = rules["spouse_deduction"]
+        spouse_it = spouse_rt = spouse_diff = Decimal(0)
+        qualifying_spouse = has_spouse and spouse_income <= _d(sp_rules["spouse_income_limit"])
+        if qualifying_spouse:
+            spouse_it = _d(_tier(sp_rules["income_tax"], "taxpayer_income_up_to",
+                                 total_income)["amount"])
+            row = _tier(sp_rules["resident_tax"], "taxpayer_income_up_to", total_income)
+            spouse_rt = _d(row["amount"])
+            spouse_diff = _d(row["adjustment_difference"])
+            if spouse_it:
+                breakdown.append(
+                    TaxComponent(
+                        component_id="JP-SPOUSE-DED",
+                        name="Haigusha Kojo (Spouse Deduction)",
+                        amount=-spouse_it,
+                        notes=f"Spouse income ≤ ¥{_d(sp_rules['spouse_income_limit']):,.0f}; "
+                        f"resident tax ¥{spouse_rt:,.0f}",
+                        is_deductible=True,
+                    )
                 )
+        elif has_spouse:
+            notes.append(
+                "Spouse income exceeds the ¥580,000 limit; the spouse special deduction "
+                "(配偶者特別控除) is not modelled."
             )
 
-        # Dependent deductions
-        dependent_deduction = DEPENDENT_DEDUCTION * num_dependents
-        if dependent_deduction > 0:
+        dep_rules = rules["dependent_deduction"]
+        dependents_it = _d(dep_rules["general_income_tax"]) * num_dependents
+        dependents_rt = _d(dep_rules["general_resident_tax"]) * num_dependents
+        dependents_diff = _d(dep_rules["adjustment_difference"]) * num_dependents
+        if num_dependents:
             breakdown.append(
                 TaxComponent(
                     component_id="JP-DEP-DED",
                     name="Fuyou Kojo (Dependent Deduction)",
-                    amount=-dependent_deduction,
-                    notes=f"Deduction for {num_dependents} dependent(s)",
+                    amount=-dependents_it,
+                    notes=f"{num_dependents} general dependent(s) aged 16-18 or 23-69 with "
+                    "income ≤ ¥580,000 assumed",
                     is_deductible=True,
                 )
             )
+            notes.append(
+                "Dependents are treated as general dependents; specific (19-22), elderly and "
+                "under-16 rules are not modelled."
+            )
 
-        # Social insurance deduction
         breakdown.append(
             TaxComponent(
                 component_id="JP-SI-DED",
-                name="Shakai Hoken Kojo (SI Deduction)",
+                name="Shakai Hoken Ryo Kojo (Social Insurance Deduction)",
                 amount=-social_insurance,
-                notes="Social insurance is fully deductible",
+                notes="Social insurance premiums are fully deductible",
                 is_deductible=True,
             )
         )
 
-        # Calculate taxable income
-        total_deductions = (
-            employment_deduction + basic_deduction + spouse_deduction +
-            dependent_deduction + social_insurance
-        )
-        taxable_income = max(Decimal(0), employment_income - total_deductions)
-
-        # Calculate income tax using quick deduction method
-        income_tax, marginal_rate = self._calculate_income_tax_quick(taxable_income)
+        # ---- National income tax -------------------------------------------
+        deductions_it = basic_it + spouse_it + dependents_it + social_insurance
+        taxable_it = _floor(max(Decimal(0), total_income - deductions_it), 1000)
+        income_tax, marginal_rate = self._quick_tax(rules, taxable_it)
+        recon_rate = _d(rules["reconstruction_tax_rate"])
+        combined = _floor(income_tax + _floor(income_tax * recon_rate), 100)
+        reconstruction_tax = combined - income_tax
         breakdown.append(
             TaxComponent(
                 component_id="JP-INCOME-TAX",
                 name="Shotokuzei (Income Tax)",
                 amount=income_tax,
                 rate=marginal_rate,
-                base=taxable_income,
-                notes="National income tax",
+                base=taxable_it,
+                notes="National income tax (quick-deduction method)",
             )
         )
-
-        # Reconstruction tax
-        reconstruction_tax = (income_tax * RECONSTRUCTION_TAX_RATE).quantize(Decimal("1"))
         breakdown.append(
             TaxComponent(
                 component_id="JP-RECON-TAX",
-                name="Fukko Tokubetsu Zei (Reconstruction Tax)",
+                name="Fukko Tokubetsu Shotokuzei (Reconstruction Tax)",
                 amount=reconstruction_tax,
-                rate=RECONSTRUCTION_TAX_RATE,
+                rate=recon_rate,
                 base=income_tax,
-                notes="2.1% of income tax (until 2037)",
+                notes="2.1% of income tax; combined amount rounded down to ¥100",
             )
         )
 
-        # Resident tax (simplified)
-        # Per-capita levy is waived for low-income earners
-        per_capita = RESIDENT_TAX_PER_CAPITA if employment_income >= RESIDENT_TAX_PER_CAPITA_THRESHOLD else Decimal(0)
-        resident_tax = (taxable_income * RESIDENT_TAX_RATE + per_capita).quantize(Decimal("1"))
+        # ---- Resident tax ---------------------------------------------------
+        deductions_rt = basic_rt + spouse_rt + dependents_rt + social_insurance
+        taxable_rt = _floor(max(Decimal(0), total_income - deductions_rt), 1000)
+        resident_tax = self._resident_tax(
+            rt,
+            total_income=total_income,
+            taxable=taxable_rt,
+            deduction_difference=_d(rt["adjustment_credit"]["basic_deduction_difference"])
+            + spouse_diff + dependents_diff,
+            household_members=(1 if qualifying_spouse else 0) + num_dependents,
+        )
         breakdown.append(
             TaxComponent(
                 component_id="JP-RESIDENT-TAX",
                 name="Juminzei (Resident Tax)",
                 amount=resident_tax,
-                rate=RESIDENT_TAX_RATE,
-                base=taxable_income,
-                notes="10% + per-capita levy (based on prior year income)",
+                rate=_d(rt["municipal_rate"]) + _d(rt["prefectural_rate"]),
+                base=taxable_rt,
+                notes="10% income levy less adjustment credit, plus per-capita levy",
             )
         )
 
-        other_taxes = reconstruction_tax + resident_tax
+        # ---- Separately taxed investment income ----------------------------
+        sep = rules["separate_taxation"]
+        sep_national = sep_recon = sep_resident = Decimal(0)
+        for label, amount in (
+            ("dividends", dividends),
+            ("capital gains", gains),
+            ("interest", interest),
+        ):
+            if amount <= 0:
+                continue
+            nat = _floor(amount * _d(sep["national_rate"]))
+            rec = _floor(amount * _d(sep["reconstruction_rate"]))
+            res = _floor(amount * _d(sep["resident_rate"]))
+            sep_national += nat
+            sep_recon += rec
+            sep_resident += res
+            breakdown.append(
+                TaxComponent(
+                    component_id=f"JP-SEP-{label.upper().replace(' ', '-')}",
+                    name=f"Separate taxation on {label} (20.315%)",
+                    amount=nat + rec + res,
+                    rate=_d(sep["national_rate"]) + _d(sep["reconstruction_rate"])
+                    + _d(sep["resident_rate"]),
+                    base=amount,
+                    notes="15% income tax + 0.315% reconstruction + 5% resident tax",
+                )
+            )
+        if dividends or gains or interest:
+            notes.append(
+                "Dividends and gains are assumed to be on listed shares in a withholding "
+                "specific account (申告不要), and interest on deposits/bonds, all taxed "
+                "separately at 20.315% with no social insurance; NISA, losses and unlisted "
+                "shares are not modelled."
+            )
 
         return self._create_result(
             tax_input=tax_input,
-            taxable_income=taxable_income,
-            income_tax=income_tax,
+            taxable_income=taxable_it + dividends + gains + interest,
+            income_tax=income_tax + sep_national,
             social_insurance=social_insurance,
-            other_taxes=other_taxes,
+            other_taxes=reconstruction_tax + resident_tax + sep_recon + sep_resident,
             breakdown=breakdown,
             marginal_rate=marginal_rate,
             total_withheld=income_tax_withheld,
             notes=notes,
+            warnings=warnings,
         )
 
-    def _calculate_employment_deduction(self, income: Decimal) -> Decimal:
-        """Calculate employment income deduction (simplified)."""
-        # Simplified: Use a rate-based approximation
-        deduction = income * EMPLOYMENT_DEDUCTION_RATE
-        deduction = max(EMPLOYMENT_DEDUCTION_MIN, min(deduction, EMPLOYMENT_DEDUCTION_MAX))
-        return deduction.quantize(Decimal("1"))
+    # ------------------------------------------------------------------ helpers
 
-    def _calculate_basic_deduction(self, income: Decimal) -> Decimal:
-        """Calculate basic deduction (with taper)."""
-        if income <= BASIC_DEDUCTION_TAPER_THRESHOLD:
-            return BASIC_DEDUCTION
-        # Taper for high income (simplified)
-        return Decimal(0)
+    @staticmethod
+    def _employment_income(rules: dict[str, Any], salary: Decimal) -> Decimal:
+        """給与所得の金額 (salary less 給与所得控除), 2025 rules incl. 別表第五."""
+        r = rules["employment_income_deduction"]
+        if salary <= 0:
+            return Decimal(0)
+        if salary < _d(r["minimum_applies_up_to"]):
+            return max(Decimal(0), salary - _d(r["minimum"]))
+        if salary < _d(r["table_upper_limit"]):
+            base = _floor(salary, int(r["table_rounding_unit"]))
+        else:
+            base = salary
+        for band in r["bands"]:
+            if base <= _d(band["up_to"]):
+                deduction = base * _d(band["rate"]) + _d(band["add"])
+                return _floor(base - deduction)
+        return salary - _d(r["maximum"])
 
-    def _calculate_income_tax_quick(
-        self, taxable_income: Decimal
-    ) -> tuple[Decimal, Decimal]:
-        """Calculate income tax using quick deduction method."""
-        for min_val, max_val, rate, quick_deduction in JP_QUICK_DEDUCTION_BRACKETS:
-            if max_val is None or taxable_income <= max_val:
-                tax = (taxable_income * rate - quick_deduction).quantize(Decimal("1"))
-                return max(Decimal(0), tax), rate
+    @staticmethod
+    def _quick_tax(rules: dict[str, Any], taxable: Decimal) -> tuple[Decimal, Decimal]:
+        for b in rules["quick_deduction_brackets"]:
+            if b["max"] is None or taxable <= _d(b["max"]):
+                rate = _d(b["rate"])
+                tax = max(Decimal(0), taxable * rate - _d(b["quick_deduction"]))
+                return _floor(tax), rate
+        raise ValueError("JP brackets must end with an open band")
 
-        # Shouldn't reach here, but use top rate
-        rate = JP_QUICK_DEDUCTION_BRACKETS[-1][2]
-        quick_deduction = JP_QUICK_DEDUCTION_BRACKETS[-1][3]
-        tax = (taxable_income * rate - quick_deduction).quantize(Decimal("1"))
-        return tax, rate
+    @staticmethod
+    def _resident_tax(
+        rt: dict[str, Any],
+        *,
+        total_income: Decimal,
+        taxable: Decimal,
+        deduction_difference: Decimal,
+        household_members: int,
+    ) -> Decimal:
+        nt = rt["non_taxable"]
+        persons = Decimal(1 + household_members)
+        base_limit = _d(nt["per_person"]) * persons + _d(nt["base"])
+        income_levy_limit = base_limit + (
+            _d(nt["income_levy_dependent_addition"]) if household_members else 0
+        )
+        per_capita_limit = base_limit + (
+            _d(nt["per_capita_dependent_addition"]) if household_members else 0
+        )
 
-    def _calculate_social_insurance(
-        self, income: Decimal, age_category: JPAgeCategory
-    ) -> tuple[Decimal, list[TaxComponent]]:
-        """Calculate social insurance contributions."""
-        breakdown: list[TaxComponent] = []
-        total = Decimal(0)
-
-        # Monthly income (approximate)
-        monthly_income = income / 12
-
-        # Health insurance
-        health_base = min(monthly_income, HEALTH_INSURANCE_CEILING) * 12
-        health = (health_base * HEALTH_INSURANCE_RATE).quantize(Decimal("1"))
-        total += health
-        breakdown.append(
-            TaxComponent(
-                component_id="JP-HEALTH",
-                name="Kenko Hoken (Health Insurance)",
-                amount=health,
-                rate=HEALTH_INSURANCE_RATE,
-                base=health_base,
-                notes="Health insurance (~5%)",
+        pc = rt["per_capita"]
+        per_capita = Decimal(0)
+        if total_income > per_capita_limit:
+            per_capita = _d(pc["municipal"]) + _d(pc["prefectural"]) + _d(
+                pc["forest_environment_tax"]
             )
-        )
 
-        # Long-term care insurance (age 40-64 only)
-        if age_category == JPAgeCategory.AGE_40_TO_64:
-            ltc_base = min(monthly_income, HEALTH_INSURANCE_CEILING) * 12
-            ltc = (ltc_base * LONG_TERM_CARE_RATE).quantize(Decimal("1"))
-            total += ltc
-            breakdown.append(
+        if total_income <= income_levy_limit or taxable <= 0:
+            return per_capita
+
+        adj = rt["adjustment_credit"]
+        muni_rate, pref_rate = _d(rt["municipal_rate"]), _d(rt["prefectural_rate"])
+        muni = taxable * muni_rate
+        pref = taxable * pref_rate
+        if total_income <= _d(adj["not_applied_above_total_income"]):
+            threshold = _d(adj["threshold"])
+            if taxable <= threshold:
+                base = min(deduction_difference, taxable)
+                muni_credit = base * _d(adj["rate_municipal"])
+                pref_credit = base * _d(adj["rate_prefectural"])
+            else:
+                base = deduction_difference - (taxable - threshold)
+                muni_credit = max(base * _d(adj["rate_municipal"]), _d(adj["minimum_municipal"]))
+                pref_credit = max(
+                    base * _d(adj["rate_prefectural"]), _d(adj["minimum_prefectural"])
+                )
+            muni = max(Decimal(0), muni - muni_credit)
+            pref = max(Decimal(0), pref - pref_credit)
+        return _floor(muni, 100) + _floor(pref, 100) + per_capita
+
+    @staticmethod
+    def _social_insurance(
+        rules: dict[str, Any],
+        regular_wages: Decimal,
+        bonus: Decimal,
+        age_category: JPAgeCategory,
+        notes: list[str],
+    ) -> tuple[Decimal, list[TaxComponent]]:
+        si = rules["social_insurance"]
+        parts: list[TaxComponent] = []
+        total = Decimal(0)
+        monthly = regular_wages / 12
+        enrolled = monthly >= _d(si["enrolment_monthly_wage_threshold"])
+
+        if enrolled:
+            std_health = _d(si["health_grades"][0][0])
+            for standard, lower in si["health_grades"]:
+                if monthly >= _d(lower):
+                    std_health = _d(standard)
+            std_pension = min(max(std_health, _d(si["pension_grade_min"])),
+                              _d(si["pension_grade_max"]))
+            std_bonus = _floor(bonus, 1000)
+            bonus_health = min(std_bonus, _d(si["bonus_health_annual_cap"]))
+            bonus_pension = min(std_bonus, _d(si["bonus_pension_per_payment_cap"]))
+
+            def add(cid: str, name: str, rate: Decimal, std: Decimal, bonus_base: Decimal) -> None:
+                nonlocal total
+                amount = _premium(std * rate) * 12 + _premium(bonus_base * rate)
+                total += amount
+                parts.append(
+                    TaxComponent(
+                        component_id=cid,
+                        name=name,
+                        amount=amount,
+                        rate=rate,
+                        base=std * 12 + bonus_base,
+                        notes=f"Standard monthly remuneration ¥{std:,.0f}",
+                    )
+                )
+
+            add("JP-HEALTH", "Kenko Hoken (Health Insurance)", _d(si["health_rate"]),
+                std_health, bonus_health)
+            if age_category == JPAgeCategory.AGE_40_TO_64:
+                add("JP-LTC", "Kaigo Hoken (Long-term Care)", _d(si["care_rate"]),
+                    std_health, bonus_health)
+            if age_category != JPAgeCategory.AGE_70_PLUS:
+                add("JP-PENSION", "Kosei Nenkin (Employees' Pension)", _d(si["pension_rate"]),
+                    std_pension, bonus_pension)
+            if age_category == JPAgeCategory.AGE_65_TO_69:
+                notes.append("Care insurance at 65+ is collected by the municipality, not "
+                             "payroll, and is not modelled.")
+        elif regular_wages > 0:
+            notes.append(
+                "Monthly salary below ¥88,000: employee health/pension insurance not "
+                "applied (National Health Insurance/pension not modelled)."
+            )
+
+        wages = regular_wages + bonus
+        if wages > 0:
+            rate = _d(si["employment_insurance_rate"])
+            emp_ins = _premium(wages * rate)
+            total += emp_ins
+            parts.append(
                 TaxComponent(
-                    component_id="JP-LTC",
-                    name="Kaigo Hoken (Long-term Care)",
-                    amount=ltc,
-                    rate=LONG_TERM_CARE_RATE,
-                    base=ltc_base,
-                    notes="Long-term care (age 40-64)",
+                    component_id="JP-EMP-INS",
+                    name="Koyo Hoken (Employment Insurance)",
+                    amount=emp_ins,
+                    rate=rate,
+                    base=wages,
+                    notes="0.55% employee rate (general business, from April 2025)",
                 )
             )
-
-        # Pension insurance
-        pension_base = min(monthly_income, PENSION_CEILING) * 12
-        pension = (pension_base * PENSION_RATE).quantize(Decimal("1"))
-        total += pension
-        breakdown.append(
-            TaxComponent(
-                component_id="JP-PENSION",
-                name="Kousei Nenkin (Pension)",
-                amount=pension,
-                rate=PENSION_RATE,
-                base=pension_base,
-                notes="Employees' pension (9.15%)",
-            )
-        )
-
-        # Employment insurance
-        emp_ins = (income * EMPLOYMENT_INSURANCE_RATE).quantize(Decimal("1"))
-        total += emp_ins
-        breakdown.append(
-            TaxComponent(
-                component_id="JP-EMP-INS",
-                name="Koyou Hoken (Employment Insurance)",
-                amount=emp_ins,
-                rate=EMPLOYMENT_INSURANCE_RATE,
-                base=income,
-                notes="Employment insurance (0.6%)",
-            )
-        )
-
-        return total, breakdown
+        return total, parts

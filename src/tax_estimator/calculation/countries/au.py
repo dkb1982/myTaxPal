@@ -1,221 +1,305 @@
 """
-Australia (AU) tax calculator.
+Australia (AU) tax calculator - income year 2024-25.
 
-Calculates Australian income tax, Medicare Levy, and HELP/HECS repayments.
+``tax_year=2025`` means the Australian income year 1 July 2024 - 30 June 2025
+(FY 2024-25).  All parameters are loaded from
+``rules/countries/au/2025.yaml`` (``country_parameters``).
 
-Uses 2024-25 tax year rates (July 2024 - June 2025).
-Source: Australian Taxation Office (ATO).
+Model:
 
-Tax year in Australia runs July 1 to June 30.
+* Resident brackets; low income tax offset (LITO, up to $700); small
+  business income tax offset on business income (16%, cap $1,000).
+* Medicare levy 2% with the low-income threshold ($27,222) and 10% shade-in
+  (full levy from $34,027).
+* Medicare levy surcharge (MLS) 1% / 1.25% / 1.5% above $97k / $113k / $151k
+  (singles).  ASSUMPTION: no private hospital cover unless the profile sets
+  ``has_private_health=True``.
+* Capital gains: 50% CGT discount on long-term gains (held > 12 months).
+* Dividends: the Compare ``income_breakdown`` uses US-defined categories, so
+  both ``dividends_qualified`` and ``dividends_ordinary`` are treated as
+  UNFRANKED FOREIGN dividends: ordinary assessable income with no gross-up and
+  no franking credit (franking only attaches to Australian-company
+  dividends).  The foreign income tax offset for overseas withholding is not
+  modelled.  There is no AU-profile field for franked Australian dividends.
+* Superannuation is employer-paid and excluded.  HELP repayments optional.
+* Non-residents: no tax-free threshold, no LITO, no Medicare levy;
+  non-resident investment income (withholding regimes, CGT rules) is rejected.
 """
 
 from __future__ import annotations
 
+import os
 from decimal import Decimal
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
 
-from tax_estimator.calculation.countries.base import BaseCountryCalculator
+import yaml
+
+from tax_estimator.calculation.countries.base import (
+    BaseCountryCalculator,
+    UnsupportedIncomeError,
+)
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
     TaxComponent,
 )
 
+ZERO = Decimal(0)
+CENT = Decimal("0.01")
 
-# =============================================================================
-# 2024-25 TAX RATES (ATO)
-# =============================================================================
+Brackets = list[tuple[Decimal, Decimal | None, Decimal]]
 
-# Australian Income Tax Brackets (Residents) - 2024-25 rates
-AU_INCOME_TAX_BRACKETS = [
-    (Decimal(0), Decimal(18200), Decimal("0.00")),       # Tax-free threshold
-    (Decimal(18200), Decimal(45000), Decimal("0.16")),   # 16%
-    (Decimal(45000), Decimal(135000), Decimal("0.30")),  # 30%
-    (Decimal(135000), Decimal(190000), Decimal("0.37")), # 37%
-    (Decimal(190000), None, Decimal("0.45")),            # 45%
-]
 
-# Non-resident brackets (no tax-free threshold) - 2024-25 rates
-AU_NON_RESIDENT_BRACKETS = [
-    (Decimal(0), Decimal(135000), Decimal("0.30")),      # 30%
-    (Decimal(135000), Decimal(190000), Decimal("0.37")), # 37%
-    (Decimal(190000), None, Decimal("0.45")),            # 45%
-]
+def _rules_path() -> Path:
+    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
+    root = Path(env_dir) if env_dir else Path(__file__).resolve().parents[4] / "rules"
+    return root / "countries" / "au" / "2025.yaml"
 
-# Medicare Levy - 2024-25 rates
-MEDICARE_LEVY_RATE = Decimal("0.02")  # 2%
-MEDICARE_LEVY_THRESHOLD = Decimal(26000)  # 2024-25 threshold
 
-# Medicare Levy Surcharge (no private health) - 2024-25 rates
-MLS_TIER_1 = (Decimal(93000), Decimal("0.01"))     # 1%
-MLS_TIER_2 = (Decimal(108000), Decimal("0.0125"))  # 1.25%
-MLS_TIER_3 = (Decimal(144000), Decimal("0.015"))   # 1.5%
+@lru_cache(maxsize=1)
+def _load_rules() -> dict[str, Any]:
+    with open(_rules_path(), encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
 
-# HELP/HECS Repayment Thresholds - 2024-25 rates
-HELP_THRESHOLDS = [
-    (Decimal(54435), Decimal("0.01")),
-    (Decimal(62850), Decimal("0.02")),
-    (Decimal(66620), Decimal("0.025")),
-    (Decimal(70618), Decimal("0.03")),
-    (Decimal(74855), Decimal("0.035")),
-    (Decimal(79346), Decimal("0.04")),
-    (Decimal(84107), Decimal("0.045")),
-    (Decimal(89154), Decimal("0.05")),
-    (Decimal(94503), Decimal("0.055")),
-    (Decimal(100174), Decimal("0.06")),
-    (Decimal(106185), Decimal("0.065")),
-    (Decimal(112556), Decimal("0.07")),
-    (Decimal(119309), Decimal("0.075")),
-    (Decimal(126467), Decimal("0.08")),
-    (Decimal(134056), Decimal("0.085")),
-    (Decimal(142100), Decimal("0.09")),
-    (Decimal(150626), Decimal("0.095")),
-    (Decimal(159663), Decimal("0.10")),
-]
+
+def _d(value: Any) -> Decimal:
+    return Decimal(str(value))
+
+
+def _scale(rows: list[list[Any]]) -> Brackets:
+    return [(_d(lo), None if hi is None else _d(hi), _d(rate)) for lo, hi, rate in rows]
 
 
 class AUCalculator(BaseCountryCalculator):
-    """
-    Australia tax calculator.
-
-    Calculates:
-    - Income Tax
-    - Medicare Levy
-    - Medicare Levy Surcharge (if no private health)
-    - HELP/HECS repayments
-
-    Uses 2024-25 rates (ATO).
-    """
+    """Australia calculator for income year 2024-25 (tax_year 2025)."""
 
     country_code = "AU"
     country_name = "Australia"
     currency_code = "AUD"
 
-    def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        """Calculate Australian tax."""
-        breakdown: list[TaxComponent] = []
-        notes: list[str] = [
-            "2024-25 tax year rates (ATO).",
-            "Tax year runs July 1 to June 30.",
+    def __init__(self, rules: dict[str, Any] | None = None):
+        super().__init__()
+        self._rules = rules
+
+    @property
+    def rules(self) -> dict[str, Any]:
+        return self._rules if self._rules is not None else _load_rules()
+
+    @property
+    def params(self) -> dict[str, Any]:
+        return self.rules["country_parameters"]
+
+    @property
+    def resident_brackets(self) -> Brackets:
+        return [
+            (_d(b["income_from"]), None if b["income_to"] is None else _d(b["income_to"]),
+             _d(b["rate"]))
+            for b in self.rules["rate_schedule"]["brackets"]
         ]
 
-        # Get Australia-specific input or use defaults
+    def _resolve_income(self, tax_input: InternationalTaxInput) -> tuple[dict[str, Decimal], list[str]]:
+        notes: list[str] = []
+        bd = tax_input.income_breakdown
+        if bd is not None:
+            return {
+                "employment": bd.employment_wages,
+                "business": bd.self_employment,
+                "ordinary_other": bd.rental,
+                "interest": bd.interest,
+                "foreign_div": bd.dividends_qualified + bd.dividends_ordinary,
+                "gains_short": bd.capital_gains_short_term,
+                "gains_long": bd.capital_gains_long_term,
+            }, notes
         au = tax_input.au
-        gross_income = tax_input.gross_income
+        if au is not None:
+            total = au.employment_income + au.business_income + au.investment_income + au.other_income
+            if total:
+                if au.investment_income:
+                    notes.append(
+                        "Profile investment_income treated as ordinary income (interest/"
+                        "unfranked); no franking credit or CGT discount applied."
+                    )
+                return {
+                    "employment": au.employment_income,
+                    "business": au.business_income,
+                    "ordinary_other": au.other_income,
+                    "interest": au.investment_income,
+                    "foreign_div": ZERO,
+                    "gains_short": ZERO,
+                    "gains_long": ZERO,
+                }, notes
+        return {
+            "employment": tax_input.gross_income,
+            "business": ZERO,
+            "ordinary_other": ZERO,
+            "interest": ZERO,
+            "foreign_div": ZERO,
+            "gains_short": ZERO,
+            "gains_long": ZERO,
+        }, notes
 
-        if au:
-            employment_income = au.employment_income or gross_income
-            is_resident = au.is_resident
-            has_private_health = au.has_private_health
-            has_help_debt = au.has_help_debt
-            work_deductions = au.work_deductions
-        else:
-            employment_income = gross_income
-            is_resident = True
-            has_private_health = False
-            has_help_debt = False
-            work_deductions = Decimal(0)
+    def _lito(self, taxable: Decimal) -> Decimal:
+        c = self.params["lito"]
+        full, t1, r1 = _d(c["max"]), _d(c["first_threshold"]), _d(c["first_rate"])
+        t2, r2 = _d(c["second_threshold"]), _d(c["second_rate"])
+        if taxable <= t1:
+            return full
+        if taxable <= t2:
+            return full - (taxable - t1) * r1
+        return max(ZERO, full - (t2 - t1) * r1 - (taxable - t2) * r2)
 
-        # Apply work deductions
-        taxable_income = max(Decimal(0), employment_income - work_deductions)
-        if work_deductions > 0:
-            breakdown.append(
-                TaxComponent(
-                    component_id="AU-DEDUCTIONS",
-                    name="Work-Related Deductions",
-                    amount=-work_deductions,
-                    notes="Allowable work expenses",
-                    is_deductible=True,
-                )
+    def _medicare_levy(self, taxable: Decimal) -> Decimal:
+        m = self.params["medicare_levy"]
+        low = _d(m["low_income_threshold"])
+        if taxable <= low:
+            return ZERO
+        return min(taxable * _d(m["rate"]), (taxable - low) * _d(m["shade_in_rate"])).quantize(CENT)
+
+    def _mls_rate(self, income: Decimal) -> Decimal:
+        rate = ZERO
+        for tier in self.params["medicare_levy_surcharge"]:
+            if income > _d(tier["from"]):
+                rate = _d(tier["rate"])
+        return rate
+
+    def _help_rate(self, income: Decimal) -> Decimal:
+        rate = ZERO
+        for threshold, r in self.params["help_thresholds"]:
+            if income >= _d(threshold):
+                rate = _d(r)
+            else:
+                break
+        return rate
+
+    def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
+        p = self.params
+        income, extra_notes = self._resolve_income(tax_input)
+        au = tax_input.au
+        is_resident = au.is_resident if au else True
+        has_private_health = au.has_private_health if au else False
+        has_help_debt = au.has_help_debt if au else False
+        work_deductions = au.work_deductions if au else ZERO
+
+        notes = [
+            "Australian income year 2024-25 (1 July 2024 - 30 June 2025); tax_year 2025 "
+            "denotes the year ending 30 June 2025.",
+            "Superannuation guarantee is employer-paid and excluded.",
+        ] + extra_notes
+        warnings: list[str] = []
+        breakdown: list[TaxComponent] = []
+
+        if not is_resident and (
+            income["interest"] or income["foreign_div"]
+            or income["gains_short"] or income["gains_long"]
+        ):
+            raise UnsupportedIncomeError(
+                "Australia: interest, dividends and capital gains of non-residents (withholding and "
+                "CGT residency rules) are not supported by this calculator"
             )
 
-        # Calculate income tax
-        brackets = AU_INCOME_TAX_BRACKETS if is_resident else AU_NON_RESIDENT_BRACKETS
-        income_tax, marginal_rate, tax_breakdown = self._apply_brackets(
-            taxable_income, brackets, "AU-IT"
+        discounted_gains = (income["gains_long"] * (1 - _d(p["cgt_discount"]))).quantize(CENT)
+        assessable = (
+            income["employment"] + income["business"] + income["ordinary_other"]
+            + income["interest"] + income["foreign_div"]
+            + income["gains_short"] + discounted_gains
         )
-        breakdown.extend(tax_breakdown)
-
-        if not is_resident:
-            notes.append("Non-resident tax rates applied (no tax-free threshold).")
-
-        # Medicare Levy
-        medicare_levy = Decimal(0)
-        if is_resident and taxable_income > MEDICARE_LEVY_THRESHOLD:
-            medicare_levy = (taxable_income * MEDICARE_LEVY_RATE).quantize(Decimal("0.01"))
-            breakdown.append(
-                TaxComponent(
-                    component_id="AU-MEDICARE",
-                    name="Medicare Levy",
-                    amount=medicare_levy,
-                    rate=MEDICARE_LEVY_RATE,
-                    base=taxable_income,
-                    notes="2% Medicare Levy",
-                )
+        taxable = max(ZERO, assessable - work_deductions)
+        if work_deductions > 0:
+            breakdown.append(TaxComponent(
+                component_id="AU-DEDUCTIONS", name="Work-related deductions",
+                amount=-work_deductions, is_deductible=True,
+            ))
+        if income["gains_long"]:
+            notes.append("50% CGT discount applied to long-term gains (held > 12 months).")
+            breakdown.append(TaxComponent(
+                component_id="AU-CGT-DISCOUNT", name="CGT discount (50%)",
+                amount=-(income["gains_long"] - discounted_gains), is_deductible=True,
+            ))
+        if income["foreign_div"]:
+            notes.append(
+                "Dividends are treated as unfranked foreign dividends (ordinary assessable "
+                "income; no gross-up or franking credit). The foreign income tax offset for "
+                "overseas withholding tax is not modelled."
             )
 
-        # Medicare Levy Surcharge (if no private health)
-        mls = Decimal(0)
-        if is_resident and not has_private_health:
-            mls_rate = self._get_mls_rate(taxable_income)
-            if mls_rate > 0:
-                mls = (taxable_income * mls_rate).quantize(Decimal("0.01"))
-                breakdown.append(
-                    TaxComponent(
-                        component_id="AU-MLS",
-                        name="Medicare Levy Surcharge",
-                        amount=mls,
-                        rate=mls_rate,
-                        base=taxable_income,
-                        notes="MLS for no private hospital cover",
-                    )
-                )
+        brackets = self.resident_brackets if is_resident else _scale(p["non_resident_brackets"])
+        gross_tax, marginal, parts = self._apply_brackets(taxable, brackets, "AU-IT")
+        breakdown.extend(parts)
 
-        # HELP/HECS repayment
-        help_repayment = Decimal(0)
+        offsets = ZERO
+        if is_resident:
+            lito = min(self._lito(taxable), gross_tax).quantize(CENT)
+            if lito > 0:
+                offsets += lito
+                breakdown.append(TaxComponent(
+                    component_id="AU-LITO", name="Low income tax offset", amount=-lito,
+                    is_deductible=True,
+                ))
+        else:
+            notes.append("Non-resident rates applied (no tax-free threshold, LITO or Medicare levy).")
+        if income["business"] > 0 and taxable > 0:
+            sb = p["small_business_offset"]
+            sbito = min(
+                _d(sb["cap"]),
+                gross_tax * min(income["business"], taxable) / taxable * _d(sb["rate"]),
+                gross_tax - offsets,
+            ).quantize(CENT)
+            if sbito > 0:
+                offsets += sbito
+                breakdown.append(TaxComponent(
+                    component_id="AU-SBITO", name="Small business income tax offset",
+                    amount=-sbito, is_deductible=True,
+                    notes="Assumes a sole trader with aggregated turnover under $5m",
+                ))
+        income_tax = max(ZERO, gross_tax - offsets)
+
+        medicare = ZERO
+        mls = ZERO
+        if is_resident:
+            medicare = self._medicare_levy(taxable)
+            if medicare > 0:
+                breakdown.append(TaxComponent(
+                    component_id="AU-MEDICARE", name="Medicare levy", amount=medicare,
+                    rate=_d(p["medicare_levy"]["rate"]), base=taxable,
+                    notes="2% with low-income shade-in from $27,222",
+                ))
+            if has_private_health:
+                notes.append("Private hospital cover declared: no Medicare levy surcharge.")
+            else:
+                notes.append(
+                    "ASSUMPTION: no private hospital cover, so the Medicare levy surcharge "
+                    "applies above $97,000 (set has_private_health to change)."
+                )
+                mls_rate = self._mls_rate(taxable)
+                if mls_rate > 0:
+                    mls = (taxable * mls_rate).quantize(CENT)
+                    breakdown.append(TaxComponent(
+                        component_id="AU-MLS", name="Medicare levy surcharge", amount=mls,
+                        rate=mls_rate, base=taxable,
+                    ))
+
+        help_repayment = ZERO
         if has_help_debt:
-            help_rate = self._get_help_rate(taxable_income)
+            help_rate = self._help_rate(taxable)
             if help_rate > 0:
-                help_repayment = (taxable_income * help_rate).quantize(Decimal("0.01"))
-                breakdown.append(
-                    TaxComponent(
-                        component_id="AU-HELP",
-                        name="HELP Repayment",
-                        amount=help_repayment,
-                        rate=help_rate,
-                        base=taxable_income,
-                        notes="Student loan repayment",
-                    )
-                )
+                help_repayment = (taxable * help_rate).quantize(CENT)
+                breakdown.append(TaxComponent(
+                    component_id="AU-HELP", name="HELP repayment", amount=help_repayment,
+                    rate=help_rate, base=taxable,
+                ))
 
-        other_taxes = medicare_levy + mls + help_repayment
+        other_taxes = medicare + mls + help_repayment
 
         return self._create_result(
             tax_input=tax_input,
-            taxable_income=taxable_income,
-            income_tax=income_tax,
-            social_insurance=Decimal(0),  # No mandatory employee SI in Australia
-            other_taxes=other_taxes,
+            taxable_income=taxable,
+            income_tax=income_tax.quantize(CENT),
+            social_insurance=ZERO,
+            other_taxes=other_taxes.quantize(CENT),
             breakdown=breakdown,
-            marginal_rate=marginal_rate,
+            marginal_rate=marginal,
             notes=notes,
+            warnings=warnings,
         )
-
-    def _get_mls_rate(self, income: Decimal) -> Decimal:
-        """Get Medicare Levy Surcharge rate based on income."""
-        if income >= MLS_TIER_3[0]:
-            return MLS_TIER_3[1]
-        elif income >= MLS_TIER_2[0]:
-            return MLS_TIER_2[1]
-        elif income >= MLS_TIER_1[0]:
-            return MLS_TIER_1[1]
-        return Decimal(0)
-
-    def _get_help_rate(self, income: Decimal) -> Decimal:
-        """Get HELP repayment rate based on income."""
-        help_rate = Decimal(0)
-        for threshold, rate in HELP_THRESHOLDS:
-            if income >= threshold:
-                help_rate = rate
-            else:
-                break
-        return help_rate

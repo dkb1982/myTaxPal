@@ -1,14 +1,16 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Italy Tax Rules - 2025 Tax Year (periodo d'imposta 2025)
 # =============================================================================
+# Single source of truth for src/tax_estimator/calculation/countries/it.py.
+# The calculator raises if a required key is missing; no hard-coded fallback.
+#
 # Italy Tax Year: January 1 to December 31
-# IRPEF + regional/municipal surtaxes
 # =============================================================================
 
 jurisdiction_id: "IT"
 tax_year: 2025
 jurisdiction_type: "country"
-jurisdiction_name: "Italy (PLACEHOLDER)"
+jurisdiction_name: "Italy"
 jurisdiction_abbreviation: "IT"
 parent_jurisdiction_id: null
 
@@ -22,63 +24,103 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
+# IRPEF (art. 11 TUIR as amended by D.lgs. 216/2023, made permanent by L. 207/2024)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    - bracket_id: "IT-2025-23"
-      filing_status: "all"
-      income_from: 0
-      income_to: 28000
-      rate: 0.23
-      base_tax: 0
-    - bracket_id: "IT-2025-35"
-      filing_status: "all"
-      income_from: 28000
-      income_to: 50000
-      rate: 0.35
-      base_tax: 6440
-    - bracket_id: "IT-2025-43"
-      filing_status: "all"
-      income_from: 50000
-      income_to: null
-      rate: 0.43
-      base_tax: 14140
+    - {bracket_id: "IT-2025-23", filing_status: "all", income_from: 0, income_to: 28000, rate: 0.23, base_tax: 0}
+    - {bracket_id: "IT-2025-35", filing_status: "all", income_from: 28000, income_to: 50000, rate: 0.35, base_tax: 6440}
+    - {bracket_id: "IT-2025-43", filing_status: "all", income_from: 50000, income_to: null, rate: 0.43, base_tax: 14140}
   surtaxes: []
 
-social_insurance:
-  components:
-    - component_id: "IT-INPS"
-      name: "INPS (Social Insurance)"
-      type: "general_social"
-      employee_rate: 0.0919
-      employer_rate: 0.2381
-      ceiling: 113520
-      floor: 0
-      notes: "General social insurance contribution"
-  calculation_method: "percentage"
-  employer_contribution: true
-  employee_contribution: true
+# Detrazione per lavoro dipendente, art. 13 c.1 and c.1.1 TUIR (R = reddito complessivo)
+employment_credit:
+  band1_upper: 15000
+  band1_amount: 1955                 # R <= 15,000
+  band2_upper: 28000
+  band2_base: 1910                   # 1,910 + 1,190 * (28,000 - R) / 13,000
+  band2_variable: 1190
+  band2_width: 13000
+  band3_upper: 50000
+  band3_base: 1910                   # 1,910 * (50,000 - R) / 22,000
+  band3_width: 22000
+  bonus_amount: 65                   # c.1.1: +65 if 25,000 < R <= 35,000
+  bonus_lower: 25000
+  bonus_upper: 35000
 
-deductions:
-  standard_deduction:
-    available: false
-    amounts: []
-    additional_amounts: []
-  exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
-    dependent_exemption_available: false
-    dependent_exemption_amount: 0
+# Cuneo fiscale 2025, L. 207/2024 art. 1 commi 4-9 (Circolare AdE 4/E del 16/05/2025)
+cuneo_fiscale:
+  # Up to reddito complessivo 20,000: non-taxable payment = % of reddito di
+  # lavoro dipendente (bands measured on that income, net of INPS).
+  payment_income_limit: 20000
+  payment_bands:
+    - {upper: 8500, rate: 0.071}
+    - {upper: 15000, rate: 0.053}
+    - {upper: null, rate: 0.048}
+  # Above 20,000: extra detrazione 1,000 to 32,000, tapering to zero at 40,000.
+  extra_credit_amount: 1000
+  extra_credit_full_upper: 32000
+  extra_credit_upper: 40000
+
+# Trattamento integrativo, DL 3/2020 art. 1 (as amended by L. 234/2021):
+# 1,200 if R <= 15,000 and imposta lorda > detrazione art. 13 c.1 minus 75.
+trattamento_integrativo:
+  amount: 1200
+  income_limit: 15000
+  capienza_reduction: 75
+
+# INPS employee contributions 2025 (INPS circolare n. 26 del 30/01/2025)
+social_insurance:
+  employee_rate: 0.0919              # FPLD IVS employee share (general private-sector rate)
+  additional_rate: 0.01              # art. 3-ter DL 384/1992, above first pension band
+  additional_threshold: 55448
+  ceiling: 120607                    # massimale, applies to post-1995 contributors only
+  apply_ceiling: true                # ASSUMPTION: worker first insured after 31/12/1995
+
+# Addizionali (regional/municipal surtaxes). Base = reddito complessivo.
+# Due only when net IRPEF is positive. Defaults are documented assumptions,
+# not verified for any specific region/municipality.
+surtaxes:
+  regional_default_rate: 0.0173      # UNVERIFIED typical rate (national base is 1.23%)
+  municipal_default_rate: 0.008      # UNVERIFIED typical rate (maximum is 0.8% in most comuni)
+  regional_rates: {}                 # region-name -> list of {upper, rate}; none verified yet
+
+# Capital income: imposta sostitutiva 26% (art. 27 DPR 600/1973, art. 5 D.lgs. 461/1997)
+capital_income:
+  substitute_tax_rate: 0.26          # 12.5% on Italian/white-list government bonds not modelled
+
+rental_income:  # Residential rent under cedolare secca (D.Lgs. 23/2011 art. 3)
+  regime: "cedolare_secca"
+  flat_rate: 0.21                    # canone libero; replaces IRPEF + addizionali on the rent
+  # Base is the annual rent agreed (canone annuo), with no expense deduction.
+  # Not modelled: IRPEF option (95% of rent in reddito complessivo), the 10%
+  # concessional rate for canone concordato, and 26% short lets (2nd+ unit).
+  # Cedolare income still counts in reddito complessivo for detrazioni and
+  # benefit thresholds (art. 3 c.7 D.Lgs. 23/2011). No INPS on rent.
+  source: "https://www.agenziaentrate.gov.it/portale/aree-tematiche/casa/affitto/cedolare-secca"
 
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER - Verify with Agenzia delle Entrate"
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "eu-a tax engineer (hand calculation)"
+  notes: >-
+    Verified: IRPEF brackets 2025; art. 13 TUIR detrazione incl. c.1.1 (+65); cuneo
+    fiscale bands (Circolare 4/E/2025 via secondary summary); INPS 9.19% + 1% above 55,448,
+    massimale 120,607. Unverified defaults: regional 1.73% and municipal 0.8% surtaxes.
+    Not modelled: family detrazioni, self-employment, rental (cedolare secca), 12.5% bonds.
 
 references:
-  - source_name: "Agenzia delle Entrate"
-    url: "https://www.agenziaentrate.gov.it"
+  - source_name: "TUIR art. 13 (Brocardi, testo vigente)"
+    url: "https://www.brocardi.it/testo-unico-imposte-redditi/titolo-i/capo-i/art13.html"
+    retrieved_date: "2026-10-23"
+  - source_name: "Fiscoetasse - Taglio cuneo solo fiscale 2025 (summary of L.207/2024 and Circ. 4/E)"
+    url: "https://www.fiscoetasse.com/new-rassegna-stampa/1178-taglio-cuneo-solo-fiscale-2025-esempi.html"
+    retrieved_date: "2026-10-23"
+  - source_name: "Agenzia delle Entrate - Circolare 4/E del 16 maggio 2025"
+    url: "https://www.agenziaentrate.gov.it/portale/circolare-n.-4-del-16-maggio-2025"
     retrieved_date: null
-    notes: "Italian tax authority"
+    notes: "Primary source; not fetched directly."
+  - source_name: "INPS massimali/minimali 2025 (IPSOA summary of circolare 26/2025)"
+    url: "https://www.ipsoa.it/documents/quotidiano/2025/01/31/minimali-massimali-retributivi-leggero-aumento-2025"
+    retrieved_date: "2026-10-23"

@@ -56,6 +56,15 @@ def get_country_name(country_code: str) -> str:
 # =============================================================================
 
 
+class UnsupportedIncomeError(ValueError):
+    """
+    The supplied income type, region or profile is not modelled for this country.
+
+    Compare lists such a country as skipped; configuration or tax-year errors
+    stay plain ValueError so they still fail the whole request.
+    """
+
+
 class BaseCountryCalculator(ABC):
     """
     Base class for country-specific tax calculators.

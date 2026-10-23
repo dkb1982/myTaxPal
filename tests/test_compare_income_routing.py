@@ -17,7 +17,11 @@ from tax_estimator.calculation.countries.base import BaseCountryCalculator
 from tax_estimator.calculation.countries import (
     gb, de, fr, sg, hk, ae, jp, au, ca, it, es, pt,
 )
-from tax_estimator.models.international import InternationalTaxInput, get_currency_for_country
+from tax_estimator.models.international import (
+    InternationalTaxInput,
+    InternationalTaxResult,
+    get_currency_for_country,
+)
 from tax_estimator.models.income_breakdown import IncomeBreakdown
 
 
@@ -37,6 +41,12 @@ CALCULATORS: dict[str, BaseCountryCalculator] = {
 }
 
 ALL_COUNTRIES = list(CALCULATORS.keys())
+
+# Income a calculator does not model yet; it must raise rather than mis-tax it.
+UNMODELLED_INCOME = {
+    ("DE", "self_employment"), ("FR", "self_employment"), ("IT", "self_employment"),
+    ("ES", "self_employment"), ("PT", "self_employment"),
+}
 
 # Income types from IncomeBreakdown
 INCOME_TYPES = [
@@ -89,8 +99,12 @@ class TestSingleIncomeType:
     @pytest.mark.parametrize("country_code", ALL_COUNTRIES)
     @pytest.mark.parametrize("income_type", INCOME_TYPES)
     def test_single_income_type_valid(self, country_code: str, income_type: str):
-        """Every country should handle every income type without errors."""
+        """Every country handles every income type, or rejects an unmodelled one explicitly."""
         breakdown = IncomeBreakdown(**{income_type: Decimal("100000")})
+        if (country_code, income_type) in UNMODELLED_INCOME:
+            with pytest.raises(ValueError):
+                _calc_with_breakdown(country_code, breakdown)
+            return
         result = _calc_with_breakdown(country_code, breakdown)
 
         assert result.total_tax >= 0

@@ -1,18 +1,25 @@
 """
 Hong Kong (HK) tax calculator.
 
-Calculates Hong Kong Salaries Tax and MPF (Mandatory Provident Fund) contributions.
+Calculates Hong Kong Salaries Tax, employee MPF contributions and Property
+Tax on rental income (15% of net assessable value after the 20% statutory
+allowance; rates paid and personal assessment are not modelled).
 
-IMPORTANT: All tax rates are PLACEHOLDERS for development purposes only.
-These are NOT real tax rates and must be verified from IRD Hong Kong.
-Rates below target the 2024-25 year of assessment.
-
-Tax year in Hong Kong runs April 1 to March 31.
+Period semantics: ``tax_year=2025`` means the 2025/26 year of assessment
+(1 April 2025 - 31 March 2026). Parameters are loaded from
+rules/countries/hk/<year>.yaml, including the enacted one-off 2025/26
+salaries tax reduction (100%, capped at HK$3,000).
 """
 
 from __future__ import annotations
 
+import os
 from decimal import Decimal
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
+
+import yaml
 
 from tax_estimator.calculation.countries.base import BaseCountryCalculator
 from tax_estimator.models.international import (
@@ -21,40 +28,57 @@ from tax_estimator.models.international import (
     TaxComponent,
 )
 
-# =============================================================================
-# PLACEHOLDER TAX RATES - DO NOT USE FOR REAL TAX CALCULATIONS
-# =============================================================================
+RULES_YEAR = 2025
 
-# Hong Kong Progressive Tax Brackets (PLACEHOLDER - 2024-25 rates)
+
+def _rules_dir() -> Path:
+    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
+    if env_dir:
+        return Path(env_dir) / "countries"
+    return Path(__file__).resolve().parents[4] / "rules" / "countries"
+
+
+@lru_cache(maxsize=4)
+def load_hk_rules(tax_year: int = RULES_YEAR) -> dict[str, Any]:
+    """Load Hong Kong rules for a year of assessment (2025 = 2025/26)."""
+    with (_rules_dir() / "hk" / f"{tax_year}.yaml").open(encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
+def _d(value: Any) -> Decimal:
+    return Decimal(str(value))
+
+
+_RULES = load_hk_rules(RULES_YEAR)
+_RS = _RULES["rate_schedule"]
+
 HK_PROGRESSIVE_BRACKETS = [
-    (Decimal(0), Decimal(50000), Decimal("0.02")),
-    (Decimal(50000), Decimal(100000), Decimal("0.06")),
-    (Decimal(100000), Decimal(150000), Decimal("0.10")),
-    (Decimal(150000), Decimal(200000), Decimal("0.14")),
-    (Decimal(200000), None, Decimal("0.17")),
+    (_d(b["income_from"]), None if b["income_to"] is None else _d(b["income_to"]), _d(b["rate"]))
+    for b in _RS["brackets"]
 ]
+STANDARD_RATE = _d(_RS["standard_rate_tiers"][0]["rate"])
+STANDARD_RATE_TIER2 = _d(_RS["standard_rate_tiers"][1]["rate"])
+STANDARD_RATE_TIER1_THRESHOLD = _d(_RS["standard_rate_tiers"][0]["threshold"])
 
-# Standard rate (PLACEHOLDER - 2024-25 rates)
-# Note: From 2024-25 onwards, a two-tier standard rate applies:
-#   - 15% on the first HKD 5,000,000 of net income
-#   - 16% on net income exceeding HKD 5,000,000
-# The code below uses the 15% single-tier rate, which is correct for the
-# vast majority of taxpayers. See _apply_standard_rate() for the two-tier logic.
-STANDARD_RATE = Decimal("0.15")
-STANDARD_RATE_TIER2 = Decimal("0.16")
-STANDARD_RATE_TIER1_THRESHOLD = Decimal(5000000)
+_ALLOW = _RULES["allowances"]
+BASIC_ALLOWANCE = _d(_ALLOW["basic"])
+MARRIED_ALLOWANCE = _d(_ALLOW["married"])
+CHILD_ALLOWANCE = _d(_ALLOW["child_each"])
+SINGLE_PARENT_ALLOWANCE = _d(_ALLOW["single_parent"])
+DEPENDENT_PARENT_ALLOWANCE = _d(_ALLOW["dependent_parent_60_plus"])
 
-# Allowances (PLACEHOLDER)
-BASIC_ALLOWANCE = Decimal(132000)
-MARRIED_ALLOWANCE = Decimal(264000)
-CHILD_ALLOWANCE = Decimal(130000)  # Per child
-SINGLE_PARENT_ALLOWANCE = Decimal(132000)
-DEPENDENT_PARENT_ALLOWANCE = Decimal(50000)
+_MPF = _RULES["mpf"]
+MPF_RATE = _d(_MPF["employee_rate"])
+MPF_MAX_MONTHLY = _d(_MPF["max_contribution_monthly"])
+MPF_MIN_INCOME_MONTHLY = _d(_MPF["min_relevant_income_monthly"])
 
-# MPF rates (PLACEHOLDER)
-MPF_RATE = Decimal("0.05")  # 5%
-MPF_MAX_MONTHLY = Decimal(1500)  # Max contribution per month
-MPF_MIN_INCOME_MONTHLY = Decimal(7100)  # Below this, no contribution
+_REDUCTION = _RULES["one_off_reduction"]
+ONE_OFF_REDUCTION_RATE = _d(_REDUCTION["rate"]) if _REDUCTION["enacted"] else Decimal(0)
+ONE_OFF_REDUCTION_CAP = _d(_REDUCTION["cap"]) if _REDUCTION["enacted"] else Decimal(0)
+
+_PROPERTY = _RULES["property_tax"]
+PROPERTY_TAX_RATE = _d(_PROPERTY["standard_rate"])
+PROPERTY_ALLOWANCE_RATE = _d(_PROPERTY["statutory_allowance_rate"])
 
 
 class HKCalculator(BaseCountryCalculator):
@@ -62,10 +86,10 @@ class HKCalculator(BaseCountryCalculator):
     Hong Kong tax calculator.
 
     Calculates:
-    - Salaries Tax (lower of progressive or standard rate)
+    - Salaries Tax (lower of progressive or standard rate), less the one-off
+      2025/26 reduction
     - MPF contributions
-
-    PLACEHOLDER RATES - DO NOT USE FOR REAL TAX CALCULATIONS
+    - Property Tax on rental income (other_taxes)
     """
 
     country_code = "HK"
@@ -76,10 +100,15 @@ class HKCalculator(BaseCountryCalculator):
         """Calculate Hong Kong tax."""
         breakdown: list[TaxComponent] = []
         notes: list[str] = [
-            "PLACEHOLDER RATES: All rates are for development only.",
-            "Tax year runs April 1 to March 31.",
+            f"Period: {_RULES['period_label']}.",
             "No capital gains tax, no dividend tax.",
         ]
+        warnings: list[str] = []
+        if tax_input.tax_year != RULES_YEAR:
+            warnings.append(
+                f"Hong Kong rules are modelled for {_RULES['year_of_assessment']}; tax year "
+                f"{tax_input.tax_year} uses those parameters."
+            )
 
         # Get HK-specific input or use defaults
         hk = tax_input.hk
@@ -100,16 +129,23 @@ class HKCalculator(BaseCountryCalculator):
             is_single_parent = False
             mpf_deducted = Decimal(0)
 
+        rental_income = Decimal(0)
         if tax_input.income_breakdown is not None:
             income = tax_input.income_breakdown
             employment_income = income.employment_wages
+            rental_income = income.rental
             notes.append(
-                "Salaries Tax/MPF apply only to employment wages; personal capital gains and dividends are not treated as salary. Trading gains and stock compensation require separate classification."
+                "Salaries Tax/MPF apply only to employment wages; personal capital gains and "
+                "dividends are not treated as salary. Trading gains and stock compensation "
+                "require separate classification."
             )
-            if income.self_employment or income.rental or income.interest:
+            if income.self_employment:
                 notes.append(
-                    "This salaries-tax estimate excludes business, property and other non-salary tax regimes; the result is incomplete for these income categories."
+                    "Profits Tax on self-employment/business income is not modelled; the result "
+                    "is incomplete for that income."
                 )
+            if income.interest:
+                notes.append("Interest received by individuals is generally not taxed in Hong Kong.")
 
         # Calculate MPF contribution
         mpf, mpf_breakdown = self._calculate_mpf(employment_income)
@@ -178,20 +214,77 @@ class HKCalculator(BaseCountryCalculator):
 
         notes.append(f"Tax calculated using {tax_method}.")
 
+        # One-off reduction of final 2025/26 salaries tax (enacted May 2026)
+        reduction = min(
+            (income_tax * ONE_OFF_REDUCTION_RATE).quantize(Decimal("0.01")),
+            ONE_OFF_REDUCTION_CAP,
+        )
+        if reduction > 0:
+            income_tax -= reduction
+            breakdown.append(
+                TaxComponent(
+                    component_id="HK-REDUCTION",
+                    name="One-off Salaries Tax Reduction (2025/26)",
+                    amount=-reduction,
+                    rate=ONE_OFF_REDUCTION_RATE,
+                    notes="100% of final tax, capped at HKD 3,000 per case",
+                )
+            )
+        if has_dependent_parent:
+            notes.append(
+                "Dependent parent allowance assumes one parent aged 60+ not living with you "
+                "(HKD 50,000); the 55-59 tier (HKD 25,000) and the additional allowance for "
+                "living together are not modelled (no input fields)."
+            )
+
+        property_tax = self._property_tax(rental_income, breakdown, notes)
+
         return self._create_result(
             tax_input=tax_input,
             taxable_income=net_chargeable_income,
             income_tax=income_tax,
             social_insurance=mpf,
-            other_taxes=Decimal(0),
+            other_taxes=property_tax,
             breakdown=breakdown,
             marginal_rate=marginal_rate,
             total_withheld=mpf_deducted,
             notes=notes,
+            warnings=warnings,
         )
 
+    @staticmethod
+    def _property_tax(
+        rent: Decimal, breakdown: list[TaxComponent], notes: list[str]
+    ) -> Decimal:
+        """Property Tax: 15% of net assessable value (rent less 20% allowance)."""
+        if rent <= 0:
+            return Decimal(0)
+        allowance = (rent * PROPERTY_ALLOWANCE_RATE).quantize(Decimal("0.01"))
+        nav = rent - allowance
+        tax = (nav * PROPERTY_TAX_RATE).quantize(Decimal("0.01"))
+        breakdown.append(
+            TaxComponent(
+                component_id="HK-PROPERTY-TAX",
+                name="Property Tax",
+                amount=tax,
+                rate=PROPERTY_TAX_RATE,
+                base=nav,
+                notes=(
+                    f"15% of net assessable value {nav:,.2f} (rent {rent:,.2f} less 20% "
+                    "statutory allowance for repairs and outgoings)"
+                ),
+            )
+        )
+        notes.append(
+            "Property Tax: rental amount treated as rent receivable; only the 20% statutory "
+            "allowance is deductible (actual expenses are not). Rates paid by the owner, "
+            "irrecoverable rent and personal assessment election are not modelled; the "
+            "2025/26 one-off reduction does not apply to Property Tax."
+        )
+        return tax
+
     def _apply_standard_rate(self, net_income: Decimal) -> Decimal:
-        """Apply two-tier standard rate (2024-25 onwards).
+        """Apply two-tier standard rate (2024/25 onwards).
 
         15% on the first HKD 5,000,000, 16% on the remainder.
         """

@@ -1,110 +1,84 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# Singapore - Year of Assessment 2025 (income earned 1 Jan - 31 Dec 2024)
 # =============================================================================
-# Singapore Tax Year: January 1 to December 31
+# Period semantics: tax_year 2025 in this app means YA2025, i.e. 2024 income.
+# Every parameter here (CPF rates and ceilings, reliefs, rebate) is the one
+# that applies to 2024 income assessed in YA2025.
+#
+# Loaded by src/tax_estimator/calculation/countries/sg.py.
 # =============================================================================
 
 jurisdiction_id: "SG"
 tax_year: 2025
 jurisdiction_type: "country"
-jurisdiction_name: "Singapore (PLACEHOLDER)"
+jurisdiction_name: "Singapore"
 jurisdiction_abbreviation: "SG"
 parent_jurisdiction_id: null
 
 country_code: "SG"
 currency_code: "SGD"
-tax_year_format: "calendar"
+tax_year_format: "year_of_assessment"
+year_of_assessment: 2025
+income_year: 2024
+period_label: "YA2025 (income earned in calendar 2024)"
 
 has_income_tax: true
 income_tax_type: "graduated"
 
-effective_start_date: "2025-01-01"
-effective_end_date: "2025-12-31"
+effective_start_date: "2024-01-01"
+effective_end_date: "2024-12-31"
 
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
-  brackets:
-    - bracket_id: "SG-2025-0"
-      filing_status: "all"
-      income_from: 0
-      income_to: 20000
-      rate: 0.00
-      base_tax: 0
-    - bracket_id: "SG-2025-2"
-      filing_status: "all"
-      income_from: 20000
-      income_to: 30000
-      rate: 0.02
-      base_tax: 0
-    - bracket_id: "SG-2025-3.5"
-      filing_status: "all"
-      income_from: 30000
-      income_to: 40000
-      rate: 0.035
-      base_tax: 200
-    - bracket_id: "SG-2025-7"
-      filing_status: "all"
-      income_from: 40000
-      income_to: 80000
-      rate: 0.07
-      base_tax: 550
-    - bracket_id: "SG-2025-11.5"
-      filing_status: "all"
-      income_from: 80000
-      income_to: 120000
-      rate: 0.115
-      base_tax: 3350
-    - bracket_id: "SG-2025-15"
-      filing_status: "all"
-      income_from: 120000
-      income_to: 160000
-      rate: 0.15
-      base_tax: 7950
-    - bracket_id: "SG-2025-18"
-      filing_status: "all"
-      income_from: 160000
-      income_to: 200000
-      rate: 0.18
-      base_tax: 13950
-    - bracket_id: "SG-2025-19"
-      filing_status: "all"
-      income_from: 200000
-      income_to: 240000
-      rate: 0.19
-      base_tax: 21150
-    - bracket_id: "SG-2025-19.5"
-      filing_status: "all"
-      income_from: 240000
-      income_to: 280000
-      rate: 0.195
-      base_tax: 28750
-    - bracket_id: "SG-2025-20"
-      filing_status: "all"
-      income_from: 280000
-      income_to: 320000
-      rate: 0.20
-      base_tax: 36550
-    - bracket_id: "SG-2025-22"
-      filing_status: "all"
-      income_from: 320000
-      income_to: 500000
-      rate: 0.22
-      base_tax: 44550
-    - bracket_id: "SG-2025-23"
-      filing_status: "all"
-      income_from: 500000
-      income_to: 1000000
-      rate: 0.23
-      base_tax: 84150
-    - bracket_id: "SG-2025-24"
-      filing_status: "all"
-      income_from: 1000000
-      income_to: null
-      rate: 0.24
-      base_tax: 199150
+  brackets:  # resident rates, YA2024 onwards (IRAS)
+    - {bracket_id: "SG-2025-0", filing_status: "all", income_from: 0, income_to: 20000, rate: 0.00, base_tax: 0}
+    - {bracket_id: "SG-2025-2", filing_status: "all", income_from: 20000, income_to: 30000, rate: 0.02, base_tax: 0}
+    - {bracket_id: "SG-2025-3.5", filing_status: "all", income_from: 30000, income_to: 40000, rate: 0.035, base_tax: 200}
+    - {bracket_id: "SG-2025-7", filing_status: "all", income_from: 40000, income_to: 80000, rate: 0.07, base_tax: 550}
+    - {bracket_id: "SG-2025-11.5", filing_status: "all", income_from: 80000, income_to: 120000, rate: 0.115, base_tax: 3350}
+    - {bracket_id: "SG-2025-15", filing_status: "all", income_from: 120000, income_to: 160000, rate: 0.15, base_tax: 7950}
+    - {bracket_id: "SG-2025-18", filing_status: "all", income_from: 160000, income_to: 200000, rate: 0.18, base_tax: 13950}
+    - {bracket_id: "SG-2025-19", filing_status: "all", income_from: 200000, income_to: 240000, rate: 0.19, base_tax: 21150}
+    - {bracket_id: "SG-2025-19.5", filing_status: "all", income_from: 240000, income_to: 280000, rate: 0.195, base_tax: 28750}
+    - {bracket_id: "SG-2025-20", filing_status: "all", income_from: 280000, income_to: 320000, rate: 0.20, base_tax: 36550}
+    - {bracket_id: "SG-2025-22", filing_status: "all", income_from: 320000, income_to: 500000, rate: 0.22, base_tax: 44550}
+    - {bracket_id: "SG-2025-23", filing_status: "all", income_from: 500000, income_to: 1000000, rate: 0.23, base_tax: 84150}
+    - {bracket_id: "SG-2025-24", filing_status: "all", income_from: 1000000, income_to: null, rate: 0.24, base_tax: 199150}
   surtaxes: []
 
+non_resident:
+  employment_flat_rate: 0.15      # or resident rates (no reliefs), whichever is higher
+  other_income_rate: 0.24         # from YA2024 (22% before)
+
+personal_income_tax_rebate:       # YA2025, tax residents only
+  rate: 0.60
+  cap: 200
+
+reliefs:
+  earned_income_relief:           # by age; capped at earned income
+    - {age_below: 55, amount: 1000}
+    - {age_below: 60, amount: 6000}
+    - {age_below: null, amount: 8000}
+  course_fees_cap: 5500
+  life_insurance_cpf_threshold: 5000  # relief = min(premiums, 5000 - CPF), only if CPF < 5000
+  overall_relief_cap: 80000
+
+# CPF (Singapore citizens / 3rd-year+ PRs), employee share, wages > S$750/month,
+# rates from 1 January 2024. Age bands are "55 and below", "above 55 to 60", ...
+cpf:
+  ordinary_wage_ceiling_monthly: 6800  # 2024 (S$7,400 from 1 Jan 2025)
+  annual_salary_ceiling: 102000        # OW subject to CPF + AW ceiling
+  no_contribution_monthly_wage: 500
+  full_rate_monthly_wage: 750
+  employee_rates:
+    - {age_up_to: 55, rate: 0.20}
+    - {age_up_to: 60, rate: 0.16}
+    - {age_up_to: 65, rate: 0.105}
+    - {age_up_to: 70, rate: 0.075}
+    - {age_up_to: null, rate: 0.05}
+
+# Legacy shape kept for any generic reader
 social_insurance:
   components:
     - component_id: "SG-CPF"
@@ -112,9 +86,9 @@ social_insurance:
       type: "pension"
       employee_rate: 0.20
       employer_rate: 0.17
-      ceiling: 81600  # Annual (6800 * 12)
+      ceiling: 81600
       floor: 0
-      notes: "CPF rates vary by age; this is standard under-55 rate"
+      notes: "2024 rates; age-banded rates in `cpf` above"
   calculation_method: "percentage"
   employer_contribution: true
   employee_contribution: true
@@ -131,13 +105,28 @@ deductions:
     dependent_exemption_amount: 0
 
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER - Verify with IRAS"
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "engineering (primary-source check)"
+  notes: |
+    Verified on IRAS (resident bands, non-resident 15%/24%, YA2025 rebate 60%
+    capped at S$200) and CPF Board (2024 employee rates by age band).
+    Earned income relief amounts, S$102,000 annual salary ceiling and S$6,800
+    2024 OW ceiling are standard published values, not re-fetched in this pass.
+    Not modelled: graduated rates for 1st/2nd-year PRs, phase-in rates for
+    wages of S$500-750/month, other personal reliefs (spouse, child, parent,
+    SRS, CPF top-ups), self-employed MediSave.
 
 references:
-  - source_name: "IRAS"
-    url: "https://www.iras.gov.sg"
+  - source_name: "IRAS Individual income tax rates"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-residency-and-tax-rates/individual-income-tax-rates"
+    retrieved_date: "2026-10-23"
+  - source_name: "IRAS Earned Income Relief"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/employees/deductions-for-individuals/personal-reliefs-and-tax-rebates/earned-income-relief"
     retrieved_date: null
-    notes: "Singapore tax authority"
+  - source_name: "CPF contribution rates from 1 Jan 2024"
+    url: "https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/CPF_contribution_rates_from_1_Jan_2024.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "CPF FAQ - changes from 1 Jan 2024"
+    url: "https://cpf.gov.sg/member/faq/growing-your-savings/saving-as-an-employee/what-were-the-changes-to-the-cpf-contribution-rates-from-1-january-2024"
+    retrieved_date: "2026-10-23"

@@ -1,8 +1,8 @@
 # =============================================================================
-# 2024-25 TAX RATES (ATO)
+# Australia Tax Rules - "2025" = income year 2024-25 (1 July 2024 - 30 June 2025)
 # =============================================================================
-# Australia Tax Year: July 1 to June 30
-# This file covers the 2024-25 income year (1 July 2024 - 30 June 2025)
+# The integer tax_year 2025 used across the app means the Australian income
+# year ending 30 June 2025 (FY 2024-25).  Single source of truth for au.py.
 # =============================================================================
 
 jurisdiction_id: "AU"
@@ -22,44 +22,19 @@ income_tax_type: "graduated"
 effective_start_date: "2024-07-01"
 effective_end_date: "2025-06-30"
 
+# Resident rates 2024-25
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    - bracket_id: "AU-2025-0"
-      filing_status: "all"
-      income_from: 0
-      income_to: 18200
-      rate: 0.00
-      base_tax: 0
-    - bracket_id: "AU-2025-16"
-      filing_status: "all"
-      income_from: 18200
-      income_to: 45000
-      rate: 0.16
-      base_tax: 0
-    - bracket_id: "AU-2025-30"
-      filing_status: "all"
-      income_from: 45000
-      income_to: 135000
-      rate: 0.30
-      base_tax: 4288
-    - bracket_id: "AU-2025-37"
-      filing_status: "all"
-      income_from: 135000
-      income_to: 190000
-      rate: 0.37
-      base_tax: 31288
-    - bracket_id: "AU-2025-45"
-      filing_status: "all"
-      income_from: 190000
-      income_to: null
-      rate: 0.45
-      base_tax: 51638
+    - {bracket_id: "AU-2025-0", filing_status: "all", income_from: 0, income_to: 18200, rate: 0.00, base_tax: 0}
+    - {bracket_id: "AU-2025-16", filing_status: "all", income_from: 18200, income_to: 45000, rate: 0.16, base_tax: 0}
+    - {bracket_id: "AU-2025-30", filing_status: "all", income_from: 45000, income_to: 135000, rate: 0.30, base_tax: 4288}
+    - {bracket_id: "AU-2025-37", filing_status: "all", income_from: 135000, income_to: 190000, rate: 0.37, base_tax: 31288}
+    - {bracket_id: "AU-2025-45", filing_status: "all", income_from: 190000, income_to: null, rate: 0.45, base_tax: 51638}
   surtaxes: []
 
-# No mandatory employee social insurance (employer pays superannuation)
-social_insurance: null
+social_insurance: null   # Superannuation is employer-paid; no employee social insurance
 
 deductions:
   standard_deduction:
@@ -72,14 +47,77 @@ deductions:
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 
+country_parameters:
+  non_resident_brackets:
+    - [0, 135000, 0.30]
+    - [135000, 190000, 0.37]
+    - [190000, null, 0.45]
+  lito:                               # Low income tax offset
+    max: 700
+    first_threshold: 37500
+    first_rate: 0.05                  # to 45,000 (offset 325)
+    second_threshold: 45000
+    second_rate: 0.015                # to 66,667 (offset 0)
+  small_business_offset:              # Small business income tax offset
+    rate: 0.16
+    cap: 1000
+  medicare_levy:
+    rate: 0.02
+    low_income_threshold: 27222       # singles, 2024-25
+    shade_in_rate: 0.10               # full levy from 34,027
+  medicare_levy_surcharge:            # singles, 2024-25; applies without private hospital cover
+    - {from: 97000, rate: 0.01}
+    - {from: 113000, rate: 0.0125}
+    - {from: 151000, rate: 0.015}
+  cgt_discount: 0.5                   # assets held > 12 months, resident individuals
+  # No franking parameters: Compare income_breakdown dividends use US-defined
+  # categories and are taxed as unfranked foreign dividends (franking applies
+  # only to Australian-company dividends; foreign income tax offset not modelled).
+  help_thresholds:                    # 2024-25 repayment rates on repayment income
+    - [54435, 0.01]
+    - [62850, 0.02]
+    - [66620, 0.025]
+    - [70618, 0.03]
+    - [74855, 0.035]
+    - [79346, 0.04]
+    - [84107, 0.045]
+    - [89154, 0.05]
+    - [94503, 0.055]
+    - [100174, 0.06]
+    - [106185, 0.065]
+    - [112556, 0.07]
+    - [119309, 0.075]
+    - [126467, 0.08]
+    - [134056, 0.085]
+    - [142100, 0.09]
+    - [150626, 0.095]
+    - [159663, 0.10]
+
 verification:
-  status: "updated"
-  last_verified: "2026-02-16"
-  verified_by: null
-  notes: "Updated to 2024-25 rates from ATO"
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "eu-b engineer"
+  notes: >-
+    Brackets, Medicare levy low-income thresholds (27,222 / 34,027) and MLS
+    tiers (97,000 / 113,000 / 151,000) for 2024-25 confirmed against ATO pages
+    via search (direct fetch blocked by ato.gov.au, HTTP 403).  LITO, CGT
+    discount and SBITO are long-standing legislated values
+    (not re-fetched).  HELP table carried over from the previous file
+    (unverified; ATO lower bounds may differ by $1).
 
 references:
-  - source_name: "ATO"
-    url: "https://www.ato.gov.au"
-    retrieved_date: null
-    notes: "Australian tax authority"
+  - source_name: "ATO - Tax rates: Australian residents"
+    url: "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents"
+    retrieved_date: "2026-10-23"
+  - source_name: "ATO - Medicare levy reduction for low-income earners"
+    url: "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners"
+    retrieved_date: "2026-10-23"
+  - source_name: "ATO - Individual tax return 2025 instructions, M2 Medicare levy surcharge"
+    url: "https://www.ato.gov.au/forms-and-instructions/individual-tax-return-2025-instructions/medicare-levy-questions-m1-m2-individual-tax-return-2025/m2-medicare-levy-surcharge-2025"
+    retrieved_date: "2026-10-23"
+  - source_name: "ATO - Low and middle income earner tax offsets"
+    url: "https://www.ato.gov.au/individuals-and-families/income-deductions-offsets-and-records/tax-offsets/low-and-middle-income-earner-tax-offsets"
+    retrieved_date: "2026-10-23"
+  - source_name: "ATO - Study and training loan repayment thresholds"
+    url: "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-rates-and-repayment-thresholds"
+    retrieved_date: "2026-10-23"

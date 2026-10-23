@@ -1,8 +1,8 @@
 # =============================================================================
-# PLACEHOLDER - DO NOT USE FOR REAL TAX CALCULATIONS
+# France Tax Rules - 2025 income (declared in 2026, barème LF 2026)
 # =============================================================================
-# This file contains PLACEHOLDER tax values for development and testing.
-# France uses the "quotient familial" (family quotient) system.
+# Single source of truth for src/tax_estimator/calculation/countries/fr.py.
+# The calculator raises if a required key is missing; no hard-coded fallback.
 #
 # French Tax Year: January 1 to December 31
 # =============================================================================
@@ -13,7 +13,7 @@ tax_year: 2025
 
 # Metadata
 jurisdiction_type: "country"
-jurisdiction_name: "France (PLACEHOLDER)"
+jurisdiction_name: "France"
 jurisdiction_abbreviation: "FR"
 parent_jurisdiction_id: null
 
@@ -30,81 +30,117 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Rate Schedule - PLACEHOLDER
-# Note: France applies brackets per "part" (quotient familial)
+# Barème per part (art. 197 CGI, revalorised +0.9% by art. 4 LF 2026).
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    - bracket_id: "FR-2025-0"
-      filing_status: "all"
-      income_from: 0
-      income_to: 11294
-      rate: 0.00
-      base_tax: 0
-    - bracket_id: "FR-2025-11"
-      filing_status: "all"
-      income_from: 11294
-      income_to: 28797
-      rate: 0.11
-      base_tax: 0
-    - bracket_id: "FR-2025-30"
-      filing_status: "all"
-      income_from: 28797
-      income_to: 82341
-      rate: 0.30
-      base_tax: 1925
-    - bracket_id: "FR-2025-41"
-      filing_status: "all"
-      income_from: 82341
-      income_to: 177106
-      rate: 0.41
-      base_tax: 17988
-    - bracket_id: "FR-2025-45"
-      filing_status: "all"
-      income_from: 177106
-      income_to: null
-      rate: 0.45
-      base_tax: 56842
+    - {bracket_id: "FR-2025-0", filing_status: "all", income_from: 0, income_to: 11600, rate: 0.00, base_tax: 0}
+    - {bracket_id: "FR-2025-11", filing_status: "all", income_from: 11600, income_to: 29579, rate: 0.11, base_tax: 0}
+    - {bracket_id: "FR-2025-30", filing_status: "all", income_from: 29579, income_to: 84577, rate: 0.30, base_tax: 1977.69}
+    - {bracket_id: "FR-2025-41", filing_status: "all", income_from: 84577, income_to: 181917, rate: 0.41, base_tax: 18477.09}
+    - {bracket_id: "FR-2025-45", filing_status: "all", income_from: 181917, income_to: null, rate: 0.45, base_tax: 58386.49}
   surtaxes: []
 
-# Family Quotient - PLACEHOLDER
+# Quotient familial
 family_quotient:
   single_adult_parts: 1.0
   married_couple_parts: 2.0
   first_child_parts: 0.5
   second_child_parts: 0.5
   third_plus_child_parts: 1.0
-  single_parent_bonus: 0.5
-  cap_per_half_part: 1759
+  single_parent_bonus: 0.5            # only when the single parent has a dependent child
+  cap_per_half_part: 1807             # plafond par demi-part, revenus 2025
+  cap_single_parent_first_child: 4262 # parent isolé: plafond for the first child's part
 
-# No traditional social insurance in rate schedule (CSG/CRDS handled separately)
-social_insurance: null
+# Décote (art. 197 I-4 CGI), revenus 2025
+decote:
+  single_amount: 897
+  couple_amount: 1483
+  rate: 0.4525
 
-# Deductions - PLACEHOLDER
-deductions:
-  standard_deduction:
-    available: true
-    amounts:
-      - filing_status: "single"
-        amount: 0  # France uses 10% of salary up to cap
-        dependent_claimed_elsewhere: null
-    additional_amounts: []
-  exemptions:
-    personal_exemption_available: false
-    personal_exemption_amount: 0
-    dependent_exemption_available: false
-    dependent_exemption_amount: 0
+# 10% abattement for professional expenses (art. 83 3° CGI), revenus 2025
+professional_deduction:
+  rate: 0.10
+  minimum: 509
+  maximum: 14555
+
+# Contribution exceptionnelle sur les hauts revenus (art. 223 sexies CGI)
+cehr:
+  single:
+    - {from: 250000, to: 500000, rate: 0.03}
+    - {from: 500000, to: null, rate: 0.04}
+  couple:
+    - {from: 500000, to: 1000000, rate: 0.03}
+    - {from: 1000000, to: null, rate: 0.04}
+  cdhr_threshold_single: 250000       # CDHR (LF 2025) not modelled; warn above this RFR
+  cdhr_threshold_couple: 500000
+
+# -----------------------------------------------------------------------------
+# Employee social contributions on salary, 2025 (private sector, non-cadre,
+# régime général, outside Alsace-Moselle). PASS 2025 = 47,100.
+# -----------------------------------------------------------------------------
+social_contributions:
+  pass_annual: 47100
+  vieillesse_plafonnee: 0.069         # up to 1 PASS
+  vieillesse_deplafonnee: 0.004       # whole salary
+  agirc_arrco_t1: 0.0315              # up to 1 PASS
+  agirc_arrco_t2: 0.0864              # 1 to 8 PASS
+  ceg_t1: 0.0086
+  ceg_t2: 0.0108
+  cet: 0.0014                         # whole salary up to 8 PASS, only if salary > 1 PASS
+  tranche2_ceiling_pass: 8
+  csg_rate: 0.092
+  csg_deductible_rate: 0.068
+  crds_rate: 0.005
+  csg_base_rate: 0.9825               # 1.75% abattement for professional expenses
+  csg_abattement_ceiling_pass: 4      # abattement only up to 4 PASS
+
+# Capital income: prélèvement forfaitaire unique (art. 200 A CGI) + social levies.
+capital_income:
+  pfu_income_tax_rate: 0.128
+  # Dividends and interest received in 2025: social levies withheld at 17.2%.
+  social_levies_investment_income: 0.172
+  # Securities capital gains realised in 2025 are "revenus du patrimoine" taxed
+  # by rôle in 2026; LFSS 2026 raised their CSG from 9.2% to 10.6% (total 18.6%).
+  # Secondary sources (LCL Banque Privée; Moneyvox citing BOSS) apply this to
+  # 2025 gains. Primary text (LFSS 2026 art. 12) not retrieved: UNVERIFIED.
+  social_levies_capital_gains: 0.186
+  # Rental income (revenus fonciers) stays at 17.2% (excluded from the rise).
+  social_levies_rental: 0.172
 
 # Verification
 verification:
-  status: "placeholder"
-  last_verified: null
-  verified_by: null
-  notes: "PLACEHOLDER DATA - DO NOT USE FOR REAL TAX CALCULATIONS"
+  status: "verified"
+  last_verified: "2026-10-23"
+  verified_by: "eu-a tax engineer (hand calculation)"
+  notes: >-
+    Verified against official/near-official sources: barème, QF caps (service-public.gouv.fr),
+    décote (LégiFiscal summarising BOFiP actualité 2026-04-07), AGIRC-ARRCO rates and PASS.
+    Secondary only: 10% abattement 509/14,555 (CFDT; matches 0.9% indexation of 504/14,426);
+    18.6% levies on 2025 securities gains. Not modelled: cadre-specific contributions (APEC),
+    employer mutuelle/prévoyance in CSG base, CDHR, Alsace-Moselle, self-employment,
+    PFU option for the barème.
 
 references:
-  - source_name: "impots.gouv.fr"
-    url: "https://www.impots.gouv.fr"
-    retrieved_date: null
-    notes: "Verify all rates from official French tax authority"
+  - source_name: "service-public.gouv.fr - Barème et plafonnement du quotient familial (revenus 2025)"
+    url: "https://www.service-public.gouv.fr/particuliers/vosdroits/F1419"
+    retrieved_date: "2026-10-23"
+  - source_name: "LégiFiscal - IR barème 2026, quotient familial, décote"
+    url: "https://www.legifiscal.fr/actualites-fiscales/4474-ir-bareme-2026-quotient-familial-decote.html"
+    retrieved_date: "2026-10-23"
+  - source_name: "Legisocial - Cotisations AGIRC-ARRCO 2025"
+    url: "https://www.legisocial.fr/reperes-sociaux/cotisations-agirc-arrco-2025.html"
+    retrieved_date: "2026-10-23"
+  - source_name: "AGIRC-ARRCO chiffres 2025"
+    url: "https://www.agirc-arrco.fr/storage/2025/04/chiffrAA_2025.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "CFDT - Frais professionnels (abattement 10%: 509 / 14,555)"
+    url: "https://www.cfdt.fr/sinformer/dossier-impots/frais-professionnels-reels-des-salaries"
+    retrieved_date: "2026-10-23"
+  - source_name: "LCL Banque Privée - LFSS 2026 CSG 10.6% on capital income"
+    url: "https://www.lcl.fr/banque-privee/actualites/juridique-fiscalite/adoption-definitive-du-budget-de-la-securite-sociale"
+    retrieved_date: "2026-10-23"
+  - source_name: "Moneyvox - déclaration 2026 et hausse de la CSG à 10.6%"
+    url: "https://www.moneyvox.fr/impot/actualites/108354/declaration-impots-2026-le-casse-tete-de-la-hausse-de-la-csg-a-10-6-sur-les-placements"
+    retrieved_date: "2026-10-23"

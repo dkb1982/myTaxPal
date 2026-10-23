@@ -144,14 +144,16 @@ class CountryRouter:
         result.calculation_notes.append(f"Domestic profile used ({country_code}): {assumptions}")
         if country_code != "GB":
             result.warnings.append(
-                "This jurisdiction has not undergone the US/UK calculation repair validation; results remain unvalidated estimates."
+                "Checked against official 2025 sources for the default profile shown; "
+                "personal reliefs, credits and regional variations outside that profile are not modelled."
             )
             if (
                 tax_input.income_breakdown is not None
                 and tax_input.income_breakdown.employment_wages != tax_input.gross_income
             ):
                 result.warnings.append(
-                    "Non-employment income coverage varies in this calculator; category-specific reliefs/contribution bases may be incomplete. Do not rely on this ranking for investment or business-income planning."
+                    "Investment and other non-salary income use each country's standard regime "
+                    "for a resident individual; foreign tax credits and special elections are not modelled."
                 )
         if result.income_tax + result.social_insurance + result.other_taxes != result.total_tax:
             raise ValueError(f"{country_code} tax components do not reconcile")

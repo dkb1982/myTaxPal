@@ -1,9 +1,8 @@
 # =============================================================================
-# Portugal Tax Rules - 2025 Tax Year
+# Portugal Tax Rules - 2025 income (IRS, calendar year)
 # =============================================================================
-# Portugal Tax Year: January 1 to December 31
-# IRS (Imposto sobre o Rendimento das Pessoas Singulares)
-# Source: PwC Portugal Tax Summary 2025
+# Single source of truth for pt.py.  General rates per CIRS art. 68 as
+# amended by Lei n.o 55-A/2025 (22 July 2025), applicable to 2025 income.
 # =============================================================================
 
 jurisdiction_id: "PT"
@@ -23,87 +22,20 @@ income_tax_type: "graduated"
 effective_start_date: "2025-01-01"
 effective_end_date: "2025-12-31"
 
-# Portugal IRS brackets (2025)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    - bracket_id: "PT-2025-12.5"
-      filing_status: "all"
-      income_from: 0
-      income_to: 8059
-      rate: 0.125
-      base_tax: 0
-    - bracket_id: "PT-2025-16"
-      filing_status: "all"
-      income_from: 8059
-      income_to: 12160
-      rate: 0.16
-      base_tax: 1007  # (8059-0) * 0.125
-    - bracket_id: "PT-2025-21.5"
-      filing_status: "all"
-      income_from: 12160
-      income_to: 17233
-      rate: 0.215
-      base_tax: 1663  # 1007 + (12160-8059) * 0.16
-    - bracket_id: "PT-2025-24.4"
-      filing_status: "all"
-      income_from: 17233
-      income_to: 22306
-      rate: 0.244
-      base_tax: 2759  # 1663 + (17233-12160) * 0.215
-    - bracket_id: "PT-2025-31.4"
-      filing_status: "all"
-      income_from: 22306
-      income_to: 28400
-      rate: 0.314
-      base_tax: 3997  # 2759 + (22306-17233) * 0.244
-    - bracket_id: "PT-2025-34.9"
-      filing_status: "all"
-      income_from: 28400
-      income_to: 41629
-      rate: 0.349
-      base_tax: 5910  # 3997 + (28400-22306) * 0.314
-    - bracket_id: "PT-2025-37"
-      filing_status: "all"
-      income_from: 41629
-      income_to: 55632
-      rate: 0.37
-      base_tax: 10529  # 5910 + (41629-28400) * 0.349
-    - bracket_id: "PT-2025-43.5"
-      filing_status: "all"
-      income_from: 55632
-      income_to: 77834
-      rate: 0.435
-      base_tax: 15720  # 10529 + (55632-41629) * 0.37
-    - bracket_id: "PT-2025-45"
-      filing_status: "all"
-      income_from: 77834
-      income_to: 113628
-      rate: 0.45
-      base_tax: 25343  # 15720 + (77834-55632) * 0.435
-    - bracket_id: "PT-2025-48"
-      filing_status: "all"
-      income_from: 113628
-      income_to: null
-      rate: 0.48
-      base_tax: 41400  # 25343 + (113628-77834) * 0.45
+    - {bracket_id: "PT-2025-1", filing_status: "all", income_from: 0, income_to: 8059, rate: 0.125, base_tax: 0}
+    - {bracket_id: "PT-2025-2", filing_status: "all", income_from: 8059, income_to: 12160, rate: 0.16, base_tax: 1007.38}
+    - {bracket_id: "PT-2025-3", filing_status: "all", income_from: 12160, income_to: 17233, rate: 0.215, base_tax: 1663.54}
+    - {bracket_id: "PT-2025-4", filing_status: "all", income_from: 17233, income_to: 22306, rate: 0.244, base_tax: 2754.23}
+    - {bracket_id: "PT-2025-5", filing_status: "all", income_from: 22306, income_to: 28400, rate: 0.314, base_tax: 3992.04}
+    - {bracket_id: "PT-2025-6", filing_status: "all", income_from: 28400, income_to: 41629, rate: 0.349, base_tax: 5905.56}
+    - {bracket_id: "PT-2025-7", filing_status: "all", income_from: 41629, income_to: 44987, rate: 0.431, base_tax: 10522.48}
+    - {bracket_id: "PT-2025-8", filing_status: "all", income_from: 44987, income_to: 83696, rate: 0.446, base_tax: 11969.78}
+    - {bracket_id: "PT-2025-9", filing_status: "all", income_from: 83696, income_to: null, rate: 0.48, base_tax: 29233.99}
   surtaxes: []
-
-# Solidarity surcharge (2025)
-surtaxes:
-  - surtax_id: "PT-SOLIDARITY"
-    name: "Solidarity Surcharge"
-    threshold: 80000
-    rate: 0.025
-    filing_status: "all"
-    description: "2.5% surcharge on income over €80,000"
-  - surtax_id: "PT-SOLIDARITY-HIGH"
-    name: "Solidarity Surcharge (High)"
-    threshold: 250000
-    rate: 0.05
-    filing_status: "all"
-    description: "5% surcharge on income over €250,000"
 
 social_insurance:
   components:
@@ -111,10 +43,10 @@ social_insurance:
       name: "Seguranca Social"
       type: "general_social"
       employee_rate: 0.11
-      employer_rate: 0.235
-      ceiling: 0
+      employer_rate: 0.2375
+      ceiling: null
       floor: 0
-      notes: "Employee pays 11% (2025)"
+      notes: "Employee 11%, no ceiling"
   calculation_method: "percentage"
   employer_contribution: true
   employee_contribution: true
@@ -130,13 +62,54 @@ deductions:
     dependent_exemption_available: false
     dependent_exemption_amount: 0
 
+country_parameters:
+  ias: 522.50                         # Indexante dos Apoios Sociais 2025
+  social_security_employee_rate: 0.11
+  # CIRS art. 25 n.1 a) / n.2: 8.54 x IAS, or total mandatory contributions
+  # if higher (alternative, not cumulative); capped at gross category A.
+  specific_deduction: 4462.15
+  # CIRS art. 78-B: general family expenses, 35% of expenses up to EUR 250
+  # per taxpayer (assumed fully used).
+  general_family_expenses_deduction: 250
+  # CIRS art. 68-A: on rendimento colectavel
+  solidarity_surcharge:
+    - {from: 80000, to: 250000, rate: 0.025}
+    - {from: 250000, to: null, rate: 0.05}
+  # CIRS art. 72
+  autonomous_rates:
+    capital_income: 0.28              # n.1 d) interest/dividends
+    capital_gains: 0.28               # n.1 c) securities
+    rental_residential: 0.25          # n.2 (residential leases)
+  # art. 72 n.14: gains on assets held < 365 days are aggregated when the
+  # taxable income including them reaches the last bracket of art. 68.
+  short_term_gain_aggregation_threshold: 83696
+  # Legacy NHR (closed to new entrants since 2024): 20% on net category A
+  # income from high value-added activities (art. 72 n.10, pre-2024 regime).
+  nhr_rate: 0.20
+  # art. 70 n.4: the minimo de existencia abatement does not apply above
+  # 2.2 x 14 x IAS gross; below it the calculator warns (not modelled).
+  minimo_existencia_exclusion_gross: 16093.00
+
 verification:
   status: "verified"
-  last_verified: "2026-02-17"
-  verified_by: "external_consultant"
-  notes: "Verified against PwC Portugal Tax Summary 2025"
+  last_verified: "2026-10-23"
+  verified_by: "eu-b engineer (primary sources below)"
+  notes: >-
+    Rates verified against Lei 55-A/2025 (Portal das Financas) and CIRS arts.
+    25, 70, 72 (Portal das Financas consolidated text).  IAS 2025 EUR 522.50
+    (Portaria 6-B/2025) not fetched.  Minimo de existencia (art. 70) and IRS
+    Jovem (art. 2-B) are NOT modelled; IFICI is not modelled.
 
 references:
-  - source_name: "PwC Portugal Tax Summary 2025"
-    url: "https://taxsummaries.pwc.com/portugal"
-    retrieved_date: "2026-02-17"
+  - source_name: "Lei n.o 55-A/2025 (Portal das Financas)"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/legislacao/diplomas_legislativos/Documents/Lei_55_A_2025.pdf"
+    retrieved_date: "2026-10-23"
+  - source_name: "CIRS art. 25 - Rendimentos do trabalho dependente: deducoes"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs25.aspx"
+    retrieved_date: "2026-10-23"
+  - source_name: "CIRS art. 70 - Minimo de existencia"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs70.aspx"
+    retrieved_date: "2026-10-23"
+  - source_name: "CIRS art. 72 - Taxas especiais"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs72.aspx"
+    retrieved_date: "2026-10-23"

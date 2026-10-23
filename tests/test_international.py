@@ -18,8 +18,6 @@ from tax_estimator.models.international import (
     InternationalTaxResult,
     TaxComponent,
     ComparisonResult,
-    CountryTaxSummary,
-    ExchangeRateInfo,
     UKTaxInput,
     UKTaxRegion,
     UKNICategory,
@@ -31,7 +29,6 @@ from tax_estimator.calculation.countries import calculate_international_tax
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     get_country_name,
-    COUNTRY_NAMES,
 )
 from tax_estimator.calculation.countries.router import CountryRouter
 from tax_estimator.calculation.comparison import (
@@ -1382,8 +1379,8 @@ class TestDivisionByZeroFixes:
 class TestCanadaProvinceFallback:
     """Tests for Canada province fallback handling."""
 
-    def test_canada_invalid_province_uses_ontario_rates(self):
-        """Test that invalid province falls back to Ontario rates."""
+    def test_canada_unsupported_province_is_rejected(self):
+        """An unsupported province fails explicitly instead of using Ontario rates."""
         from tax_estimator.models.international import CATaxInput
 
         tax_input = InternationalTaxInput(
@@ -1394,11 +1391,8 @@ class TestCanadaProvinceFallback:
                 province="XX",  # Invalid province
             ),
         )
-        result = calculate_international_tax(tax_input)
-
-        assert result.total_tax > 0
-        # Should have a note about fallback
-        assert any("ontario" in note.lower() for note in result.calculation_notes)
+        with pytest.raises(ValueError):
+            calculate_international_tax(tax_input)
 
     def test_canada_valid_province_no_fallback(self):
         """Test that valid province doesn't show fallback message."""

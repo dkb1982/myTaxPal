@@ -1,6 +1,8 @@
 # =============================================================================
-# Hong Kong Tax Rules - 2025-26 Tax Year
+# Hong Kong Tax Rules - Year of Assessment 2025/26 (1 Apr 2025 - 31 Mar 2026)
 # =============================================================================
+# Period semantics: tax_year 2025 in this app means the 2025/26 year of
+# assessment. Loaded by src/tax_estimator/calculation/countries/hk.py.
 # Hong Kong Tax Year: April 1 to March 31
 # Tax is lower of progressive rates or two-tier standard rate
 # Source: IRD Hong Kong
@@ -16,6 +18,8 @@ parent_jurisdiction_id: null
 country_code: "HK"
 currency_code: "HKD"
 tax_year_format: "hk_fiscal"
+year_of_assessment: "2025/26"
+period_label: "Year of assessment 2025/26 (1 April 2025 - 31 March 2026)"
 
 has_income_tax: true
 income_tax_type: "graduated"
@@ -83,6 +87,39 @@ social_insurance:
   employer_contribution: true
   employee_contribution: true
 
+# Parameters read by hk.py
+mpf:
+  employee_rate: 0.05
+  min_relevant_income_monthly: 7100
+  max_relevant_income_monthly: 30000
+  max_contribution_monthly: 1500
+  annual_deduction_cap: 18000
+
+allowances:  # 2025/26 (unchanged from 2024/25; increases start 2026/27)
+  basic: 132000
+  married: 264000
+  child_each: 130000
+  single_parent: 132000
+  dependent_parent_60_plus: 50000
+  dependent_parent_60_plus_living_together_additional: 50000
+  dependent_parent_55_to_59: 25000
+  dependent_parent_55_to_59_living_together_additional: 25000
+
+one_off_reduction:  # Inland Revenue (Amendment) (Tax Concessions...) Ordinance 2026
+  rate: 1.0
+  cap: 3000
+  enacted: true
+  notes: "100% of 2025/26 final salaries tax, capped at HK$3,000 per case; gazetted 22 May 2026"
+
+property_tax:  # Inland Revenue Ordinance Part II; IRD BIR57 notes / FAQ on property tax returns
+  standard_rate: 0.15                 # 15% for 2020/21 to 2026/27
+  statutory_allowance_rate: 0.20      # repairs and outgoings, granted automatically
+  one_off_reduction_applies: false    # 2025/26 reduction covers salaries tax, tax under PA and profits tax only
+  notes: >-
+    Net assessable value = rent receivable - irrecoverable rent - rates paid by
+    owner, less 20% statutory allowance; property tax = 15% x NAV.  Rates paid
+    and personal assessment (aggregation with salary) are not modelled.
+
 deductions:
   standard_deduction:
     available: false
@@ -96,11 +133,33 @@ deductions:
 
 verification:
   status: "verified"
-  last_verified: "2026-02-17"
-  verified_by: "external_consultant"
-  notes: "Two-tier standard rate added (15% first $5M, 16% above)."
+  last_verified: "2026-10-23"
+  verified_by: "engineering (primary-source check)"
+  notes: |
+    Two-tier standard rate (15% first $5M, 16% above) from 2024/25.
+    2025/26 one-off reduction (100%, cap HK$3,000) enacted: LegCo passed the
+    bill on 13 May 2026, gazetted 22 May 2026 (IRD press release 2026-05-13).
+    Property tax 15% on NAV after the 20% statutory allowance confirmed in the
+    IRD BIR57 notes and the property tax FAQ (2025/26 worked example: rent
+    240,000 -> NAV 192,000 -> tax 28,800).  The 13 May 2026 press release lists
+    the one-off reduction for salaries tax, tax under personal assessment and
+    profits tax only, so it is not applied to property tax.
+    Allowances and MPF limits are the standard published 2025/26 values;
+    not re-fetched in this pass (allowance increases apply from 2026/27).
 
 references:
   - source_name: "IRD Hong Kong"
     url: "https://www.ird.gov.hk"
     retrieved_date: "2026-02-17"
+  - source_name: "IRD press release 13 May 2026 - tax concession bill passed"
+    url: "https://www.ird.gov.hk/eng/ppr/archives/26051303.htm"
+    retrieved_date: "2026-10-23"
+  - source_name: "IRD BIR57 notes and instructions (property tax)"
+    url: "https://www.ird.gov.hk/eng/tax/bir57se_notes.htm"
+    retrieved_date: "2026-10-23"
+  - source_name: "IRD FAQ on completion of property tax returns"
+    url: "https://www.ird.gov.hk/eng/faq/pty.htm"
+    retrieved_date: "2026-10-23"
+  - source_name: "IRD Allowances / Tax rates"
+    url: "https://www.ird.gov.hk/eng/tax/ind_stp.htm"
+    retrieved_date: null
