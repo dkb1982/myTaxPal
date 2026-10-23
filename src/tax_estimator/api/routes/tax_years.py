@@ -23,6 +23,7 @@ from tax_estimator.api.schemas import (
     TaxYearListResponse,
     TaxYearSummary,
 )
+from tax_estimator.calculation.coverage import enabled_us_states
 from tax_estimator.rules.loader import RulesLoadError, get_rules_for_jurisdiction
 
 router = APIRouter()
@@ -36,7 +37,7 @@ router = APIRouter()
 
 TAX_YEAR_INFO = {
     2025: {
-        "status": "current",
+        "status": "prior",
         "filing_deadline": "2026-04-15",
         "extension_deadline": "2026-10-15",
         "rules_version": "2025.1.0",
@@ -50,6 +51,21 @@ TAX_YEAR_INFO = {
         "social_security_wage_base": Decimal("176100"),
         "401k_limit": Decimal("23500"),
         "ira_limit": Decimal("7000"),
+    },
+    2026: {
+        "status": "current",
+        "filing_deadline": "2027-04-15",
+        "extension_deadline": "2027-10-15",
+        "rules_version": "2026.1.0",
+        "standard_deduction": {
+            "single": Decimal("16100"),
+            "mfj": Decimal("32200"),
+            "mfs": Decimal("16100"),
+            "hoh": Decimal("24150"),
+        },
+        "social_security_wage_base": Decimal("184500"),
+        "401k_limit": Decimal("24500"),
+        "ira_limit": Decimal("7500"),
     },
 }
 
@@ -148,6 +164,11 @@ async def get_tax_year(
             state_count += 1
         else:  # Local: US-XX-XXX
             local_count += 1
+    if year == 2026:
+        # The legacy discovery loader scans a different state layout; coverage
+        # is the explicit source-reviewed state registry, not file presence.
+        state_count = len(enabled_us_states(2026, rules_root=settings.rules_dir))
+        local_count = 0
 
     # Build key thresholds from rules if available
     key_thresholds = None

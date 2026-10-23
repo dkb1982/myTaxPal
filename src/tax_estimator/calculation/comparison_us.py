@@ -226,12 +226,19 @@ class USStateComparisonCalculator:
         self._federal_rules: JurisdictionRules | None = None
 
     @property
+    def rules_dir(self) -> Path:
+        return self._rules_dir
+
+    @property
     def state_calculator(self):
         """Lazy load state calculator."""
         if self._state_calculator is None:
             from tax_estimator.calculation.states.calculator import StateCalculator
+            from tax_estimator.calculation.states.loader import StateRulesLoader
 
-            self._state_calculator = StateCalculator()
+            self._state_calculator = StateCalculator(
+                StateRulesLoader(self._rules_dir / "states")
+            )
         return self._state_calculator
 
     @property
@@ -239,8 +246,11 @@ class USStateComparisonCalculator:
         """Lazy load local calculator."""
         if self._local_calculator is None:
             from tax_estimator.calculation.locals.calculator import LocalCalculator
+            from tax_estimator.calculation.locals.loader import LocalRulesLoader
 
-            self._local_calculator = LocalCalculator()
+            self._local_calculator = LocalCalculator(
+                rules_loader=LocalRulesLoader(self._rules_dir / "locals")
+            )
         return self._local_calculator
 
     def _get_federal_rules(self, tax_year: int = 2025) -> JurisdictionRules:

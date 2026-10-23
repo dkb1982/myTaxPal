@@ -1,0 +1,53 @@
+# Texas individual income-tax rule for the narrow 2026 US estimator profile.
+
+jurisdiction_id: "US-TX"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Texas"
+jurisdiction_abbreviation: "TX"
+parent_jurisdiction_id: "US"
+
+has_income_tax: false
+income_tax_type: "none"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "none"
+  flat_rate: null
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "not_applicable"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Texas has no individual state income tax for 2026."
+    - "Texas Constitution Article VIII, Section 24-a prohibits a tax on individual net income."
+
+verification:
+  status: "verified"
+  last_verified: "2026-09-30"
+  verified_by: "source review"
+  notes: "Verified against the current Texas Constitution published by the Texas Legislature."
+
+references:
+  - source_name: "Texas Constitution Article VIII, Section 24-a"
+    url: "https://statutes.capitol.texas.gov/?artSec=8&chapter=CN.8&code=CN&tab=2"
+    retrieved_date: "2026-09-30"
+    notes: "The legislature may not impose a tax on the net incomes of individuals."

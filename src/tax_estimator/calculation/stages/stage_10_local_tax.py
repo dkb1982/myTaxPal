@@ -7,10 +7,12 @@ Calculates local (city/county) income tax from an explicit covered-city choice.
 from __future__ import annotations
 
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tax_estimator.calculation.comparison_regions import get_city_for_local_jurisdiction
 from tax_estimator.calculation.locals.calculator import LocalCalculator
+from tax_estimator.calculation.locals.loader import LocalRulesLoader
 from tax_estimator.calculation.locals.models import LocalTaxInput
 from tax_estimator.calculation.stages.base import CalculationStage, StageResult
 
@@ -21,9 +23,11 @@ if TYPE_CHECKING:
 class LocalTaxCalculationStage(CalculationStage):
     """Calculates local income tax."""
 
-    def __init__(self) -> None:
+    def __init__(self, rules_dir: Path | None = None) -> None:
         """Initialize with the local calculator."""
         self._local_calculator = LocalCalculator()
+        loader = LocalRulesLoader(rules_dir / "locals" if rules_dir else None)
+        self._local_calculator_2026 = LocalCalculator(rules_loader=loader)
 
     @property
     def stage_id(self) -> str:
@@ -153,12 +157,16 @@ class LocalTaxCalculationStage(CalculationStage):
 
         # Calculate local tax
         try:
-            rules = self._local_calculator.loader.load_local_rules(
+            calculator = (
+                self._local_calculator_2026 if input_data.tax_year == 2026
+                else self._local_calculator
+            )
+            rules = calculator.loader.load_local_rules(
                 local_jurisdiction, input_data.tax_year
             )
             if rules.parent_state.removeprefix("US-") != input_data.residence_state.upper():
                 return self._error("Local jurisdiction/ZIP does not match residence state")
-            local_result = self._local_calculator.calculate(local_input)
+            local_result = calculator.calculate(local_input)
             context.add_warning(
                 "Local estimate assumes full-year residence and work in the explicitly "
                 "selected city/county."

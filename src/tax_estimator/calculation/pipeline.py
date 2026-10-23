@@ -7,6 +7,7 @@ handling dependencies and collecting results.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tax_estimator.calculation.stages.base import StageStatus
@@ -33,7 +34,10 @@ class CalculationPipeline:
     The pipeline respects dependencies and handles errors gracefully.
     """
 
-    def __init__(self, stages: list["CalculationStage"] | None = None):
+    def __init__(
+        self, stages: list["CalculationStage"] | None = None,
+        rules_dir: Path | None = None,
+    ):
         """
         Initialize the pipeline.
 
@@ -41,13 +45,13 @@ class CalculationPipeline:
             stages: List of stages to execute. If None, uses default stages.
         """
         if stages is None:
-            stages = self._get_default_stages()
+            stages = self._get_default_stages(rules_dir)
 
         # Sort stages by order
         self._stages = sorted(stages, key=lambda s: s.stage_order)
         self._stage_results: dict[str, "StageResult"] = {}
 
-    def _get_default_stages(self) -> list["CalculationStage"]:
+    def _get_default_stages(self, rules_dir: Path | None) -> list["CalculationStage"]:
         """Get the default set of calculation stages."""
         from tax_estimator.calculation.stages import (
             AdjustmentsAGIStage,
@@ -74,8 +78,8 @@ class CalculationPipeline:
             TaxableIncomeStage(),
             TaxComputationStage(),
             CreditsStage(),
-            StateTaxCalculationStage(),
-            LocalTaxCalculationStage(),
+            StateTaxCalculationStage(rules_dir=rules_dir),
+            LocalTaxCalculationStage(rules_dir=rules_dir),
             FinalCalculationStage(),
         ]
 

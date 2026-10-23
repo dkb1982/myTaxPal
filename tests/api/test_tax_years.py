@@ -50,7 +50,7 @@ class TestListTaxYears:
         assert response.status_code == 200
         data = response.json()
 
-        assert data["default_year"] in [2024, 2025]
+        assert data["default_year"] == 2026
 
     def test_tax_year_summary_has_required_fields(self, client: TestClient):
         """Test that tax year summaries have required fields."""

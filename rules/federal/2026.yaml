@@ -1,0 +1,164 @@
+# United States Federal Tax Rules — Tax Year 2026
+# Primary sources: IRS Rev. Proc. 2025-32 (2025-45 I.R.B.) and SSA 2026 CBB.
+
+jurisdiction_id: "US"
+tax_year: 2026
+jurisdiction_type: "federal"
+jurisdiction_name: "United States Federal"
+jurisdiction_abbreviation: "US"
+parent_jurisdiction_id: null
+has_income_tax: true
+income_tax_type: "graduated"
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # Rev. Proc. 2025-32 §4.01, Table 3.
+    - { bracket_id: "US-2026-S-1", filing_status: "single", income_from: 0, income_to: 12400, rate: 0.10, base_tax: 0 }
+    - { bracket_id: "US-2026-S-2", filing_status: "single", income_from: 12400, income_to: 50400, rate: 0.12, base_tax: 1240 }
+    - { bracket_id: "US-2026-S-3", filing_status: "single", income_from: 50400, income_to: 105700, rate: 0.22, base_tax: 5800 }
+    - { bracket_id: "US-2026-S-4", filing_status: "single", income_from: 105700, income_to: 201775, rate: 0.24, base_tax: 17966 }
+    - { bracket_id: "US-2026-S-5", filing_status: "single", income_from: 201775, income_to: 256225, rate: 0.32, base_tax: 41024 }
+    - { bracket_id: "US-2026-S-6", filing_status: "single", income_from: 256225, income_to: 640600, rate: 0.35, base_tax: 58448 }
+    - { bracket_id: "US-2026-S-7", filing_status: "single", income_from: 640600, income_to: null, rate: 0.37, base_tax: 192979.25 }
+    # Rev. Proc. 2025-32 §4.01, Table 1.
+    - { bracket_id: "US-2026-MFJ-1", filing_status: "mfj", income_from: 0, income_to: 24800, rate: 0.10, base_tax: 0 }
+    - { bracket_id: "US-2026-MFJ-2", filing_status: "mfj", income_from: 24800, income_to: 100800, rate: 0.12, base_tax: 2480 }
+    - { bracket_id: "US-2026-MFJ-3", filing_status: "mfj", income_from: 100800, income_to: 211400, rate: 0.22, base_tax: 11600 }
+    - { bracket_id: "US-2026-MFJ-4", filing_status: "mfj", income_from: 211400, income_to: 403550, rate: 0.24, base_tax: 35932 }
+    - { bracket_id: "US-2026-MFJ-5", filing_status: "mfj", income_from: 403550, income_to: 512450, rate: 0.32, base_tax: 82048 }
+    - { bracket_id: "US-2026-MFJ-6", filing_status: "mfj", income_from: 512450, income_to: 768700, rate: 0.35, base_tax: 116896 }
+    - { bracket_id: "US-2026-MFJ-7", filing_status: "mfj", income_from: 768700, income_to: null, rate: 0.37, base_tax: 206583.50 }
+    # Rev. Proc. 2025-32 §4.01, Table 4.
+    - { bracket_id: "US-2026-MFS-1", filing_status: "mfs", income_from: 0, income_to: 12400, rate: 0.10, base_tax: 0 }
+    - { bracket_id: "US-2026-MFS-2", filing_status: "mfs", income_from: 12400, income_to: 50400, rate: 0.12, base_tax: 1240 }
+    - { bracket_id: "US-2026-MFS-3", filing_status: "mfs", income_from: 50400, income_to: 105700, rate: 0.22, base_tax: 5800 }
+    - { bracket_id: "US-2026-MFS-4", filing_status: "mfs", income_from: 105700, income_to: 201775, rate: 0.24, base_tax: 17966 }
+    - { bracket_id: "US-2026-MFS-5", filing_status: "mfs", income_from: 201775, income_to: 256225, rate: 0.32, base_tax: 41024 }
+    - { bracket_id: "US-2026-MFS-6", filing_status: "mfs", income_from: 256225, income_to: 384350, rate: 0.35, base_tax: 58448 }
+    - { bracket_id: "US-2026-MFS-7", filing_status: "mfs", income_from: 384350, income_to: null, rate: 0.37, base_tax: 103291.75 }
+    # Rev. Proc. 2025-32 §4.01, Table 2.
+    - { bracket_id: "US-2026-HOH-1", filing_status: "hoh", income_from: 0, income_to: 17700, rate: 0.10, base_tax: 0 }
+    - { bracket_id: "US-2026-HOH-2", filing_status: "hoh", income_from: 17700, income_to: 67450, rate: 0.12, base_tax: 1770 }
+    - { bracket_id: "US-2026-HOH-3", filing_status: "hoh", income_from: 67450, income_to: 105700, rate: 0.22, base_tax: 7740 }
+    - { bracket_id: "US-2026-HOH-4", filing_status: "hoh", income_from: 105700, income_to: 201750, rate: 0.24, base_tax: 16155 }
+    - { bracket_id: "US-2026-HOH-5", filing_status: "hoh", income_from: 201750, income_to: 256200, rate: 0.32, base_tax: 39207 }
+    - { bracket_id: "US-2026-HOH-6", filing_status: "hoh", income_from: 256200, income_to: 640600, rate: 0.35, base_tax: 56631 }
+    - { bracket_id: "US-2026-HOH-7", filing_status: "hoh", income_from: 640600, income_to: null, rate: 0.37, base_tax: 191171 }
+    # QSS uses the MFJ schedule under §1(j)(2)(A).
+    - { bracket_id: "US-2026-QSS-1", filing_status: "qss", income_from: 0, income_to: 24800, rate: 0.10, base_tax: 0 }
+    - { bracket_id: "US-2026-QSS-2", filing_status: "qss", income_from: 24800, income_to: 100800, rate: 0.12, base_tax: 2480 }
+    - { bracket_id: "US-2026-QSS-3", filing_status: "qss", income_from: 100800, income_to: 211400, rate: 0.22, base_tax: 11600 }
+    - { bracket_id: "US-2026-QSS-4", filing_status: "qss", income_from: 211400, income_to: 403550, rate: 0.24, base_tax: 35932 }
+    - { bracket_id: "US-2026-QSS-5", filing_status: "qss", income_from: 403550, income_to: 512450, rate: 0.32, base_tax: 82048 }
+    - { bracket_id: "US-2026-QSS-6", filing_status: "qss", income_from: 512450, income_to: 768700, rate: 0.35, base_tax: 116896 }
+    - { bracket_id: "US-2026-QSS-7", filing_status: "qss", income_from: 768700, income_to: null, rate: 0.37, base_tax: 206583.50 }
+  surtaxes: []
+  # Rev. Proc. 2025-32 §4.03.
+  preferential_thresholds:
+    - { filing_status: "single", zero_rate_limit: 49450, fifteen_rate_limit: 545500 }
+    - { filing_status: "mfj", zero_rate_limit: 98900, fifteen_rate_limit: 613700 }
+    - { filing_status: "mfs", zero_rate_limit: 49450, fifteen_rate_limit: 306850 }
+    - { filing_status: "hoh", zero_rate_limit: 66200, fifteen_rate_limit: 579600 }
+    - { filing_status: "qss", zero_rate_limit: 98900, fifteen_rate_limit: 613700 }
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - { filing_status: "single", amount: 16100, dependent_claimed_elsewhere: 1350 }
+      - { filing_status: "mfj", amount: 32200, dependent_claimed_elsewhere: null }
+      - { filing_status: "mfs", amount: 16100, dependent_claimed_elsewhere: null }
+      - { filing_status: "hoh", amount: 24150, dependent_claimed_elsewhere: null }
+      - { filing_status: "qss", amount: 32200, dependent_claimed_elsewhere: null }
+    additional_amounts:
+      - { category: "age_65_plus", filing_status: "single", amount: 2050 }
+      - { category: "age_65_plus", filing_status: "mfj", amount: 1650 }
+      - { category: "age_65_plus", filing_status: "mfs", amount: 1650 }
+      - { category: "age_65_plus", filing_status: "hoh", amount: 2050 }
+      - { category: "age_65_plus", filing_status: "qss", amount: 1650 }
+      - { category: "blind", filing_status: "single", amount: 2050 }
+      - { category: "blind", filing_status: "mfj", amount: 1650 }
+      - { category: "blind", filing_status: "mfs", amount: 1650 }
+      - { category: "blind", filing_status: "hoh", amount: 2050 }
+      - { category: "blind", filing_status: "qss", amount: 1650 }
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+  # OBBBA §70120; MAGI equals modeled AGI within the supported domestic scope.
+  salt:
+    ceiling: 40400
+    mfs_ceiling: 20200
+    phaseout_threshold: 505000
+    mfs_phaseout_threshold: 252500
+    phaseout_rate: 0.30
+    mfs_phaseout_rate: 0.15
+    floor: 10000
+    mfs_floor: 5000
+  # OBBBA enhanced deduction, in force 2025–2028; not available to the age-40 profile.
+  enhanced_senior:
+    amount_per_eligible_person: 6000
+    phaseout_threshold: 75000
+    mfj_phaseout_threshold: 150000
+    phaseout_rate: 0.06
+
+payroll_taxes:
+  social_security_wage_base: 184500
+  social_security_rate: 0.062
+  medicare_rate: 0.0145
+  additional_medicare_threshold: 200000
+  additional_medicare_rate: 0.009
+  self_employment_factor: 0.9235
+  niit_threshold_single: 200000
+  niit_threshold_mfj: 250000
+  niit_threshold_mfs: 125000
+  niit_rate: 0.038
+
+federal_credits:
+  # Rev. Proc. 2025-32 §4.05; unchanged statutory phaseout mechanics retained.
+  child_tax_credit:
+    amount_per_child: 2200
+    other_dependent_amount: 500
+    phaseout_threshold: 200000
+    mfj_phaseout_threshold: 400000
+    phaseout_increment: 1000
+    reduction_per_increment: 50
+    refundable_amount_per_child: 1700
+    refundable_earned_income_threshold: 2500
+    refundable_rate: 0.15
+  # Rev. Proc. 2025-32 §4.06.
+  eitc_investment_income_limit: 12200
+  # The engine exposes a documented continuous approximation; maximums and
+  # income/phaseout points below are the published 2026 table values. Rates are
+  # the statutory §32 percentages (7.65%, 34%, 40%, 45%; phaseout 7.65%,
+  # 15.98%, 21.06%, 21.06%).
+  eitc_parameters:
+    - { qualifying_children: 0, credit_rate: 0.0765, phaseout_rate: 0.0765, earned_income_amount: 8680, maximum_credit: 664, phaseout_start: 10860, phaseout_end: 19540, mfj_phaseout_start: 18140, mfj_phaseout_end: 26820 }
+    - { qualifying_children: 1, credit_rate: 0.34, phaseout_rate: 0.1598, earned_income_amount: 13020, maximum_credit: 4427, phaseout_start: 23890, phaseout_end: 51593, mfj_phaseout_start: 31160, mfj_phaseout_end: 58863 }
+    - { qualifying_children: 2, credit_rate: 0.40, phaseout_rate: 0.2106, earned_income_amount: 18290, maximum_credit: 7316, phaseout_start: 23890, phaseout_end: 58629, mfj_phaseout_start: 31160, mfj_phaseout_end: 65899 }
+    - { qualifying_children: 3, credit_rate: 0.45, phaseout_rate: 0.2106, earned_income_amount: 18290, maximum_credit: 8231, phaseout_start: 23890, phaseout_end: 62974, mfj_phaseout_start: 31160, mfj_phaseout_end: 70244 }
+
+verification:
+  status: "verified"
+  last_verified: "2026-09-30"
+  verified_by: null
+  notes: "Primary-source parameters for the supported federal calculation. The estimator does not model 2026 tips, qualified overtime, vehicle-loan-interest, or charitable-deduction facts."
+
+references:
+  - source_name: "IRS Revenue Procedure 2025-32"
+    url: "https://www.irs.gov/irb/2025-45_IRB"
+    retrieved_date: "2026-09-30"
+    notes: "2026 rate schedules, capital-gain thresholds, standard deductions, CTC and EITC."
+  - source_name: "SSA Contribution and Benefit Base"
+    url: "https://www.ssa.gov/oact/COLA/cbb.html"
+    retrieved_date: "2026-09-30"
+    notes: "2026 $184,500 Social Security wage base and statutory rates."
+  - source_name: "IRS Publication 505 (2026)"
+    url: "https://www.irs.gov/pub/irs-prior/p505--2026.pdf"
+    retrieved_date: "2026-09-30"
+    notes: "Additional Medicare, NIIT and 2026 SALT confirmation."

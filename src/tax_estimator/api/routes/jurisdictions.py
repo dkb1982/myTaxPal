@@ -13,10 +13,9 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from tax_estimator.api.dependencies import (
+    VALID_STATE_CODES,
     AvailableJurisdictionsDep,
     SettingsDep,
-    VALID_STATE_CODES,
-    NO_INCOME_TAX_STATES,
     get_state_name,
     has_state_income_tax,
 )
@@ -33,9 +32,23 @@ from tax_estimator.api.schemas import (
     ResidencyRulesInfo,
     TaxSummaryInfo,
 )
-from tax_estimator.rules.loader import get_rules_for_jurisdiction, RulesLoadError
+from tax_estimator.calculation.coverage import enabled_us_states
+from tax_estimator.calculation.states.loader import StateRulesLoader, StateRulesLoaderError
+from tax_estimator.rules.loader import RulesLoadError, get_rules_for_jurisdiction
 
 router = APIRouter()
+
+
+def _state_loader_for_settings(settings: SettingsDep) -> StateRulesLoader:
+    """Use the same year-scoped state files as the calculation pipeline."""
+    states_dir = settings.rules_dir / "states" if settings.rules_dir else None
+    return StateRulesLoader(states_dir)
+
+
+def _supported_states_2026(settings: SettingsDep) -> frozenset[str]:
+    return enabled_us_states(
+        2026, rules_root=_state_loader_for_settings(settings).rules_dir.parent
+    )
 
 
 # =============================================================================
@@ -170,12 +183,21 @@ async def list_jurisdictions(
     # Always include federal
     jurisdictions.append(("US", year))
 
-    # Add all states
-    for state_code in VALID_STATE_CODES:
+    # 2026 is released jurisdiction by jurisdiction; file presence and the
+    # legacy all-state catalog are not evidence of validated 2026 coverage.
+    state_codes = (
+        _supported_states_2026(settings).intersection(
+            _state_loader_for_settings(settings).list_available_states(2026)
+        )
+        if year == 2026 else VALID_STATE_CODES
+    )
+    for state_code in state_codes:
         jurisdictions.append((f"US-{state_code}", year))
 
     # Add jurisdictions from available rules
     for jur_id, jur_year in available:
+        if year == 2026 and jur_id not in {"US", *(f"US-{code}" for code in _supported_states_2026(settings))}:
+            continue
         if jur_year == year and (jur_id, year) not in jurisdictions:
             jurisdictions.append((jur_id, jur_year))
 
@@ -267,7 +289,36 @@ async def get_jurisdiction(
 ) -> JurisdictionDetails:
     """Get detailed information about a jurisdiction."""
     year = tax_year or 2025
+    if year == 2026 and jurisdiction_id not in {
+        "US", *(f"US-{code}" for code in _supported_states_2026(settings))
+    }:
+        raise NotFoundError("Jurisdiction", jurisdiction_id)
     level = _get_jurisdiction_level(jurisdiction_id)
+
+    if year == 2026 and jurisdiction_id.startswith("US-"):
+        state_code = jurisdiction_id.removeprefix("US-")
+        try:
+            state_rules = _state_loader_for_settings(settings).load_state_rules(state_code, year)
+        except StateRulesLoaderError as exc:
+            raise NotFoundError("Jurisdiction", jurisdiction_id) from exc
+        return JurisdictionDetails(
+            id=jurisdiction_id,
+            name=state_rules.state_name,
+            full_name=f"State of {state_rules.state_name}",
+            level=JurisdictionLevel.STATE,
+            parent_id="US",
+            has_income_tax=state_rules.has_income_tax,
+            tax_year=year,
+            tax_summary=TaxSummaryInfo(type=state_rules.tax_type.value),
+            local_taxes=LocalTaxesInfo(
+                has_local_income_tax=state_rules.has_local_income_tax
+            ),
+            links={
+                "self": f"/v1/jurisdictions/{jurisdiction_id}?tax_year={year}",
+                "parent": f"/v1/jurisdictions/US?tax_year={year}",
+                "brackets": f"/v1/jurisdictions/{jurisdiction_id}/brackets?tax_year={year}",
+            },
+        )
 
     # Try to load rules
     try:
@@ -404,6 +455,24 @@ async def get_jurisdiction_brackets(
 ) -> BracketsResponse:
     """Get tax brackets for a jurisdiction."""
     year = tax_year or 2025
+    if year == 2026 and jurisdiction_id not in {
+        "US", *(f"US-{code}" for code in _supported_states_2026(settings))
+    }:
+        raise NotFoundError("Jurisdiction", jurisdiction_id)
+
+    if year == 2026 and jurisdiction_id.startswith("US-"):
+        state_code = jurisdiction_id.removeprefix("US-")
+        try:
+            state_rules = _state_loader_for_settings(settings).load_state_rules(state_code, year)
+        except StateRulesLoaderError as exc:
+            raise NotFoundError("Jurisdiction", jurisdiction_id) from exc
+        if state_rules.has_income_tax or state_rules.brackets:
+            raise NotFoundError("Jurisdiction", jurisdiction_id)
+        return BracketsResponse(
+            jurisdiction_id=jurisdiction_id,
+            tax_year=year,
+            brackets_by_filing_status={},
+        )
 
     # Try to load rules
     try:

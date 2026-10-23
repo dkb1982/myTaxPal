@@ -2,10 +2,12 @@
 
 A stateless tax estimation API for calculating federal and state tax liabilities.
 
-## Calculation repair status (September 2026)
+## Calculation repair status (October 2026)
 
-The supported rules year is **2025** (UK: **2025/26**, 6 April 2025–5 April 2026).
-Other years are rejected, not calculated using relabelled rules.
+The broad source-reviewed US state/city rules are for **2025** (UK: **2025/26**,
+6 April 2025–5 April 2026). A limited **2026 US federal + eight no-individual-income-tax states** estimate is
+also available. Other years and unsupported 2026 jurisdictions are rejected,
+not calculated using relabelled rules.
 
 US single estimates and Compare now share the main calculation pipeline. UK
 calculations preserve wages, self-employment, savings, dividends and capital gains.
@@ -23,6 +25,19 @@ contributions, personal pension payments and living costs. Income-category tax
 allocations are omitted where they are not authoritative.
 
 ### US state/city repair scope
+
+The 2026 release supports AK, FL, NV, NH, SD, TN, TX and WY: single, age 40, no dependants,
+full-year residence and employment in the selected state, standard deduction, wages, ordinary
+and qualified dividends, and direct short- and long-term securities gains.
+Federal 2026 brackets, deductions, preferential thresholds and payroll wage
+base come from the 2026 rule file; these states impose no individual income tax.
+The website and APIs show only these supported 2026 destinations. Washington is
+not included because of its capital-gains excise. There is no 2026
+international, city or FX comparison yet; qualified tips/overtime, car-loan
+interest, charitable and other special deductions are not modelled. See
+`tests/test_2026_public_api.py` and `tests/calculation/states/test_2026_zero_tax_states.py`
+for independent numeric reference cases and
+`rules/federal/2026.yaml` for the primary-source links.
 
 The new 2025 state/city policies target a single, age-40, full-year resident working
 in the same jurisdiction, without dependants, using standard/default deductions,
@@ -51,7 +66,8 @@ Country profiles are available through the API. Compare accepts `country_profile
 keyed by selected country codes; supply income through the common `income` breakdown,
 not the profiles. Profile relief amounts are in destination currency. The UI exposes
 UK region and Singapore citizen/PR status; results disclose other profile defaults.
-FX uses published IRS **2025 annual averages**, not current market rates.
+2025 comparisons use published IRS **2025 annual averages**, not current market
+rates. The 2026 US path is USD-only and applies no FX rate.
 
 This is not comprehensive filing software or professional certification. US state
 adjustments/credits/local coverage remain limited; multistate/part-year scenarios
@@ -136,9 +152,11 @@ tax-estimator/
 │       └── config.py       # App configuration
 ├── rules/                  # YAML tax rule files
 │   ├── federal/
-│   │   └── 2025.yaml      # Federal tax rules
+│   │   ├── 2025.yaml      # Federal tax rules
+│   │   └── 2026.yaml      # Limited current-year release
 │   └── states/
-│       └── (state rules)
+│       ├── (flat 2025 state rules)
+│       └── 2026/         # Eight verified zero-income-tax states
 └── tests/
     ├── conftest.py        # pytest fixtures
     └── fixtures/          # Test YAML files

@@ -336,7 +336,7 @@ def test_fx_is_sourced_shared_and_missing_rates_fail(engine):
 
 def test_only_supported_years_are_advertised_and_no_silent_state_local_relabelling():
     years = client.get("/v1/tax-years").json()
-    assert [row["year"] for row in years["data"]] == [2025]
+    assert [row["year"] for row in years["data"]] == [2026, 2025]
     assert client.get("/v1/tax-years/2024").status_code == 404
     assert estimate(tax_year=2024).status_code == 422
     with pytest.raises(Exception, match="Unsupported tax year"):

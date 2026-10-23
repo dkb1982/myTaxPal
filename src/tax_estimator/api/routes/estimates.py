@@ -43,7 +43,14 @@ from tax_estimator.api.schemas import (
     WarningSeverity,
 )
 from tax_estimator.calculation.comparison_regions import get_city_for_local_jurisdiction
-from tax_estimator.calculation.us_profile import baseline_profile_reasons
+from tax_estimator.calculation.coverage import (
+    UnsupportedCoverageError,
+    enabled_us_states,
+    require_coverage,
+)
+from tax_estimator.calculation.us_profile import (
+    baseline_profile_reasons,
+)
 from tax_estimator.models.tax_input import (
     Adjustments,
     CapitalGains,
@@ -758,10 +765,37 @@ async def create_estimate(
             status_code=400,
         )
 
+    if request.tax_year == 2026:
+        if tax_input.residence_state.upper() not in enabled_us_states(
+            2026, rules_root=engine.rules_dir
+        ):
+            raise APIError(
+                code="UNSUPPORTED_2026_JURISDICTION",
+                message="2026 estimates are not validated for this state.",
+                status_code=422,
+            )
+        try:
+            require_coverage(
+                f"US-{tax_input.residence_state.upper()}",
+                2026,
+                rules_root=engine.rules_dir,
+            )
+        except UnsupportedCoverageError as exc:
+            raise APIError(
+                code="UNSUPPORTED_2026_JURISDICTION", message=str(exc), status_code=422
+            ) from exc
+        reasons = baseline_profile_reasons(tax_input, rules_root=engine.rules_dir)
+        if reasons:
+            raise APIError(
+                code="UNSUPPORTED_2026_PROFILE",
+                message="2026 estimate is outside the validated profile: " + "; ".join(reasons),
+                status_code=422,
+            )
+
     # Missing claimant facts are request errors, not server calculation failures.
     # Philadelphia facts are required only when the user explicitly selected it;
     # a ZIP cannot confirm a city or activate a local-tax calculation.
-    if not baseline_profile_reasons(tax_input):
+    if not baseline_profile_reasons(tax_input, rules_root=engine.rules_dir):
         local_id = tax_input.local_jurisdiction_id
         facts = tax_input.us_scenario
         required = []

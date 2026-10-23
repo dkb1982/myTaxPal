@@ -44,7 +44,12 @@ class CalculationEngine:
         """
         self._rules_dir = rules_dir
         self._include_trace = include_trace
-        self._pipeline = CalculationPipeline()
+        self._pipeline = CalculationPipeline(rules_dir=rules_dir)
+
+    @property
+    def rules_dir(self) -> Path | None:
+        """The rule root used by federal, state, local and coverage checks."""
+        return self._rules_dir
 
     def calculate(self, tax_input: TaxInput) -> CalculationResult:
         """

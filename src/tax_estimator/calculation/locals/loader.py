@@ -77,8 +77,14 @@ class LocalRulesLoader:
         self.rules_dir = rules_dir
         self._cache: dict[str, LocalRules] = {}
 
-    def get_rules_file_path(self, jurisdiction_id: str) -> Path:
-        """Get the path to a jurisdiction's rules file."""
+    def get_rules_file_path(
+        self, jurisdiction_id: str, tax_year: int = 2025
+    ) -> Path:
+        """Get the path to a jurisdiction's rules file for one tax year.
+
+        The 2025 rules keep their historical flat layout. Later tax years use a
+        year directory and never fall back to a same-named 2025 local rule.
+        """
         if not re.fullmatch(r"[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*", jurisdiction_id):
             raise LocalRulesLoaderError("Invalid local jurisdiction identifier")
         from tax_estimator.calculation.comparison_regions import US_CITIES
@@ -94,7 +100,8 @@ class LocalRulesLoader:
         else:
             filename = f"{jurisdiction_id.lower().replace('-', '_')}.yaml"
 
-        return self.rules_dir / filename
+        rules_dir = self.rules_dir if tax_year == 2025 else self.rules_dir / str(tax_year)
+        return rules_dir / filename
 
     def load_local_rules(self, jurisdiction_id: str, tax_year: int = 2025) -> LocalRules:
         """
@@ -115,9 +122,14 @@ class LocalRulesLoader:
         if cache_key in self._cache:
             return self._cache[cache_key]
 
-        rules_path = self.get_rules_file_path(jurisdiction_id)
+        rules_path = self.get_rules_file_path(jurisdiction_id, tax_year)
 
         if not rules_path.exists():
+            if tax_year != 2025:
+                raise LocalRulesLoaderError(
+                    f"Unsupported tax year {tax_year} for {jurisdiction_id}; "
+                    f"local rules file not found: {rules_path}"
+                )
             raise LocalRulesLoaderError(f"Local rules file not found: {rules_path}")
 
         try:
@@ -344,13 +356,14 @@ class LocalRulesLoader:
             raise LocalRulesLoaderError("Local policy parameter requires a numeric value")
         return result
 
-    def list_available_jurisdictions(self) -> list[str]:
-        """List all jurisdictions with available rules."""
-        if not self.rules_dir.exists():
+    def list_available_jurisdictions(self, tax_year: int = 2025) -> list[str]:
+        """List jurisdictions with rule files for exactly the requested year."""
+        rules_dir = self.rules_dir if tax_year == 2025 else self.rules_dir / str(tax_year)
+        if not rules_dir.exists():
             return []
 
         jurisdictions = []
-        for file_path in self.rules_dir.glob("*.yaml"):
+        for file_path in rules_dir.glob("*.yaml"):
             # Convert ny_nyc.yaml to US-NY-NYC format
             parts = file_path.stem.split("_")
             if len(parts) >= 2:
@@ -363,12 +376,15 @@ class LocalRulesLoader:
         """Clear the rules cache."""
         self._cache.clear()
 
-    def get_jurisdictions_for_state(self, state_code: str) -> list[str]:
-        """Get all local jurisdictions for a state."""
+    def get_jurisdictions_for_state(
+        self, state_code: str, tax_year: int = 2025
+    ) -> list[str]:
+        """Get local jurisdictions for a state and exactly one tax year."""
         state_code = state_code.upper()
         jurisdictions = []
+        rules_dir = self.rules_dir if tax_year == 2025 else self.rules_dir / str(tax_year)
 
-        for file_path in self.rules_dir.glob("*.yaml"):
+        for file_path in rules_dir.glob("*.yaml"):
             parts = file_path.stem.split("_")
             if len(parts) >= 2:
                 file_state = parts[0].upper()

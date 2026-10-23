@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaxEstimate - Tax Calculator</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-normalize@3/modern-normalize.min.css" integrity="sha384-uo/9/s/Ns8DTg4kjkjex8GezUcgMlKD99gTqxvMkIsaG4lSUbeJ0dVELljipv94t" crossorigin="anonymous">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2026-09-30">
 </head>
 <body>
     <header>
@@ -68,8 +68,10 @@
                 <legend>Tax Year</legend>
                 <label for="tax-year">Select Tax Year</label>
                 <select id="tax-year" name="tax_year" required>
-                    <option value="2025">2025</option>
+                    <option value="2026">2026 (limited coverage)</option>
+                    <option value="2025" selected>2025</option>
                 </select>
+                <small class="field-hint" id="us-year-scope" hidden>2026 currently covers the listed verified states for the single-filer profile only. Qualified tips, overtime and other special deductions are not modelled.</small>
             </fieldset>
 
             <!-- Filing Status -->
@@ -257,8 +259,10 @@
                 <legend>Tax Year</legend>
                 <label for="compare-tax-year">Select Tax Year</label>
                 <select id="compare-tax-year" name="tax_year" required>
-                    <option value="2025">2025</option>
+                    <option value="2026">2026 (limited coverage)</option>
+                    <option value="2025" selected>2025</option>
                 </select>
+                <small class="field-hint" id="compare-year-scope" hidden>2026 covers the listed verified states in USD only. Further states will appear as their calculations are validated.</small>
             </fieldset>
 
             <!-- Base Currency and Income -->
@@ -323,13 +327,13 @@
                     <option value="qss">Qualifying Surviving Spouse</option>
                 </select>
             </fieldset>
-            <fieldset><legend>Country profile options</legend>
+            <fieldset id="compare-country-profiles"><legend>Country profile options</legend>
                 <label for="compare-gb-region">UK tax region</label><select id="compare-gb-region"><option value="england">England</option><option value="scotland">Scotland</option><option value="wales">Wales</option><option value="northern_ireland">Northern Ireland</option></select>
                 <label for="compare-sg-citizen">Singapore citizen or permanent resident?</label><select id="compare-sg-citizen"><option value="true">Yes</option><option value="false">No</option></select>
             </fieldset>
 
-            <p class="us-scope-disclosure">US comparisons assume age 40, no dependants, full-year residence/work in each location and standard deductions. Only the single-filer wage/dividend/direct-securities profile is source-checked. EITC legal eligibility is not assumed. Rankings use net after modelled taxes, excluding state/local payroll contributions.</p>
-            <details>
+            <p class="us-scope-disclosure" id="compare-us-scope">US comparisons assume age 40, no dependants, full-year residence/work in each location and standard deductions. Only the single-filer wage/dividend/direct-securities profile is source-checked. EITC legal eligibility is not assumed. Rankings use net after modelled taxes, excluding state/local payroll contributions.</p>
+            <details id="compare-state-details">
                 <summary>Arizona / Philadelphia details (only if selected)</summary>
                 <p>Use the selected comparison currency. These portions are included in the income above. Blank means unknown; 0 means none qualifies.</p>
                 <label for="compare-az-eligible-ltcg">Arizona: LT gains from securities acquired after 2011</label>
@@ -341,7 +345,7 @@
             </details>
             <!-- Region Selection -->
             <fieldset>
-                <legend>Select Regions to Compare (2-6)</legend>
+                <legend id="compare-region-legend">Select Regions to Compare (2-6)</legend>
                 <input type="search" id="region-search" class="region-search-input" placeholder="Search states, cities, or countries...">
                 <div id="selected-chips" class="chip-container"></div>
                 <p><span class="region-counter-badge" id="selection-count-badge"><span id="selection-count">0</span>/6 selected</span></p>
@@ -659,7 +663,7 @@
 
         <!-- Comparison Results Section (hidden initially) -->
         <section id="compare-results" hidden>
-            <h2>Tax Comparison</h2>
+            <h2 id="compare-results-heading">Tax Comparison</h2>
 
             <div id="compare-summary">
                 <p id="compare-info">
@@ -679,7 +683,7 @@
             </div>
 
             <div id="compare-disclaimers">
-                <p>Rankings use historical FX and model independent full-year domestic scenarios. Defaults and assumptions—including citizenship, no treaty/home-country tax or cost-of-living model, and unvalidated country/state coverage—apply before ranking.</p>
+                <p id="compare-ranking-context">Rankings use historical FX and model independent full-year domestic scenarios. Defaults and assumptions—including citizenship, no treaty/home-country tax or cost-of-living model, and unvalidated country/state coverage—apply before ranking.</p>
                 <h4>Disclaimers</h4>
                 <ul id="compare-disclaimer-list">
                     <!-- Populated by JavaScript -->
@@ -717,6 +721,6 @@
         <p><small>TaxEstimate API v0.1.0</small></p>
     </footer>
 
-    <script src="/static/js/app.js?v=20260921-2"></script>
+    <script src="/static/js/app.js?v=20261001-1"></script>
 </body>
 </html>

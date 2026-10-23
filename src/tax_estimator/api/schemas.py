@@ -535,7 +535,7 @@ class EstimateRequest(BaseModel):
     This is the main API request model for POST /v1/estimates.
     """
 
-    tax_year: int = Field(..., ge=2025, le=2025, description="Supported calendar tax year: 2025")
+    tax_year: int = Field(..., ge=2025, le=2026, description="Supported calendar tax year; 2026 has limited jurisdiction/profile coverage")
     lived_with_spouse_during_year: bool | None = None
     eitc_eligibility_asserted: bool | None = None
     us_scenario: USScenarioFacts = Field(default_factory=USScenarioFacts)

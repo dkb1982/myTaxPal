@@ -1,0 +1,54 @@
+# New Hampshire individual income-tax rule for the narrow 2026 US estimator profile.
+
+jurisdiction_id: "US-NH"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "New Hampshire"
+jurisdiction_abbreviation: "NH"
+parent_jurisdiction_id: "US"
+
+has_income_tax: false
+income_tax_type: "none"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "none"
+  flat_rate: null
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "not_applicable"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "New Hampshire has no individual state income tax for 2026."
+    - "The former Interest and Dividends Tax was repealed for taxable periods beginning after December 31, 2024."
+    - "This rule covers individual state income-tax liability only; other state and local taxes are outside scope."
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-01"
+  verified_by: "source review"
+  notes: "Verified against New Hampshire Department of Revenue Administration guidance on the Interest and Dividends Tax repeal."
+
+references:
+  - source_name: "New Hampshire Department of Revenue Administration, Interest & Dividends Tax"
+    url: "https://www.revenue.nh.gov/taxes-glance/interest-dividends-tax"
+    retrieved_date: "2026-10-01"
+    notes: "New Hampshire has no tax on individual W-2 wages and repealed the Interest and Dividends Tax for taxable periods beginning after December 31, 2024."

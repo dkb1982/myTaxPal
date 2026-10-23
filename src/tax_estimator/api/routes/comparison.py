@@ -14,11 +14,13 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from tax_estimator.api.dependencies import SettingsDep
 from tax_estimator.calculation.comparison_enhanced import (
     EnhancedComparisonResult,
+    UnsupportedComparisonCoverageError,
     compare_regions_enhanced,
     get_all_comparison_regions,
 )
@@ -72,7 +74,7 @@ class EnhancedCompareRequest(BaseModel):
     base_currency: str = Field(
         default="USD", description="Currency for comparison (e.g., USD, GBP)"
     )
-    tax_year: int = Field(default=2025, ge=2024, le=2030, description="Tax year")
+    tax_year: int = Field(default=2025, ge=2025, le=2026, description="Supported tax year")
 
     # Region selection
     regions: list[str] = Field(
@@ -163,6 +165,7 @@ class ComparisonRegionsResponse(BaseModel):
 @router.post("/compare", response_model=EnhancedComparisonResult)
 async def compare_regions(
     request: EnhancedCompareRequest,
+    settings: SettingsDep,
 ) -> EnhancedComparisonResult:
     """
     Compare tax across multiple regions (US states/cities + international).
@@ -239,20 +242,29 @@ async def compare_regions(
             country_profiles={
                 code.upper(): profile for code, profile in (request.country_profiles or {}).items()
             },
+            rules_dir=settings.rules_dir,
         )
         return result
+    except UnsupportedComparisonCoverageError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/regions", response_model=ComparisonRegionsResponse)
-async def list_comparison_regions() -> ComparisonRegionsResponse:
+async def list_comparison_regions(
+    settings: SettingsDep,
+    tax_year: int = Query(default=2025, description="Tax year whose validated regions to list"),
+) -> ComparisonRegionsResponse:
     """
     List all regions available for comparison.
 
     Returns US states, US cities (with local taxes), and international countries.
     """
-    regions = get_all_comparison_regions()
+    try:
+        regions = get_all_comparison_regions(tax_year, rules_dir=settings.rules_dir)
+    except UnsupportedComparisonCoverageError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     return ComparisonRegionsResponse(
         us_states=[
@@ -292,10 +304,22 @@ async def list_comparison_regions() -> ComparisonRegionsResponse:
 
 
 @router.get("/regions/us-states")
-async def list_us_states() -> dict[str, Any]:
+async def list_us_states(
+    settings: SettingsDep, tax_year: int = Query(default=2025)
+) -> dict[str, Any]:
     """List all US states for comparison."""
+    try:
+        supported_ids = {
+            state["region_id"] for state in get_all_comparison_regions(
+                tax_year, rules_dir=settings.rules_dir
+            )["us_states"]
+        }
+    except UnsupportedComparisonCoverageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     states = []
     for state_id, info in US_STATES.items():
+        if state_id not in supported_ids:
+            continue
         states.append(
             {
                 "region_id": info.region_id,
@@ -327,15 +351,29 @@ async def list_us_states() -> dict[str, Any]:
             "US-TX",
             "US-WA",
             "US-WY",
+        ] if tax_year == 2025 else [
+            state["region_id"] for state in states if not state["has_income_tax"]
         ],
     }
 
 
 @router.get("/regions/us-cities")
-async def list_us_cities() -> dict[str, Any]:
+async def list_us_cities(
+    settings: SettingsDep, tax_year: int = Query(default=2025)
+) -> dict[str, Any]:
     """List US cities with local income taxes."""
+    try:
+        supported_ids = {
+            city["region_id"] for city in get_all_comparison_regions(
+                tax_year, rules_dir=settings.rules_dir
+            )["us_cities"]
+        }
+    except UnsupportedComparisonCoverageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     cities = []
     for city_id, info in US_CITIES.items():
+        if city_id not in supported_ids:
+            continue
         cities.append(
             {
                 "region_id": info.region_id,
@@ -358,10 +396,23 @@ async def list_us_cities() -> dict[str, Any]:
 
 
 @router.get("/regions/international")
-async def list_international_countries() -> dict[str, Any]:
+async def list_international_countries(
+    settings: SettingsDep, tax_year: int = Query(default=2025)
+) -> dict[str, Any]:
     """List international countries for comparison."""
+    try:
+        supported_ids = {
+            country["region_id"]
+            for country in get_all_comparison_regions(
+                tax_year, rules_dir=settings.rules_dir
+            )["international"]
+        }
+    except UnsupportedComparisonCoverageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     countries = []
     for country_id, info in INTERNATIONAL_COUNTRIES.items():
+        if country_id not in supported_ids:
+            continue
         countries.append(
             {
                 "region_id": info.region_id,
@@ -390,8 +441,21 @@ async def list_international_countries() -> dict[str, Any]:
 
 
 @router.get("/regions/{region_id}")
-async def get_region_details(region_id: str) -> dict[str, Any]:
+async def get_region_details(
+    region_id: str,
+    settings: SettingsDep,
+    tax_year: int = Query(default=2025),
+) -> dict[str, Any]:
     """Get details about a specific region."""
+    try:
+        supported = get_all_comparison_regions(tax_year, rules_dir=settings.rules_dir)
+    except UnsupportedComparisonCoverageError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    supported_ids = {
+        region["region_id"] for group in supported.values() for region in group
+    }
+    if region_id not in supported_ids:
+        raise HTTPException(status_code=404, detail=f"Region '{region_id}' not found for {tax_year}.")
     if not is_valid_region(region_id):
         raise HTTPException(
             status_code=404,

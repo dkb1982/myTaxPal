@@ -9,6 +9,11 @@ from __future__ import annotations
 from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
+from tax_estimator.calculation.coverage import (
+    UnsupportedCoverageError,
+    enabled_us_states,
+    require_coverage,
+)
 from tax_estimator.calculation.states.credits_2025_additional import (
     apply_additional_2025_credits,
 )
@@ -40,9 +45,10 @@ class StateCalculator:
     """
     Calculator for state income taxes.
 
-    The explicit 2025 vanilla profile uses source-reviewed policies. Other
-    profiles use the legacy unvalidated path. This is an estimator, not a
-    filing engine or a substitute for professional tax advice.
+    The explicit 2025 vanilla profile uses source-reviewed policies. The 2026
+    path is separately allowlisted and has no generic fallback. Other 2025
+    profiles use the legacy unvalidated path. This is an estimator, not a filing
+    engine or a substitute for professional tax advice.
     """
 
     def __init__(self, rules_loader: StateRulesLoader | None = None):
@@ -69,6 +75,31 @@ class StateCalculator:
         """
         if tax_input.filing_status not in {"single", "mfj", "mfs", "hoh", "qss"}:
             raise StateCalculationError("Unsupported filing status")
+
+        state_code = tax_input.state_code.upper()
+        if tax_input.tax_year == 2026:
+            if state_code not in enabled_us_states(
+                2026, rules_root=self.loader.rules_dir.parent
+            ):
+                raise StateCalculationError(
+                    f"Tax year 2026 state calculation is not supported for {state_code}"
+                )
+            if not tax_input.baseline_profile_supported:
+                detail = "; ".join(tax_input.unsupported_profile_reasons)
+                suffix = f": {detail}" if detail else ""
+                raise StateCalculationError(
+                    "Tax year 2026 state calculation requires the supported "
+                    f"single-age-40 baseline profile{suffix}"
+                )
+            self._validate_baseline_profile(tax_input)
+            self._validate_2026_profile(tax_input)
+            try:
+                require_coverage(
+                    f"US-{state_code}", 2026, rules_root=self.loader.rules_dir.parent
+                )
+            except UnsupportedCoverageError as exc:
+                raise StateCalculationError(str(exc)) from exc
+
         # Load rules for the state
         try:
             rules = self.loader.load_state_rules(tax_input.state_code, tax_input.tax_year)
@@ -77,26 +108,27 @@ class StateCalculator:
                 f"Failed to load rules for {tax_input.state_code}: {e}"
             ) from e
 
-        if tax_input.tax_year == 2025 and tax_input.baseline_profile_supported:
-            malformed = []
-            if tax_input.filing_status != "single":
-                malformed.append("filing status is not single")
-            if tax_input.taxpayer_age_at_year_end != 40:
-                malformed.append("taxpayer age is not 40")
-            if not tax_input.is_resident:
-                malformed.append("taxpayer is not a full-year resident")
-            if tax_input.num_dependents:
-                malformed.append("dependents are present")
-            if tax_input.age_65_or_older or tax_input.is_blind:
-                malformed.append("age-65/blind status is present")
-            if tax_input.can_be_claimed_as_dependent:
-                malformed.append("taxpayer can be claimed as a dependent")
-            if not tax_input.use_standard_deduction or tax_input.itemized_deductions:
-                malformed.append("standard-deduction baseline is not selected")
-            if malformed:
+        if tax_input.tax_year == 2026:
+            if rules.state_code not in enabled_us_states(
+                2026, rules_root=self.loader.rules_dir.parent
+            ):
                 raise StateCalculationError(
-                    "baseline_profile_supported conflicts with input: " + "; ".join(malformed)
+                    f"Loaded 2026 state rules are not allowlisted: {rules.state_code}"
                 )
+            if rules.has_income_tax or rules.tax_type != StateTaxType.NONE:
+                raise StateCalculationError(
+                    f"No reviewed 2026 income-tax policy is registered for {rules.state_code}"
+                )
+            result = self._create_no_tax_result(tax_input, rules)
+            result.notes.extend(rules.special_notes)
+            result.assumptions.append(
+                f"2026 {rules.state_name} result covers individual state income tax only; property, "
+                "sales, franchise, payroll and any local taxes are outside this result."
+            )
+            return result
+
+        if tax_input.tax_year == 2025 and tax_input.baseline_profile_supported:
+            self._validate_baseline_profile(tax_input)
             policy = POLICIES_2025_A_M.get(rules.state_code)
             if policy is None:
                 policy = POLICIES_2025_N_W.get(rules.state_code)
@@ -110,6 +142,11 @@ class StateCalculator:
                     return build_state_result(tax_input, rules, computation)
                 except StatePolicyError as exc:
                     raise StateCalculationError(str(exc)) from exc
+
+        if tax_input.tax_year != 2025:
+            raise StateCalculationError(
+                f"No state calculation policy is supported for tax year {tax_input.tax_year}"
+            )
 
         # Handle no-tax states
         if not rules.has_income_tax:
@@ -140,6 +177,48 @@ class StateCalculator:
         )
         result.warnings.extend(tax_input.unsupported_profile_reasons)
         return result
+
+    @staticmethod
+    def _validate_baseline_profile(tax_input: StateTaxInput) -> None:
+        """Reject a caller that marks inputs as baseline when they conflict."""
+        malformed = []
+        if tax_input.filing_status != "single":
+            malformed.append("filing status is not single")
+        if tax_input.taxpayer_age_at_year_end != 40:
+            malformed.append("taxpayer age is not 40")
+        if not tax_input.is_resident:
+            malformed.append("taxpayer is not a full-year resident")
+        if tax_input.num_dependents:
+            malformed.append("dependents are present")
+        if tax_input.age_65_or_older or tax_input.is_blind:
+            malformed.append("age-65/blind status is present")
+        if tax_input.can_be_claimed_as_dependent:
+            malformed.append("taxpayer can be claimed as a dependent")
+        if not tax_input.use_standard_deduction or tax_input.itemized_deductions:
+            malformed.append("standard-deduction baseline is not selected")
+        if malformed:
+            raise StateCalculationError(
+                "baseline_profile_supported conflicts with input: " + "; ".join(malformed)
+            )
+
+    @staticmethod
+    def _validate_2026_profile(tax_input: StateTaxInput) -> None:
+        """Reject unsupported income channels even if a direct caller sets the flag."""
+        unsupported = list(tax_input.unsupported_profile_reasons)
+        if tax_input.interest:
+            unsupported.append("taxable interest is present")
+        if tax_input.retirement_income:
+            unsupported.append("retirement income is present")
+        if tax_input.capital_gains:
+            unsupported.append("uncharacterized capital gains are present")
+        if tax_input.federal_self_employment_tax not in {None, Decimal(0)}:
+            unsupported.append("self-employment income is present")
+        if tax_input.taxes_paid_to_other_states:
+            unsupported.append("taxes paid to another state are present")
+        if unsupported:
+            raise StateCalculationError(
+                "Tax year 2026 profile is outside supported scope: " + "; ".join(unsupported)
+            )
 
     def _apply_ca_exemption_credits(
         self, tax_input: StateTaxInput, rules: StateRules, result: StateTaxResult

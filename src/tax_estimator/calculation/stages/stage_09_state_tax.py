@@ -7,12 +7,18 @@ Calculates state income tax for the residence state.
 from __future__ import annotations
 
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tax_estimator.calculation.stages.base import CalculationStage, StageResult
 from tax_estimator.calculation.states.calculator import StateCalculator
+from tax_estimator.calculation.states.loader import StateRulesLoader
 from tax_estimator.calculation.states.models import StateTaxInput
-from tax_estimator.calculation.us_profile import baseline_profile_reasons, BASELINE_ASSUMPTIONS, MODELLED_TAX_SCOPE
+from tax_estimator.calculation.us_profile import (
+    BASELINE_ASSUMPTIONS,
+    MODELLED_TAX_SCOPE,
+    baseline_profile_reasons,
+)
 from tax_estimator.models.tax_result import BracketBreakdown as ResultBracketBreakdown
 
 if TYPE_CHECKING:
@@ -22,9 +28,12 @@ if TYPE_CHECKING:
 class StateTaxCalculationStage(CalculationStage):
     """Calculates state income tax."""
 
-    def __init__(self) -> None:
+    def __init__(self, rules_dir: Path | None = None) -> None:
         """Initialize with state calculator."""
+        self._rules_dir = rules_dir
         self._state_calculator = StateCalculator()
+        loader = StateRulesLoader(rules_dir / "states" if rules_dir else None)
+        self._state_calculator_2026 = StateCalculator(loader)
 
     @property
     def stage_id(self) -> str:
@@ -64,7 +73,7 @@ class StateTaxCalculationStage(CalculationStage):
 
         # Count dependents
         num_dependents = len(input_data.dependents)
-        profile_reasons = baseline_profile_reasons(input_data)
+        profile_reasons = baseline_profile_reasons(input_data, rules_root=self._rules_dir)
 
         # Build state tax input
         state_input = StateTaxInput(
@@ -105,7 +114,11 @@ class StateTaxCalculationStage(CalculationStage):
 
         # Calculate state tax
         try:
-            state_result = self._state_calculator.calculate(state_input)
+            calculator = (
+                self._state_calculator_2026 if input_data.tax_year == 2026
+                else self._state_calculator
+            )
+            state_result = calculator.calculate(state_input)
             context.add_warning(MODELLED_TAX_SCOPE)
             if not profile_reasons:
                 context.add_warning(BASELINE_ASSUMPTIONS)

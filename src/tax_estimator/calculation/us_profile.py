@@ -1,6 +1,11 @@
-"""Explicit scope assessment for the source-checked 2025 US policies."""
+"""Explicit scope assessment for source-checked US year/profile policies."""
 
+from pathlib import Path
+
+from tax_estimator.calculation.coverage import enabled_us_states
 from tax_estimator.models.tax_input import TaxInput
+
+SUPPORTED_2026_US_STATES = enabled_us_states(2026)
 
 
 _ALLOWED_NONDEFAULT_PATHS = frozenset({
@@ -30,15 +35,23 @@ def _nondefault_paths(value, prefix=""):
         yield prefix
 
 
-def baseline_profile_reasons(tax_input: TaxInput) -> tuple[str, ...]:
+def baseline_profile_reasons(
+    tax_input: TaxInput, *, rules_root: Path | None = None
+) -> tuple[str, ...]:
     """Unknown/new nondefault fields never silently enter the audited profile.
 
     Signed within-class gains retain their character here. A state/local policy must
     explicitly reject a signed case it cannot compute; it cannot clip it silently.
     """
     reasons = []
-    if tax_input.tax_year != 2025:
-        reasons.append("the source-checked US profile is for tax year 2025")
+    if tax_input.tax_year == 2026:
+        state_code = tax_input.residence_state.upper()
+        if state_code not in enabled_us_states(2026, rules_root=rules_root):
+            reasons.append(f"tax year 2026 is not supported for state {state_code}")
+        if tax_input.local_jurisdiction_id:
+            reasons.append("local income-tax jurisdictions are not supported for tax year 2026")
+    elif tax_input.tax_year != 2025:
+        reasons.append("the source-checked US profile supports only tax years 2025 and 2026")
     if tax_input.filing_status.value != "single":
         reasons.append("only the single-filer state/city profile is source-checked")
     if tax_input.taxpayer.age_at_year_end != 40:
@@ -46,10 +59,16 @@ def baseline_profile_reasons(tax_input: TaxInput) -> tuple[str, ...]:
     if tax_input.spouse is not None or tax_input.dependents:
         reasons.append("the source-checked profile has no spouse or dependants")
     for wage in tax_input.wages:
-        if wage.owner != "taxpayer" or wage.employer_state.upper() != tax_input.residence_state.upper():
+        if (
+            wage.owner != "taxpayer"
+            or wage.employer_state.upper() != tax_input.residence_state.upper()
+        ):
             reasons.append("the source-checked employee works in the residence jurisdiction")
             break
-    unsupported = set(_nondefault_paths(tax_input.model_dump(exclude_defaults=True))) - _ALLOWED_NONDEFAULT_PATHS
+    unsupported = (
+        set(_nondefault_paths(tax_input.model_dump(exclude_defaults=True)))
+        - _ALLOWED_NONDEFAULT_PATHS
+    )
     if unsupported:
         reasons.append("unvalidated profile inputs: " + ", ".join(sorted(unsupported)))
     return tuple(reasons)
@@ -62,7 +81,10 @@ MODELLED_TAX_SCOPE = (
 )
 
 BASELINE_ASSUMPTIONS = (
-    "US state/city scenario: 2025, single age 40, no dependants, full-year resident and "
+    "US state/city scenario: selected supported tax year, single age 40, no dependants, "
+    "full-year resident and "
     "employee in the same jurisdiction, standard deductions, direct personal securities; "
-    "no carryovers or special asset relief. EITC claimant eligibility is not assumed."
+    "no carryovers or special asset relief. Qualified-tip, qualified-overtime, car-loan-interest, "
+    "charitable and itemized-deduction provisions are not modelled. EITC claimant eligibility "
+    "is not assumed."
 )

@@ -80,9 +80,15 @@ class StateRulesLoader:
         self.rules_dir = rules_dir
         self._cache: dict[str, StateRules] = {}
 
-    def get_rules_file_path(self, state_code: str) -> Path:
-        """Get the path to a state's rules file."""
-        return self.rules_dir / f"{state_code.lower()}.yaml"
+    def get_rules_file_path(self, state_code: str, tax_year: int = 2025) -> Path:
+        """Get the path to a state's rules file for the requested year.
+
+        The source-reviewed 2025 rules retain their historical flat layout.
+        Later years are deliberately isolated so a missing current-year file can
+        never fall back to a 2025 rule with the same state code.
+        """
+        rules_dir = self.rules_dir if tax_year == 2025 else self.rules_dir / str(tax_year)
+        return rules_dir / f"{state_code.lower()}.yaml"
 
     def load_state_rules(self, state_code: str, tax_year: int = 2025) -> StateRules:
         """
@@ -103,9 +109,14 @@ class StateRulesLoader:
         if cache_key in self._cache:
             return self._cache[cache_key]
 
-        rules_path = self.get_rules_file_path(state_code)
+        rules_path = self.get_rules_file_path(state_code, tax_year)
 
         if not rules_path.exists():
+            if tax_year != 2025:
+                raise StateRulesLoaderError(
+                    f"Unsupported tax year {tax_year} for {state_code}; "
+                    f"state rules file not found: {rules_path}"
+                )
             raise StateRulesLoaderError(f"State rules file not found: {rules_path}")
 
         try:
@@ -230,13 +241,14 @@ class StateRulesLoader:
             treatment=data.get("treatment", "deduction"),
         )
 
-    def list_available_states(self) -> list[str]:
-        """List all states with available rules."""
-        if not self.rules_dir.exists():
+    def list_available_states(self, tax_year: int = 2025) -> list[str]:
+        """List states with rule files for exactly the requested year."""
+        rules_dir = self.rules_dir if tax_year == 2025 else self.rules_dir / str(tax_year)
+        if not rules_dir.exists():
             return []
 
         states = []
-        for file_path in self.rules_dir.glob("*.yaml"):
+        for file_path in rules_dir.glob("*.yaml"):
             state_code = file_path.stem.upper()
             if len(state_code) == 2:
                 states.append(state_code)

@@ -61,6 +61,7 @@ const CURRENCY_SYMBOLS = {
 // Social Security wage base by year (source: IRS)
 // These values should ideally come from the API, but are defined here as fallback
 const SS_WAGE_BASE = {
+    2026: 184500,
     2025: 176100,
     2024: 168600,
     2023: 160200
@@ -191,6 +192,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate state dropdown
     populateStates();
     setupResidenceLocationSelector();
+    document.getElementById('us-year-scope').hidden = true;
+    document.getElementById('tax-year')?.addEventListener('change', loadStandaloneYearRegions);
+    document.getElementById('compare-tax-year')?.addEventListener('change', () => {
+        setComparisonYearMode();
+        loadComparisonRegions();
+    });
 
     // Setup event listeners
     form.addEventListener('submit', handleFormSubmit);
@@ -215,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCountrySelector();
 
     // Load comparison regions (US states, cities, international)
+    setComparisonYearMode();
     loadComparisonRegions();
 
     // Setup region selection limit tracking
@@ -365,14 +373,16 @@ function setupCountrySelector() {
  * Load US states and cities from API and populate checkboxes.
  */
 async function loadComparisonRegions() {
+    const year = document.getElementById('compare-tax-year')?.value || '2025';
     try {
-        const response = await fetch(`${API_BASE}/comparison/regions`);
+        const response = await fetch(`${API_BASE}/comparison/regions?tax_year=${year}`);
         if (!response.ok) {
             console.warn('Failed to load comparison regions:', response.status);
             return;
         }
 
         const data = await response.json();
+        if (document.getElementById('compare-tax-year')?.value !== year) return;
 
         // Populate US states
         populateUSStates(data.us_states || []);
@@ -380,11 +390,15 @@ async function loadComparisonRegions() {
         // Populate US cities
         populateUSCities(data.us_cities || []);
 
-        // Reuse the same advertised city catalog for the standalone form.
-        setCoveredUSCities(data.us_cities || []);
+        // The standalone form may have a different selected tax year.
+        if (document.getElementById('tax-year')?.value === year) {
+            setCoveredUSCities(data.us_cities || []);
+        }
 
         // Update region names map with loaded data
         updateRegionNames(data);
+        updateSelectionCount();
+        updateChips();
 
     } catch (err) {
         console.warn('Error loading comparison regions:', err);
@@ -398,6 +412,74 @@ async function loadComparisonRegions() {
             citiesGrid.innerHTML = '<span class="loading-text">Failed to load US cities</span>';
         }
     }
+}
+
+async function loadStandaloneYearRegions() {
+    const year = document.getElementById('tax-year')?.value || '2025';
+    const scope = document.getElementById('us-year-scope');
+    if (scope) scope.hidden = year !== '2026';
+    const filingStatus = document.getElementById('filing-status');
+    if (filingStatus) {
+        if (year === '2026') filingStatus.value = 'single';
+        Array.from(filingStatus.options).forEach(option => {
+            option.disabled = year === '2026' && option.value !== 'single';
+        });
+    }
+    try {
+        const response = await fetch(`${API_BASE}/comparison/regions?tax_year=${year}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (document.getElementById('tax-year')?.value !== year) return;
+        populateStates((data.us_states || []).map(state => ({
+            code: state.abbreviation, name: state.name
+        })));
+        setCoveredUSCities(data.us_cities || []);
+    } catch (err) {
+        console.warn('Failed to load available states for tax year:', year, err);
+        populateStates([]);
+        setCoveredUSCities([]);
+    }
+}
+
+function setComparisonYearMode() {
+    const limited = document.getElementById('compare-tax-year')?.value === '2026';
+    const scope = document.getElementById('compare-year-scope');
+    if (scope) scope.hidden = !limited;
+    const legend = document.getElementById('compare-region-legend');
+    if (legend) legend.textContent = limited ? 'Verified 2026 US states (choose 1 or more)' : 'Select Regions to Compare (2-6)';
+    const submit = document.getElementById('compare-calculate-btn');
+    if (submit) submit.textContent = limited ? 'Calculate 2026 Taxes' : 'Compare Taxes';
+    const scopeDisclosure = document.getElementById('compare-us-scope');
+    if (scopeDisclosure) scopeDisclosure.textContent = limited
+        ? '2026 estimates cover the listed verified states only: single, age 40, full-year resident and employee in each state, no dependants, standard deduction, wages, dividends and direct securities gains. Special deductions and local taxes are outside scope.'
+        : 'US comparisons assume age 40, no dependants, full-year residence/work in each location and standard deductions. Only the single-filer wage/dividend/direct-securities profile is source-checked. EITC legal eligibility is not assumed. Rankings use net after modelled taxes, excluding state/local payroll contributions.';
+    for (const id of ['compare-country-profiles', 'compare-state-details', 'us-cities-section']) {
+        const section = document.getElementById(id);
+        if (section) section.style.display = limited ? 'none' : '';
+    }
+    const currency = document.getElementById('compare-currency');
+    const filingStatus = document.getElementById('compare-filing-status');
+    if (currency) {
+        if (limited) currency.value = 'USD';
+        Array.from(currency.options).forEach(option => {
+            option.disabled = limited && option.value !== 'USD';
+        });
+    }
+    if (filingStatus) {
+        if (limited) filingStatus.value = 'single';
+        Array.from(filingStatus.options).forEach(option => {
+            option.disabled = limited && option.value !== 'single';
+        });
+    }
+    const international = document.getElementById('international-section');
+    if (international) {
+        international.hidden = limited;
+        if (limited) international.querySelectorAll('input[name="regions"]').forEach(input => {
+            input.checked = false;
+        });
+    }
+    updateSelectionCount();
+    updateChips();
 }
 
 /**
@@ -704,17 +786,22 @@ function setupRegionSearch() {
 // State Dropdown
 // =============================================================================
 
-function populateStates() {
+function populateStates(states = US_STATES) {
     const stateSelect = document.getElementById('residence-state');
     if (!stateSelect) return;
 
+    const previous = stateSelect.value;
+    stateSelect.innerHTML = '<option value="">-- Select State --</option>';
+
     // Add states to dropdown
-    US_STATES.forEach(state => {
+    states.forEach(state => {
         const option = document.createElement('option');
         option.value = state.code;
         option.textContent = `${state.name} (${state.code})`;
         stateSelect.appendChild(option);
     });
+    stateSelect.value = states.some(state => state.code === previous) ? previous : '';
+    stateSelect.dispatchEvent(new Event('change'));
 }
 
 // =============================================================================
@@ -1116,9 +1203,12 @@ async function calculateComparison() {
 
     const formData = gatherCompareFormData();
 
-    // Check that at least 2 regions are selected
-    if (formData.regions.length < 2) {
-        showError({ error: { message: 'Please select at least 2 countries to compare.' } });
+    // A single verified 2026 state can also produce a standalone estimate.
+    const minimumRegions = formData.tax_year === 2026 ? 1 : 2;
+    if (formData.regions.length < minimumRegions) {
+        showError({ error: { message: minimumRegions === 1
+            ? 'Please select at least one verified 2026 state.'
+            : 'Please select at least 2 regions to compare.' } });
         return;
     }
 
@@ -1390,6 +1480,11 @@ function buildCompareAssumptionsHtml(regions) {
 function displayCompareResults(result) {
     // Store result for modal access (Phase 2)
     lastCompareResult = result;
+    const is2026 = result.tax_year === 2026;
+    const single2026 = is2026 && (result.regions || []).length === 1;
+    const singleStateName = single2026 ? (result.regions[0].region_name || result.regions[0].region_id) : '';
+    const heading = document.getElementById('compare-results-heading');
+    if (heading) heading.textContent = single2026 ? `2026 ${singleStateName} Tax Estimate` : 'Tax Comparison';
 
     // Set info text
     const infoEl = document.getElementById('compare-info');
@@ -1399,7 +1494,9 @@ function displayCompareResults(result) {
         const fx = result.exchange_rates || {};
         const fxDate = fx.rate_date || 'an undisclosed historical date';
         const fxSource = fx.source || 'the supplied exchange-rate snapshot';
-        infoEl.innerHTML = `Comparing tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${escapeHtml(result.base_currency)}). FX snapshot: ${escapeHtml(fxDate)} (${escapeHtml(fxSource)}).`;
+        infoEl.innerHTML = is2026
+            ? `${single2026 ? 'Estimating' : 'Comparing'} tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (USD). No currency conversion is applied.`
+            : `Comparing tax on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${escapeHtml(result.base_currency)}). FX snapshot: ${escapeHtml(fxDate)} (${escapeHtml(fxSource)}).`;
     }
 
     // Populate comparison cards
@@ -1408,7 +1505,13 @@ function displayCompareResults(result) {
 
     // Handle both old format (countries) and new format (regions)
     const regions = result.regions || result.countries || [];
-    document.getElementById('compare-assumptions').innerHTML = buildCompareAssumptionsHtml(regions);
+    document.getElementById('compare-assumptions').innerHTML = is2026
+        ? `<p>Only verified 2026 states are shown. Single, age 40, full-year resident and employee in each state, with standard deduction; special deductions and state/local employee payroll programmes are outside scope.${single2026 ? ' One destination is an estimate, not a location ranking.' : ''}</p>`
+        : buildCompareAssumptionsHtml(regions);
+    const bestSection = document.getElementById('compare-best');
+    if (bestSection) bestSection.style.display = single2026 ? 'none' : '';
+    const rankingContext = document.getElementById('compare-ranking-context');
+    if (rankingContext) rankingContext.style.display = single2026 ? 'none' : '';
 
     if (regions.length > 0) {
         // Sort by net income descending
@@ -1436,8 +1539,8 @@ function displayCompareResults(result) {
             const effectiveRate = formatPercent(region.effective_rate);
 
             // Determine badges
-            const isBestNet = regionId === highestNetId;
-            const isLowestTax = regionId === lowestTaxId;
+            const isBestNet = sortedResults.length > 1 && regionId === highestNetId;
+            const isLowestTax = sortedResults.length > 1 && regionId === lowestTaxId;
             let cardClass = 'compare-card';
             if (isBestNet) cardClass += ' compare-card--best';
 

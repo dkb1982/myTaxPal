@@ -18,8 +18,8 @@ from tax_estimator.calculation.locals.models import (
     LocalTaxType,
     ResidencyApplicability,
 )
-from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
 from tax_estimator.calculation.locals.policies_2025 import calculate_2025_local
+from tax_estimator.calculation.locals.zip_lookup import ZipJurisdictionLookup
 
 
 class LocalCalculationError(Exception):
@@ -64,6 +64,14 @@ class LocalCalculator:
         Raises:
             LocalCalculationError: If calculation fails
         """
+        # Local policies are currently source-reviewed only for 2025. Reject a
+        # selected 2026 city before loading or entering the legacy calculation.
+        if tax_input.tax_year != 2025:
+            raise LocalCalculationError(
+                f"No local income-tax calculation is supported for tax year "
+                f"{tax_input.tax_year}"
+            )
+
         # Load rules for the jurisdiction
         try:
             rules = self.loader.load_local_rules(

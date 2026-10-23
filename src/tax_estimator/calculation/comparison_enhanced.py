@@ -34,6 +34,12 @@ from tax_estimator.calculation.comparison_us import (
 )
 from tax_estimator.calculation.countries import calculate_international_tax
 from tax_estimator.calculation.countries.base import get_country_name
+from tax_estimator.calculation.coverage import (
+    UnsupportedCoverageError,
+    enabled_us_states,
+    require_aligned_earnings_period,
+    require_coverage,
+)
 from tax_estimator.calculation.profiles import comparison_profiles, profile_arguments
 from tax_estimator.models.income_breakdown import (
     IncomeBreakdown,
@@ -226,6 +232,7 @@ class EnhancedComparisonEngine:
             DEFAULT_RATE_SOURCE if exchange_rates is None else "User-supplied rates"
         )
         self._us_calculator = USStateComparisonCalculator(rules_dir=rules_dir)
+        self._rules_dir = self._us_calculator.rules_dir
 
     def convert_currency(
         self,
@@ -279,14 +286,55 @@ class EnhancedComparisonEngine:
         Returns:
             EnhancedComparisonResult with all comparisons
         """
-        if tax_year != 2025:
-            raise ValueError("Only tax year 2025 is supported for comparison")
+        if tax_year not in {2025, 2026}:
+            raise ValueError("Only tax years 2025 and 2026 are supported for comparison")
 
         # Convert simple income to breakdown
         if isinstance(income, Decimal):
             income_breakdown = IncomeBreakdown.from_gross_income(income)
         else:
             income_breakdown = income
+
+        if tax_year == 2026:
+            supported_regions = {
+                f"US-{code}"
+                for code in enabled_us_states(2026, rules_root=self._rules_dir)
+            }
+            unsupported = sorted(set(regions) - supported_regions)
+            if unsupported:
+                raise UnsupportedComparisonCoverageError(
+                    "2026 comparison is not validated for: " + ", ".join(unsupported)
+                )
+            if base_currency != "USD":
+                raise UnsupportedComparisonCoverageError(
+                    "2026 US comparison requires USD; no 2026 annual-average FX rate is available"
+                )
+            if filing_status != "single":
+                raise UnsupportedComparisonCoverageError(
+                    "2026 US comparison currently supports single filers only"
+                )
+            if country_profiles:
+                raise UnsupportedComparisonCoverageError(
+                    "2026 US comparison does not support country profiles"
+                )
+            if us_scenario is not None and us_scenario.model_dump(exclude_defaults=True):
+                raise UnsupportedComparisonCoverageError(
+                    "2026 US comparison does not support state or city scenario adjustments"
+                )
+            active_income = frozenset(
+                name for name, amount in income_breakdown.to_dict().items() if amount
+            )
+            try:
+                coverage = tuple(
+                    require_coverage(
+                        region_id, 2026, rules_root=self._rules_dir,
+                        income_categories=active_income
+                    )
+                    for region_id in regions
+                )
+                require_aligned_earnings_period(coverage)
+            except UnsupportedCoverageError as exc:
+                raise UnsupportedComparisonCoverageError(str(exc)) from exc
 
         gross_income = income_breakdown.total
         if us_scenario is not None:
@@ -336,9 +384,9 @@ class EnhancedComparisonEngine:
         # Create exchange rate info
         exchange_info = ExchangeRateInfo(
             base_currency=base_currency,
-            rates={k: v for k, v in self._rates.items()},
-            rate_date=self._rate_date,
-            source=self._rate_source,
+            rates={"USD": Decimal(1)} if tax_year == 2026 else dict(self._rates),
+            rate_date="not applicable" if tax_year == 2026 else self._rate_date,
+            source="No currency conversion (USD only)" if tax_year == 2026 else self._rate_source,
         )
 
         # Build income breakdown dict if detailed
@@ -346,7 +394,7 @@ class EnhancedComparisonEngine:
         if not isinstance(income, Decimal):
             income_dict = income_breakdown.to_dict()
 
-        return EnhancedComparisonResult(
+        comparison = EnhancedComparisonResult(
             base_currency=base_currency,
             tax_year=tax_year,
             filing_status=filing_status if any(r.startswith("US-") for r in regions) else None,
@@ -357,6 +405,18 @@ class EnhancedComparisonEngine:
             lowest_tax_region=lowest_tax_region,
             highest_net_income_region=highest_net_region,
         )
+        if tax_year == 2026:
+            comparison.disclaimers = [
+                "2026 US estimate for the listed supported states only; not a complete tax return.",
+                "Single, age 40, no dependants, full-year same-state employee; "
+                "standard deduction and direct securities gains.",
+                "Qualified tips and overtime, car-loan interest, charity, itemization, "
+                "and other special deductions are not modelled.",
+                "EITC claimant eligibility is applied only when explicitly asserted; "
+                "filed-return tables may differ from the continuous estimate.",
+                "USD only; no 2025 exchange rate is applied to this 2026 comparison.",
+            ]
+        return comparison
 
     def _calculate_for_region(
         self,
@@ -763,6 +823,7 @@ def compare_regions_enhanced(
     country_profiles: dict[str, Any] | None = None,
     us_scenario: USScenarioFacts | None = None,
     eitc_eligibility_asserted: bool | None = None,
+    rules_dir: Path | None = None,
 ) -> EnhancedComparisonResult:
     """
     Compare tax across multiple regions with enhanced support.
@@ -779,7 +840,7 @@ def compare_regions_enhanced(
     Returns:
         EnhancedComparisonResult with all comparisons
     """
-    engine = EnhancedComparisonEngine()
+    engine = EnhancedComparisonEngine(rules_dir=rules_dir)
     return engine.compare(
         regions=regions,
         income=income,
@@ -792,6 +853,30 @@ def compare_regions_enhanced(
     )
 
 
-def get_all_comparison_regions() -> dict[str, list[dict[str, Any]]]:
+class UnsupportedComparisonCoverageError(ValueError):
+    """A requested year/profile/jurisdiction is outside validated coverage."""
+
+
+def get_all_comparison_regions(
+    tax_year: int = 2025, rules_dir: Path | None = None
+) -> dict[str, list[dict[str, Any]]]:
     """Get all available comparison regions."""
-    return list_all_regions()
+    regions = list_all_regions()
+    if tax_year == 2025:
+        return regions
+    if tax_year == 2026:
+        supported_regions = {
+            f"US-{code}"
+            for code in enabled_us_states(2026, rules_root=rules_dir)
+        }
+        return {
+            "us_states": [
+                state for state in regions["us_states"]
+                if state["region_id"] in supported_regions
+            ],
+            "us_cities": [],
+            "international": [],
+        }
+    raise UnsupportedComparisonCoverageError(
+        f"No comparison regions are validated for {tax_year}"
+    )

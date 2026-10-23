@@ -558,6 +558,11 @@ button[type="submit"]:disabled {
     margin-top: var(--space-xs);
 }
 
+#us-year-scope[hidden],
+#compare-year-scope[hidden] {
+    display: none;
+}
+
 /* =============================================================================
    Loading Indicator
    ============================================================================= */
