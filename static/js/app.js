@@ -42,6 +42,18 @@ const NO_TAX_US_STATES = ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'];
 // Maximum regions for comparison
 const MAX_COMPARISON_REGIONS = 6;
 
+// What tax_year 2025 means per country (native periods differ); US places are calendar 2025.
+const REGION_PERIODS_2025 = {
+    GB: '2025/26 tax year (Apr–Apr)',
+    HK: '2025/26 year of assessment (Apr–Mar)',
+    AU: '2024-25 financial year (Jul–Jun)',
+    SG: 'YA2025 (2024 income)',
+};
+function regionPeriodLabel(regionId, taxYear) {
+    if (String(taxYear) !== '2025') return `Calendar ${taxYear}`;
+    return REGION_PERIODS_2025[regionId] || 'Calendar 2025';
+}
+
 const CURRENCY_SYMBOLS = {
     'USD': '$',
     'GBP': '\u00a3',
@@ -194,6 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupResidenceLocationSelector();
     document.getElementById('us-year-scope').hidden = true;
     document.getElementById('tax-year')?.addEventListener('change', loadStandaloneYearRegions);
+    document.getElementById('filing-status')?.addEventListener('change', updateProfileNote);
+    document.getElementById('us-children')?.addEventListener('input', updateProfileNote);
     document.getElementById('compare-tax-year')?.addEventListener('change', () => {
         setComparisonYearMode();
         loadComparisonRegions();
@@ -320,11 +334,15 @@ function switchMode(mode) {
 
     // Update button states
     const buttons = document.querySelectorAll('.mode-btn');
-    buttons.forEach(btn => btn.classList.remove('active'));
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+    });
 
     const activeBtn = document.getElementById(`mode-${mode}`);
     if (activeBtn) {
         activeBtn.classList.add('active');
+        activeBtn.setAttribute('aria-pressed', 'true');
     }
 
     // Show/hide forms
@@ -425,6 +443,13 @@ async function loadStandaloneYearRegions() {
             option.disabled = year === '2026' && option.value !== 'single';
         });
     }
+    // 2026 coverage is single filers without dependants only.
+    const children = document.getElementById('us-children');
+    if (children) {
+        if (year === '2026') children.value = '';
+        children.disabled = year === '2026';
+    }
+    updateProfileNote();
     try {
         const response = await fetch(`${API_BASE}/comparison/regions?tax_year=${year}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -697,7 +722,7 @@ function setupIncomeTotals() {
         const updateTotal = () => {
             let total = 0;
             inputs.forEach(input => {
-                total += parseFloat(input.value) || 0;
+                total += Math.max(parseFloat(input.value) || 0, 0);
             });
             if (group === 'us') {
                 displayEl.textContent = formatCurrency(total);
@@ -795,6 +820,7 @@ function populateStates(states = US_STATES) {
     if (!stateSelect) return;
 
     const previous = stateSelect.value;
+    const previousName = stateSelect.selectedOptions?.[0]?.textContent || previous;
     stateSelect.innerHTML = '<option value="">Choose a state</option>';
 
     // Add states to dropdown
@@ -804,8 +830,30 @@ function populateStates(states = US_STATES) {
         option.textContent = `${state.name} (${state.code})`;
         stateSelect.appendChild(option);
     });
-    stateSelect.value = states.some(state => state.code === previous) ? previous : '';
+    const kept = states.some(state => state.code === previous);
+    stateSelect.value = kept ? previous : '';
+
+    // Say why a chosen state disappeared rather than clearing it silently.
+    const resetNote = document.getElementById('us-state-reset-note');
+    if (resetNote) {
+        const year = document.getElementById('tax-year')?.value;
+        resetNote.hidden = kept || !previous || !states.length;
+        resetNote.textContent = resetNote.hidden ? ''
+            : `${previousName} isn't available for ${year} yet. Only states with verified ${year} rules are listed.`;
+    }
     stateSelect.dispatchEvent(new Event('change'));
+}
+
+// =============================================================================
+// Profile note (married / dependants)
+// =============================================================================
+
+function updateProfileNote() {
+    const note = document.getElementById('us-profile-note');
+    if (!note) return;
+    const status = document.getElementById('filing-status')?.value || 'single';
+    const children = parseInt(document.getElementById('us-children')?.value, 10) || 0;
+    note.hidden = status === 'single' && children === 0;
 }
 
 // =============================================================================
@@ -927,6 +975,23 @@ function gatherFormData() {
         income: {},
         us_scenario: gatherUSScenarioFacts('us')
     };
+
+    // Children under 17 are sent as Child Tax Credit dependants. The form
+    // asks only for a count, so the eligibility assertions are explicit here:
+    // each child lived with the filer all year and has a valid SSN.
+    const children = Math.min(parseInt(document.getElementById('us-children')?.value, 10) || 0, 10);
+    if (children > 0) {
+        request.filer.has_valid_ssn_for_ctc = true;
+        request.dependents = Array.from({ length: children }, (_, i) => ({
+            first_name: 'Child',
+            last_name: String(i + 1),
+            date_of_birth: `${taxYear - 10}-06-30`,
+            relationship: 'child',
+            months_lived_with_taxpayer: 12,
+            has_ssn: true,
+            qualifies_for_ctc: true
+        }));
+    }
 
     // Only include wages if there's income
     if (wages > 0 || federalWithholding > 0 || stateWithholding > 0 || localWithholding > 0) {
@@ -1291,13 +1356,15 @@ function displayResults(result) {
         });
 
         // Add preferential rate rows if present
-        if (federal.preferential_rate_breakdown && federal.preferential_rate_breakdown.length > 0) {
+        const preferentialRows = (federal.preferential_rate_breakdown || [])
+            .filter(entry => parseFloat(entry.income_in_bracket) > 0);
+        if (preferentialRows.length > 0) {
             const separator = document.createElement('tr');
             separator.className = 'bracket-separator';
             separator.innerHTML = '<td colspan="4">LTCG / Qualified Dividends</td>';
             bracketTable.appendChild(separator);
 
-            federal.preferential_rate_breakdown.forEach(entry => {
+            preferentialRows.forEach(entry => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>Preferential</td>
@@ -1479,7 +1546,7 @@ function buildCompareAssumptionsHtml(regions) {
     const profiles = regions.flatMap(region => (region.notes || [])
         .filter(note => note.startsWith('Domestic profile used'))
         .map(note => `<li>${escapeHtml(region.region_name || region.country_code || region.region_id)}: ${escapeHtml(note)}</li>`));
-    return `<p>Each place is an independent full-year estimate using historical annual-average exchange rates, not current rates. Home-country tax, treaties and living costs are excluded. Only US and UK figures are source-checked; other countries are early estimates. US places assume age 40, no dependants and the standard deduction. Take-home excludes state/local employee payroll contributions.</p>${profiles.length ? `<details><summary>Country profiles used (default province and family settings)</summary><ul>${profiles.join('')}</ul></details>` : ''}`;
+    return `<p>Each place is an independent full-year estimate using historical annual-average exchange rates, not current rates. Home-country tax, treaties and living costs are excluded. Each country uses a standard resident-employee profile checked against official sources. US places assume age 40, no dependants and the standard deduction. Take-home excludes state/local employee payroll contributions.</p>${profiles.length ? `<details><summary>Country profiles used (default province and family settings)</summary><ul>${profiles.join('')}</ul></details>` : ''}`;
 }
 
 function displayCompareResults(result) {
@@ -1519,6 +1586,19 @@ function displayCompareResults(result) {
     document.getElementById('compare-assumptions').innerHTML = is2026
         ? `<p>Only verified 2026 states are shown. Single, age 40, full-year resident and employee in each state, with standard deduction; special deductions and state/local employee payroll programmes are outside scope.${single2026 ? ' One destination is an estimate, not a location ranking.' : ''}</p>`
         : buildCompareAssumptionsHtml(regions);
+    const skippedEl = document.getElementById('compare-skipped');
+    if (skippedEl) {
+        const skipped = result.skipped_regions || [];
+        skippedEl.hidden = skipped.length === 0;
+        skippedEl.innerHTML = skipped.length
+            ? `<strong>Not compared:</strong> ${skipped.map(item => {
+                // Reasons start with the country name; don't repeat it.
+                const reason = item.reason.startsWith(`${item.region_name}: `)
+                    ? item.reason.slice(item.region_name.length + 2) : item.reason;
+                return `${escapeHtml(item.region_name)}: ${escapeHtml(reason)}`;
+            }).join('; ')}`
+            : '';
+    }
     const bestSection = document.getElementById('compare-best');
     if (bestSection) bestSection.style.display = single2026 ? 'none' : '';
     const rankingContext = document.getElementById('compare-ranking-context');
@@ -1571,6 +1651,7 @@ function displayCompareResults(result) {
             card.innerHTML = `
                 <div class="compare-card-badges">${badgesHtml}</div>
                 <h4 class="compare-card-name">${escapeHtml(regionName)}</h4>
+                <p class="compare-card-period">${escapeHtml(regionPeriodLabel(regionId, result.tax_year))}</p>
                 <div class="compare-card-stats">
                     <div class="compare-card-stat">
                         <span class="compare-card-stat-label">Take-home</span>
@@ -1769,20 +1850,9 @@ function formatIntlCurrency(amount, currencyCode) {
         amount = 0;
     }
 
-    // Map currency codes to locales
-    const localeMap = {
-        'USD': 'en-US',
-        'GBP': 'en-GB',
-        'EUR': 'de-DE',
-        'SGD': 'en-SG',
-        'HKD': 'zh-HK',
-        'AED': 'ar-AE',
-        'JPY': 'ja-JP',
-        'AUD': 'en-AU',
-        'CAD': 'en-CA'
-    };
-
-    const locale = localeMap[currencyCode] || 'en-US';
+    // en-GB gives unambiguous symbols in an English UI (A$, CA$, SGD, AED, €);
+    // a country's own locale would print a bare "$" or right-to-left Arabic.
+    const locale = currencyCode === 'USD' ? 'en-US' : 'en-GB';
 
     try {
         return new Intl.NumberFormat(locale, {
@@ -1932,9 +2002,14 @@ function populateFederalBreakdown(federal) {
                 <span class="breakdown-component-amount">${formatCurrency(federal.adjusted_gross_income)}</span>
             </div>
             <div class="breakdown-component">
-                <span class="breakdown-component-name">${escapeHtml(federal.deduction_type || 'Standard')} deduction + eligible enhanced senior deduction (${formatCurrency(federal.enhanced_senior_deduction || 0)} included)</span>
+                <span class="breakdown-component-name">${escapeHtml(capitalizeFirst(federal.deduction_type || 'standard'))} deduction${parseFloat(federal.enhanced_senior_deduction) > 0 ? ` (includes ${formatCurrency(federal.enhanced_senior_deduction)} senior deduction)` : ''}</span>
                 <span class="breakdown-component-amount">-${formatCurrency(federal.deduction_amount)}</span>
             </div>
+            ${parseFloat(federal.qualified_business_income_deduction) > 0 ? `
+            <div class="breakdown-component">
+                <span class="breakdown-component-name">Qualified business income deduction (Section 199A)</span>
+                <span class="breakdown-component-amount">-${formatCurrency(federal.qualified_business_income_deduction)}</span>
+            </div>` : ''}
             <div class="breakdown-component breakdown-component--bold">
                 <span class="breakdown-component-name">Taxable Income</span>
                 <span class="breakdown-component-amount">${formatCurrency(federal.taxable_income)}</span>

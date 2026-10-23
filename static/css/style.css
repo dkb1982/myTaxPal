@@ -798,6 +798,19 @@ p.field-hint {
     color: var(--color-accent);
 }
 
+.profile-note {
+    margin: 0 0 var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.86rem;
+    color: var(--color-warning);
+    background-color: var(--color-warning-light);
+    border-radius: var(--radius-md);
+}
+
+.field-hint--notice {
+    color: var(--color-warning);
+}
+
 .us-scope-disclosure {
     font-size: 0.85rem;
     color: var(--color-text-muted);
@@ -1498,6 +1511,12 @@ footer small {
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0 0 var(--space-sm);
+}
+
+.compare-card-period {
+    margin: calc(-1 * var(--space-xs)) 0 var(--space-sm);
+    font-size: 0.8rem;
+    color: var(--color-text-subtle);
 }
 
 .compare-card-stat {

@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>myTaxPal — Salary after tax for US states, cities and the UK</title>
-    <meta name="description" content="See your take-home pay after federal, state, city and payroll tax. Every US state, DC, 11 cities and the UK, with the working shown line by line.">
+    <title>myTaxPal — Salary after tax for every US state and 12 countries</title>
+    <meta name="description" content="See your take-home pay after federal, state, city and payroll tax. Every US state, DC, 11 cities and 12 countries, with the working shown line by line.">
     <meta name="theme-color" content="#F6F5F1">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="myTaxPal">
+    <meta property="og:title" content="myTaxPal — See what you actually keep">
+    <meta property="og:description" content="Take-home pay after federal, state, city and payroll tax for every US state, DC, 11 cities and 12 countries, with the working shown.">
+    <meta name="twitter:card" content="summary">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/modern-normalize@3/modern-normalize.min.css" integrity="sha384-uo/9/s/Ns8DTg4kjkjex8GezUcgMlKD99gTqxvMkIsaG4lSUbeJ0dVELljipv94t" crossorigin="anonymous">
     <link rel="stylesheet" href="/static/css/style.css?v=2026-10-23">
 </head>
@@ -27,7 +32,7 @@
         <!-- Landing Section - Mode Selection -->
         <section id="landing" class="landing-section">
             <div class="hero">
-                <p class="eyebrow">2025 tax year · 50 states, DC, 11 cities and the UK</p>
+                <p class="eyebrow">2025 tax year · 50 states, DC, 11 cities and 12 countries</p>
                 <h2 class="hero-title">See what you actually keep.</h2>
                 <p class="hero-lede">Your salary after federal, state, city and payroll tax, with every line of the calculation shown. Free, and no sign-up.</p>
             </div>
@@ -50,7 +55,7 @@
                 <button type="button" class="mode-card" data-mode="intl">
                     <svg class="mode-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>
                     <h3>Other countries</h3>
-                    <p>UK figures are checked against HMRC. Other countries are early estimates.</p>
+                    <p>Twelve countries, each checked against official sources for a standard resident employee.</p>
                     <span class="mode-card-cta">Pick a country &rarr;</span>
                 </button>
             </div>
@@ -83,9 +88,9 @@
         <!-- Mode Toggle (shown after selection) -->
         <div class="mode-toggle-wrapper" hidden>
             <div class="mode-toggle">
-                <button type="button" id="mode-us" class="mode-btn active">US</button>
-                <button type="button" id="mode-compare" class="mode-btn">Compare</button>
-                <button type="button" id="mode-intl" class="mode-btn">Other countries</button>
+                <button type="button" id="mode-us" class="mode-btn active" aria-pressed="true">US</button>
+                <button type="button" id="mode-compare" class="mode-btn" aria-pressed="false">Compare</button>
+                <button type="button" id="mode-intl" class="mode-btn" aria-pressed="false">Other countries</button>
             </div>
         </div>
 
@@ -121,7 +126,11 @@
                     <option value="hoh">Head of household</option>
                     <option value="qss">Qualifying surviving spouse</option>
                 </select>
+                <label for="us-children">Children under 17 <small class="label-aside">who live with you</small></label>
+                <input type="number" id="us-children" min="0" max="10" step="1" inputmode="numeric" placeholder="0">
             </fieldset>
+
+            <p class="profile-note" id="us-profile-note" hidden>Federal tax, including the Child Tax Credit, is calculated for this profile. State and city figures are estimates that haven't been source-checked for married filers or parents yet.</p>
 
             <!-- State of Residence -->
             <fieldset>
@@ -131,6 +140,7 @@
                     <option value="">Choose a state</option>
                     <!-- Populated by JavaScript -->
                 </select>
+                <small class="field-hint field-hint--notice" id="us-state-reset-note" role="status" hidden></small>
                 <div id="residence-local-jurisdiction-field" hidden>
                     <label for="residence-local-jurisdiction">City or county with its own income tax <small>(optional)</small></label>
                     <select id="residence-local-jurisdiction" name="local_jurisdiction_id" disabled>
@@ -210,7 +220,7 @@
         <!-- International Tax Form (Hidden Initially) -->
         <form id="intl-form" hidden>
             <div class="fit-note">
-                <p><strong>Note:</strong> UK figures are checked against HMRC rules. Other countries are early estimates and may be noticeably off.</p>
+                <p><strong>Note:</strong> each country is calculated for a standard resident employee and checked against official sources. Personal reliefs and regional variations beyond that profile aren't modelled.</p>
             </div>
 
             <!-- Country Selection -->
@@ -286,7 +296,10 @@
                     <label for="intl-self-emp">Self-employment income</label>
                     <input type="number" id="intl-self-emp" name="self_employment" min="0" step="0.01" placeholder="0" data-income-group="intl">
 
-                    <label for="intl-rental">Rental income</label>
+                    <label for="intl-rental">
+                        Rental income
+                        <small class="field-hint">After expenses. Hong Kong and Italy tax rent before expenses, so their figures treat this as gross rent.</small>
+                    </label>
                     <input type="number" id="intl-rental" name="rental" min="0" step="0.01" placeholder="0" data-income-group="intl">
                 </details>
 
@@ -370,7 +383,10 @@
                     <label for="compare-self-emp">Self-employment income</label>
                     <input type="number" id="compare-self-emp" name="self_employment" min="0" step="0.01" placeholder="0" data-income-group="compare">
 
-                    <label for="compare-rental">Rental income</label>
+                    <label for="compare-rental">
+                        Rental income
+                        <small class="field-hint">After expenses. Hong Kong and Italy tax rent before expenses, so their figures treat this as gross rent.</small>
+                    </label>
                     <input type="number" id="compare-rental" name="rental" min="0" step="0.01" placeholder="0" data-income-group="compare">
                 </details>
 
@@ -406,7 +422,7 @@
 
                 <details id="international-section" open aria-expanded="true">
                     <summary aria-controls="international-grid">Countries <span class="region-count">(12)</span></summary>
-                    <p><small>UK figures are checked against HMRC rules; other countries are early estimates. <em>Zero or low tax:</em> UAE, Singapore, Hong Kong.</small></p>
+                    <p><small>Each country uses a standard resident-employee profile. <em>Zero or low tax:</em> UAE, Singapore, Hong Kong.</small></p>
                     <div id="international-grid" class="checkbox-grid">
                         <label><input type="checkbox" name="regions" value="GB"> United Kingdom</label>
                         <label><input type="checkbox" name="regions" value="DE"> Germany</label>
@@ -740,6 +756,7 @@
             </div>
 
             <div id="compare-assumptions"></div>
+            <p id="compare-skipped" class="profile-note" role="status" hidden></p>
 
             <div id="compare-chart" class="compare-chart"></div>
 
@@ -774,7 +791,7 @@
                     <p class="modal-loading" id="modal-loading">Loading breakdown...</p>
                 </div>
                 <div class="modal-footer">
-                    <small>Estimate only. US and UK figures are checked against official sources; other countries are early estimates.</small>
+                    <small>Estimate only, for the profile described. Checked against official sources; not tax advice.</small>
                 </div>
             </div>
         </div>
@@ -789,7 +806,7 @@
 
     <footer>
         <div class="site-footer-inner">
-            <p><strong>Disclaimer:</strong> This is an estimate only and is not tax advice. US federal, state and city figures and UK figures are checked against official sources for the profiles described. Other countries are early estimates. For your own situation, speak to a qualified tax professional.</p>
+            <p><strong>Disclaimer:</strong> This is an estimate only and is not tax advice. Figures are checked against official sources for the profiles described. For your own situation, speak to a qualified tax professional.</p>
             <p><small>myTaxPal · v0.1</small></p>
         </div>
     </footer>
