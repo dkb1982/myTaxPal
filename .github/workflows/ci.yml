@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.5"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Lint (pyflakes)
+        run: uv run ruff check --select F src tests
+
+      - name: Tests
+        run: uv run pytest -q -o addopts= --disable-warnings
+
+      - name: Frontend checks
+        run: |
+          node --check static/js/app.js
+          node tests/frontend_repair_runtime.cjs
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t mytaxpal:ci .
+      - name: Smoke test
+        run: |
+          docker run -d --name app -p 8000:8000 mytaxpal:ci
+          for i in $(seq 1 30); do curl -fs localhost:8000/health && break; sleep 1; done
+          curl -fs localhost:8000/ | grep -q "myTaxPal"
+          curl -fs -X POST localhost:8000/v1/estimates -H 'content-type: application/json' \
+            -d '{"tax_year":2025,"filer":{"filing_status":"single","age_at_year_end":40},"residency":{"residence_state":"TX"},"income":{"wages":[{"employer_name":"x","employer_state":"TX","gross_wages":75000}]}}' \
+            | grep -q '"total_federal_tax"'

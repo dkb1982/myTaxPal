@@ -124,3 +124,6 @@ Thumbs.db
 # Project specific
 *.local.yaml
 secrets/
+
+# Local evidence, review scratch and checkpoints (kept out of git)
+.work/

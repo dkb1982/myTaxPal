@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 import yaml
 from pydantic import ValidationError
 
-from tax_estimator.rules.schema import JurisdictionRules, JurisdictionType
+from tax_estimator.rules.schema import JurisdictionRules
 
 if TYPE_CHECKING:
     from typing import Any

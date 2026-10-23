@@ -6,7 +6,6 @@ These tests verify the 0%/15%/20% rate structure for preferential income.
 
 from decimal import Decimal
 
-import pytest
 
 from tax_estimator.calculation.stages.stage_07_tax_computation import TaxComputationStage
 from tax_estimator.calculation.context import CalculationContext

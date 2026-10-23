@@ -16,7 +16,7 @@ import pytest
 from tax_estimator.calculation.stages.stage_07_tax_computation import TaxComputationStage
 from tax_estimator.calculation.context import CalculationContext
 from tax_estimator.calculation.trace import CalculationTrace
-from tax_estimator.models.tax_input import FilingStatus, TaxInput, WageIncome
+from tax_estimator.models.tax_input import FilingStatus, TaxInput
 from tax_estimator.rules.schema import JurisdictionRules
 
 

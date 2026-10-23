@@ -13,10 +13,7 @@ from pydantic import ValidationError
 
 from tax_estimator.rules.schema import (
     AdditionalDeductionAmount,
-    DeductionRules,
-    ExemptionRules,
     FilingStatus,
-    IncomeTaxType,
     JurisdictionRules,
     JurisdictionType,
     RateSchedule,

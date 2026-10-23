@@ -11,11 +11,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
 
 from tax_estimator.rules.loader import (
     RulesFileNotFoundError,
-    RulesLoadError,
     RulesParseError,
     RulesValidationError,
     get_rules_file_path,

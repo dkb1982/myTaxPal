@@ -6,7 +6,6 @@ Tests error responses, exception handling, and error formats.
 
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
 
 

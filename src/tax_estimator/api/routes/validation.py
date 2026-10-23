@@ -12,7 +12,6 @@ from decimal import Decimal
 from fastapi import APIRouter
 
 from tax_estimator.api.dependencies import (
-    VALID_STATE_CODES,
     get_state_name,
     has_state_income_tax,
     is_valid_state_code,

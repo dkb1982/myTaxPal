@@ -16,7 +16,6 @@ These tests verify:
 
 from __future__ import annotations
 
-import ast
 import inspect
 from decimal import Decimal
 from pathlib import Path
@@ -24,7 +23,7 @@ from pathlib import Path
 import pytest
 
 from tax_estimator.rules.loader import get_rules_for_jurisdiction
-from tax_estimator.rules.schema import FilingStatus, JurisdictionRules
+from tax_estimator.rules.schema import JurisdictionRules
 
 
 # =============================================================================

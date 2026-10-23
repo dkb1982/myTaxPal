@@ -11,8 +11,6 @@ These tests verify that:
 DISCLAIMER: All values used in tests are FAKE test data for development purposes only.
 """
 
-import pytest
-from pathlib import Path
 
 
 class TestDetailedBreakdownHTML:

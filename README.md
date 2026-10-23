@@ -1,6 +1,7 @@
-# Tax Estimator API
+# myTaxPal (tax-estimator)
 
-A stateless tax estimation API for calculating federal and state tax liabilities.
+A stateless take-home pay estimator: FastAPI service plus a vanilla HTML/CSS/JS
+frontend, with tax rules bundled as YAML. No database or accounts.
 
 ## Calculation repair status (October 2026)
 
@@ -73,11 +74,37 @@ This is not comprehensive filing software or professional certification. US stat
 adjustments/credits/local coverage remain limited; multistate/part-year scenarios
 are rejected. Eligibility-based federal credits require explicit facts/assertions.
 UK mixed employment/self-employment NI and special NI categories are rejected.
-Other international calculators remain unvalidated estimates. Cross-border/treaty
+Cross-border/treaty
 taxation, continued home-country obligations and cost-of-living comparisons are not
 modelled. Regression cases and sources are in
 `tests/test_calculation_repair_integration.py`, `tests/calculation/test_gb_repairs.py`
 and the federal repair tests; passing tests does not establish full legal coverage.
+
+### International calculators (October 2026)
+
+All twelve country calculators were re-derived from primary sources for their
+2025 period and load parameters from `rules/countries/<cc>/2025.yaml`. Each has
+hand-calculated reference tests in `tests/calculation/countries/` (working and
+source links in the test comments) plus a Compare-path parity test.
+
+| Code | `tax_year` 2025 means | Notes |
+| --- | --- | --- |
+| GB | 2025/26 | Income tax, NI, dividends, savings, CGT, Scottish bands |
+| DE | Calendar 2025 | §32a tariff, Vorsorgeaufwendungen, Soli zone, 25% Abgeltungsteuer |
+| FR | 2025 income | Employee contributions, décote, quotient familial, PFU |
+| IT | 2025 | IRPEF 23/35/43, art. 13 credit, 2025 cuneo fiscale, 26% on capital |
+| ES | 2025 | Madrid scale by default; savings base; foral regions rejected |
+| PT | 2025 income | Lei 55-A/2025 brackets, 28% capital rate, legacy NHR at 20% |
+| CA | 2025 | Credit-based; ON, BC, AB supported; QC and others rejected |
+| AU | FY 2024-25 | LITO, Medicare shade-in, MLS (assumes no hospital cover), CGT discount, franking |
+| JP | Calendar 2025 | 2025 deduction reform, resident tax, 20.315% separate taxation |
+| SG | YA2025 (2024 income) | Earned income relief, YA2025 rebate, 2024 CPF rates |
+| HK | 2025/26 | Includes the enacted HK$3,000 one-off reduction |
+| AE | 2025 | No personal income tax; GPSSA for nationals not modelled |
+
+Income a calculator does not model (for example self-employment in DE/FR/IT/ES/PT,
+Italian rental income, Quebec) is rejected with a clear error rather than taxed as
+salary. These are estimates for a default profile per country, not filing advice.
 
 **DISCLAIMER**: This application is for estimation purposes only and does not constitute tax advice. Consult a qualified tax professional for actual tax filing.
 
@@ -85,52 +112,36 @@ and the federal repair tests; passing tests does not establish full legal covera
 
 ### Prerequisites
 
-- Python 3.11 or higher
-- pip or uv package manager
+- Python 3.11+ and [uv](https://docs.astral.sh/uv/) (dependencies are locked in `uv.lock`)
+- Node.js, only for the frontend runtime check
 
-### Installation
+### Running locally
 
 ```bash
-# Clone the repository
 cd tax-estimator
-
-# Create a virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies (including dev dependencies)
-pip install -e ".[dev]"
+uv sync --extra dev
+uv run uvicorn tax_estimator.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Running the API
+Open http://localhost:8000. API docs (`/docs`, `/redoc`) are only served when
+`TAX_ESTIMATOR_DEBUG=true`; see `.env.example` for all settings.
+
+### Docker
 
 ```bash
-# Development server with auto-reload
-uvicorn tax_estimator.main:app --reload --port 8000
-
-# Or using the script entry point
-tax-estimator
+docker build -t mytaxpal .
+docker run --rm -p 8000:8000 mytaxpal
 ```
 
-The API will be available at http://localhost:8000
+The image runs as a non-root user with a `/health` healthcheck. Rate limiting is
+in-memory per process; put a platform/edge limiter in front for multiple replicas.
 
-### API Documentation
-
-Once running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-### Running Tests
+### Checks (also run in CI, `.github/workflows/ci.yml`)
 
 ```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=tax_estimator --cov-report=term-missing
-
-# Run specific test file
-pytest tests/test_rules_loader.py -v
+uv run ruff check --select F src tests
+uv run pytest -q -o addopts= --disable-warnings
+node --check static/js/app.js && node tests/frontend_repair_runtime.cjs
 ```
 
 ## Project Structure

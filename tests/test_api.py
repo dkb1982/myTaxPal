@@ -9,7 +9,6 @@ Note: These are the original/legacy tests. Comprehensive API tests are in tests/
 
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
 
 

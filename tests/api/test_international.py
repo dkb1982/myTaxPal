@@ -9,7 +9,6 @@ Tests cover:
 - GET /v1/international/currencies
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 from tax_estimator.main import app
