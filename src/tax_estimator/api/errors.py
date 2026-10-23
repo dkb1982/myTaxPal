@@ -125,7 +125,7 @@ class ValidationError(APIError):
             message=message,
             status_code=422,
             details=details or [],
-            help_url=help_url or "https://docs.taxestimate.com/errors/validation",
+            help_url=help_url,
         )
 
 
@@ -249,21 +249,14 @@ async def validation_error_handler(
         error_type = error.get("type", "")
         code = _map_pydantic_error_type(error_type)
 
-        # Get input value, ensuring it's JSON serializable
-        input_value = error.get("input")
-        if isinstance(input_value, bytes):
-            # Convert bytes to string or truncate for display
-            try:
-                input_value = input_value.decode("utf-8")[:100]
-            except (UnicodeDecodeError, AttributeError):
-                input_value = "<binary data>"
-
+        # Submitted values are not echoed back: for a missing or invalid field
+        # Pydantic's "input" can be a whole parent object containing income
+        # figures or dates of birth.
         details.append(
             ValidationErrorDetail(
                 field=field_path,
                 code=code,
                 message=error.get("msg", "Validation error"),
-                value=input_value,
             )
         )
 
@@ -274,7 +267,6 @@ async def validation_error_handler(
             status=422,
             request_id=request_id,
             details=details,
-            help_url="https://docs.taxestimate.com/errors/validation",
         )
     )
 

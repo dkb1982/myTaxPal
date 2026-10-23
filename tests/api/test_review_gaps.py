@@ -19,7 +19,6 @@ import asyncio
 from datetime import date
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 
 from tax_estimator.api.routes.estimates import (
@@ -820,9 +819,10 @@ class TestRateLimiterProxyTrust:
         request.headers = {"X-Forwarded-For": "10.0.0.1, 10.0.0.2"}
         request.client.host = "127.0.0.1"
 
-        # Should return forwarded IP
+        # The trusted proxy appended 10.0.0.2; the leftmost entry is client-supplied
+        # and spoofable, so the rightmost untrusted hop is the client address.
         ip = middleware._get_client_ip(request)
-        assert ip == "10.0.0.1"
+        assert ip == "10.0.0.2"
 
     def test_x_forwarded_for_with_trusted_proxy_list(self):
         """Test that X-Forwarded-For is only trusted from allowed proxies."""

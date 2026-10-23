@@ -18,12 +18,17 @@ import time
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from tax_estimator.logging_config import request_id_var
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -210,11 +215,25 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if self.trusted_proxy_ips and direct_ip not in self.trusted_proxy_ips:
             return direct_ip
 
-        # Now we can trust the X-Forwarded-For header
-        forwarded = request.headers.get("X-Forwarded-For")
+        # Now we can trust the X-Forwarded-For header. Each proxy appends the
+        # address it received from, so only the right-hand entries are
+        # trustworthy; the leftmost value is whatever the client sent.
+        # A proxy may append a second header line rather than extend the
+        # first, so join every X-Forwarded-For line in order.
+        forwarded_lines = (
+            request.headers.getlist("X-Forwarded-For")
+            if hasattr(request.headers, "getlist")
+            else [request.headers.get("X-Forwarded-For") or ""]
+        )
+        forwarded = ",".join(line for line in forwarded_lines if line)
         if forwarded:
-            # Take the first IP in the chain (original client)
-            return forwarded.split(",")[0].strip()
+            hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+            trusted = set(self.trusted_proxy_ips or ())
+            for hop in reversed(hops):
+                if hop not in trusted:
+                    return hop
+            if hops:
+                return hops[0]
 
         return direct_ip
 
@@ -382,40 +401,97 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
-    """Rejects request bodies exceeding a configured size limit."""
+class RequestSizeLimitMiddleware:
+    """
+    Rejects request bodies exceeding a configured size limit.
 
-    def __init__(self, app: "ASGIApp", max_bytes: int = 1_048_576) -> None:
-        super().__init__(app)
+    Pure ASGI so it can count the bytes actually received: a declared
+    Content-Length is checked up front (malformed values get 400), and
+    chunked or understated bodies are cut off once they pass the limit.
+    """
+
+    def __init__(self, app: ASGIApp, max_bytes: int = 1_048_576) -> None:
+        self.app = app
         self.max_bytes = max_bytes
         self.logger = logging.getLogger("tax_estimator.security")
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > self.max_bytes:
-            request_id = getattr(request.state, "request_id", "unknown")
-            self.logger.warning(
-                "Request body too large: %s bytes (limit %s) [%s]",
-                content_length,
-                self.max_bytes,
-                request_id,
-            )
-            return JSONResponse(
-                status_code=413,
-                content={
-                    "error": {
-                        "code": "REQUEST_TOO_LARGE",
-                        "message": (
-                            f"Request body exceeds maximum size of {self.max_bytes} bytes"
-                        ),
-                        "status": 413,
-                        "request_id": request_id,
-                    }
-                },
-            )
-        return await call_next(request)
+    def _error(self, scope: Scope, status: int, code: str, message: str) -> JSONResponse:
+        request_id = scope.get("state", {}).get("request_id", "unknown")
+        return JSONResponse(
+            status_code=status,
+            content={
+                "error": {
+                    "code": code,
+                    "message": message,
+                    "status": status,
+                    "request_id": request_id,
+                }
+            },
+        )
+
+    def _too_large(self, scope: Scope, size: str) -> JSONResponse:
+        self.logger.warning(
+            "Request body too large: %s bytes (limit %s) [%s]",
+            size,
+            self.max_bytes,
+            scope.get("state", {}).get("request_id", "unknown"),
+        )
+        return self._error(
+            scope, 413, "REQUEST_TOO_LARGE",
+            f"Request body exceeds maximum size of {self.max_bytes} bytes",
+        )
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers") or [])
+        declared = headers.get(b"content-length")
+        if declared is not None:
+            try:
+                declared_size = int(declared)
+            except ValueError:
+                declared_size = -1
+            if declared_size < 0:
+                response = self._error(
+                    scope, 400, "INVALID_CONTENT_LENGTH", "Content-Length header is not a valid size"
+                )
+                await response(scope, receive, send)
+                return
+            if declared_size > self.max_bytes:
+                await self._too_large(scope, str(declared_size))(scope, receive, send)
+                return
+
+        received = 0
+        too_large = False
+        replaced = False
+
+        async def limited_receive() -> Message:
+            # Once over the limit, end the body early; the app's response is
+            # then swapped for a 413 in limited_send (FastAPI would otherwise
+            # turn a raised error into its own 400).
+            nonlocal received, too_large
+            if too_large:
+                return {"type": "http.request", "body": b"", "more_body": False}
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_bytes:
+                    too_large = True
+                    return {"type": "http.request", "body": b"", "more_body": False}
+            return message
+
+        async def limited_send(message: Message) -> None:
+            nonlocal replaced
+            if too_large:
+                if not replaced and message["type"] == "http.response.start":
+                    replaced = True
+                    await self._too_large(scope, f">{self.max_bytes}")(scope, receive, send)
+                return
+            await send(message)
+
+        await self.app(scope, limited_receive, limited_send)
 
 
 # =============================================================================
@@ -478,9 +554,14 @@ def setup_middleware(
 
     This function adds middleware in the correct order.
     Order matters: first added = outermost = last to process request.
-    Last added via add_middleware() = innermost = first to run on request.
+    Starlette wraps in reverse: the last add_middleware() call is the outermost
+    layer and sees the request first.
     """
-    # API Version (outermost - just adds header)
+    # Request body size limit (innermost, so its 413 still passes through the
+    # security-header, timing and version layers below)
+    app.add_middleware(RequestSizeLimitMiddleware, max_bytes=max_request_body_bytes)
+
+    # API Version (just adds header)
     app.add_middleware(APIVersionMiddleware, version="1.0.0")
 
     # Access logging (logs after timing and request ID are available)
@@ -508,8 +589,5 @@ def setup_middleware(
         window_seconds=rate_limit_window_seconds,
     )
 
-    # Request body size limit
-    app.add_middleware(RequestSizeLimitMiddleware, max_bytes=max_request_body_bytes)
-
-    # Request ID (innermost - needs to be available for all other middleware)
+    # Request ID (outermost - available to every other layer)
     app.add_middleware(RequestIDMiddleware)

@@ -173,3 +173,68 @@ class TestAccessLog:
         with caplog.at_level("INFO", logger="tax_estimator.access"):
             debug_client.get("/health")
         assert any("GET /health 200" in record.message for record in caplog.records)
+
+
+class TestRequestSizeLimitHardening:
+    """Malformed and streamed bodies are handled without a 500."""
+
+    def test_malformed_content_length_is_400(self, small_body_client: TestClient) -> None:
+        response = small_body_client.post(
+            "/v1/estimates",
+            content=b"{}",
+            headers={"Content-Type": "application/json", "Content-Length": "abc"},
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "INVALID_CONTENT_LENGTH"
+
+    def test_chunked_oversized_body_rejected(self, small_body_client: TestClient) -> None:
+        def chunks():
+            for _ in range(10):
+                yield b"x" * 50
+
+        response = small_body_client.post(
+            "/v1/estimates",
+            content=chunks(),
+            headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 413
+        assert response.json()["error"]["code"] == "REQUEST_TOO_LARGE"
+
+
+def test_validation_errors_do_not_echo_submitted_values(debug_client: TestClient) -> None:
+    response = debug_client.post(
+        "/v1/estimates",
+        json={"tax_year": 2025, "filer": {"filing_status": "single", "date_of_birth": "1985-02-30"},
+              "residency": {"residence_state": "CA"}, "income": {"wages": [{"gross_wages": 98765.43}]}},
+    )
+    assert response.status_code == 422
+    assert "98765.43" not in response.text
+    assert "1985-02-30" not in response.text
+    assert "help_url" not in response.text
+
+
+def test_oversized_response_keeps_security_headers(small_body_client: TestClient) -> None:
+    def chunks():
+        for _ in range(10):
+            yield b"x" * 50
+
+    response = small_body_client.post(
+        "/v1/estimates", content=chunks(), headers={"Content-Type": "application/json"}
+    )
+    assert response.status_code == 413
+    assert "Content-Security-Policy" in response.headers
+    assert "X-Content-Type-Options" in response.headers
+
+
+def test_duplicate_forwarded_for_lines_use_rightmost_hop() -> None:
+    from starlette.datastructures import Headers
+    from unittest.mock import MagicMock
+
+    from tax_estimator.api.middleware import RateLimitMiddleware
+
+    middleware = RateLimitMiddleware(app=None, requests_per_minute=10, trust_proxy=True, enabled=True)
+    request = MagicMock()
+    # Client-supplied line first, then the line appended by the trusted proxy.
+    request.headers = Headers(raw=[(b"x-forwarded-for", b"1.1.1.1"), (b"x-forwarded-for", b"203.0.113.9")])
+    request.client.host = "127.0.0.1"
+    assert middleware._get_client_ip(request) == "203.0.113.9"
