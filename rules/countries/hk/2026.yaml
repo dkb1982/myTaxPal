@@ -1,0 +1,166 @@
+# =============================================================================
+# Hong Kong Tax Rules - Year of Assessment 2026/27 (1 Apr 2026 - 31 Mar 2027)
+# =============================================================================
+# Period semantics: tax_year 2026 in this app means the 2026/27 year of
+# assessment. Loaded by src/tax_estimator/calculation/countries/hk.py.
+# Hong Kong Tax Year: April 1 to March 31
+# Tax is lower of progressive rates or two-tier standard rate
+# Source: IRD Hong Kong
+# =============================================================================
+
+jurisdiction_id: "HK"
+tax_year: 2026
+jurisdiction_type: "country"
+jurisdiction_name: "Hong Kong"
+jurisdiction_abbreviation: "HK"
+parent_jurisdiction_id: null
+
+country_code: "HK"
+currency_code: "HKD"
+tax_year_format: "hk_fiscal"
+year_of_assessment: "2026/27"
+period_label: "Year of assessment 2026/27 (1 April 2026 - 31 March 2027)"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-04-01"
+effective_end_date: "2027-03-31"
+
+# Progressive rates (standard rate is alternative)
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: 0.15
+  standard_rate_tiers:
+    - tier: 1
+      threshold: 5000000
+      rate: 0.15
+      description: "15% on first HK$5M"
+    - tier: 2
+      threshold: null
+      rate: 0.16
+      description: "16% on income above HK$5M"
+  brackets:
+    - bracket_id: "HK-2026-2"
+      filing_status: "all"
+      income_from: 0
+      income_to: 50000
+      rate: 0.02
+      base_tax: 0
+    - bracket_id: "HK-2026-6"
+      filing_status: "all"
+      income_from: 50000
+      income_to: 100000
+      rate: 0.06
+      base_tax: 1000
+    - bracket_id: "HK-2026-10"
+      filing_status: "all"
+      income_from: 100000
+      income_to: 150000
+      rate: 0.10
+      base_tax: 4000
+    - bracket_id: "HK-2026-14"
+      filing_status: "all"
+      income_from: 150000
+      income_to: 200000
+      rate: 0.14
+      base_tax: 9000
+    - bracket_id: "HK-2026-17"
+      filing_status: "all"
+      income_from: 200000
+      income_to: null
+      rate: 0.17
+      base_tax: 16000
+  surtaxes: []
+
+social_insurance:
+  components:
+    - component_id: "HK-MPF"
+      name: "Mandatory Provident Fund"
+      type: "pension"
+      employee_rate: 0.05
+      employer_rate: 0.05
+      ceiling: 18000
+      floor: 85200
+      notes: "5% capped at HKD 1,500/month"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+# Parameters read by hk.py
+mpf:
+  employee_rate: 0.05
+  min_relevant_income_monthly: 7100
+  max_relevant_income_monthly: 30000
+  max_contribution_monthly: 1500
+  annual_deduction_cap: 18000
+
+allowances:  # 2026/27 onwards (Inland Revenue (Amendment) (Tax Concessions, Concessionary Deductions and Allowances) Ordinance 2026)
+  basic: 145000
+  married: 290000
+  child_each: 140000
+  single_parent: 145000
+  dependent_parent_60_plus: 55000
+  dependent_parent_60_plus_living_together_additional: 55000
+  dependent_parent_55_to_59: 27500
+  dependent_parent_55_to_59_living_together_additional: 27500
+
+one_off_reduction:  # none enacted for 2026/27 (any reduction would be proposed in the 2027-28 Budget)
+  rate: 0
+  cap: 0
+  enacted: false
+  notes: "No one-off salaries tax reduction has been announced or enacted for 2026/27."
+
+property_tax:  # Inland Revenue Ordinance Part II; IRD BIR57 notes / FAQ on property tax returns
+  standard_rate: 0.15                 # 15% for 2020/21 to 2026/27
+  statutory_allowance_rate: 0.20      # repairs and outgoings, granted automatically
+  one_off_reduction_applies: false
+  notes: >-
+    Net assessable value = rent receivable - irrecoverable rent - rates paid by
+    owner, less 20% statutory allowance; property tax = 15% x NAV.  Rates paid
+    and personal assessment (aggregation with salary) are not modelled.
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 145000
+    dependent_exemption_available: true
+    dependent_exemption_amount: 140000
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-27"
+  provisional_items: []
+  notes: |
+    2026/27 allowances (basic 145,000; married 290,000; child 140,000; single
+    parent 145,000; dependent parent 60+ 55,000) from the IRD 2026-27 Budget
+    tax measures page; the bill passed LegCo on 13 May 2026 and was gazetted
+    on 22 May 2026. The IRD worked example (example2627.pdf, Example 1:
+    income 380,000, basic allowance 145,000, NCI 235,000, tax 21,950) confirms
+    the 2/6/10/14/17% progressive bands are unchanged. The Budget made no
+    change to bands, rates or the two-tier standard rate (15% first HK$5M,
+    16% above). No one-off reduction exists for 2026/27. MPF minimum /
+    maximum relevant income HK$7,100 / HK$30,000 per month (MPFA; a proposed
+    increase discussed with the Labour Advisory Board in March 2026 has not
+    been enacted). Property tax standard rate 15%, 20% statutory allowance.
+
+references:
+  - source_name: "IRD - 2026-27 Budget tax measures"
+    url: "https://www.ird.gov.hk/eng/tax/budget.htm"
+    retrieved_date: "2026-10-27"
+  - source_name: "IRD - 2026-27 Budget worked examples (2025/26 final and 2026/27 provisional salaries tax)"
+    url: "https://www.ird.gov.hk/eng/pdf/2026/example2627.pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "IRD press release 13 May 2026 - tax concession bill passed"
+    url: "https://www.ird.gov.hk/eng/ppr/archives/26051303.htm"
+    retrieved_date: "2026-10-23"
+  - source_name: "MPFA - Mandatory contributions (employees)"
+    url: "https://www.mpfa.org.hk/en/mpf-system/mandatory-contributions/employees"
+    retrieved_date: "2026-10-27"
+  - source_name: "IRD BIR57 notes and instructions (property tax)"
+    url: "https://www.ird.gov.hk/eng/tax/bir57se_notes.htm"
+    retrieved_date: "2026-10-23"

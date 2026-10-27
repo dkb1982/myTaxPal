@@ -249,8 +249,10 @@
                 <legend>Tax year</legend>
                 <label for="intl-tax-year" class="visually-hidden">Tax year</label>
                 <select id="intl-tax-year" name="tax_year" required>
-                    <option value="2025">2025/26 (6 Apr 2025–5 Apr 2026)</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
                 </select>
+                <p id="intl-period-hint" class="field-hint" hidden></p>
             </fieldset>
 
             <fieldset>
@@ -322,7 +324,7 @@
                     <option value="2026">2026 (limited coverage)</option>
                     <option value="2025" selected>2025</option>
                 </select>
-                <small class="field-hint" id="compare-year-scope" hidden>2026 covers the listed verified states in USD only. Further states will appear as their calculations are validated.</small>
+                <small class="field-hint" id="compare-year-scope" hidden>2026 covers the listed verified states, cities and countries, in USD. More will appear as their calculations are validated.</small>
             </fieldset>
 
             <!-- Filing Status for US regions -->

@@ -1,14 +1,14 @@
 """
-Italy (IT) tax calculator, periodo d'imposta 2025.
+Italy (IT) tax calculator (periodo d'imposta = calendar year).
 
 Estimate for a resident private-sector employee:
 
-- INPS employee contributions (9.19% + 1% above the first pension band,
+- INPS employee contributions (employee rate + 1% above the first pension band,
   massimale for post-1995 contributors).
-- IRPEF 23/35/43% on reddito complessivo (employment income net of INPS).
+- IRPEF brackets on reddito complessivo (employment income net of INPS).
 - Detrazione per lavoro dipendente (art. 13 TUIR incl. the 65 EUR increase).
-- 2025 cuneo fiscale (L. 207/2024): non-taxable payment up to 20k of income,
-  extra detrazione from 20k to 40k; trattamento integrativo up to 15k.
+- Cuneo fiscale (L. 207/2024, from 2025): non-taxable payment up to 20k of
+  income, extra detrazione from 20k to 40k; trattamento integrativo up to 15k.
 - Regional and municipal addizionali (documented default rates), due only
   when net IRPEF is positive.
 - Capital income (dividends, interest, gains) at the 26% imposta sostitutiva,
@@ -17,22 +17,22 @@ Estimate for a resident private-sector employee:
   (outside IRPEF and addizionali, no INPS), still counted in reddito
   complessivo for detrazioni and benefit thresholds.
 
-All parameters are loaded from rules/countries/it/2025.yaml.
+All parameters are loaded from rules/countries/it/<tax_year>.yaml; 2026+
+estimates cover single employees without dependants only.
 """
 
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
-from functools import lru_cache
 from typing import Any
-
-import yaml
 
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     UnsupportedIncomeError,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
 )
-from tax_estimator.calculation.countries.gb_loader import _get_default_rules_dir
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
@@ -41,7 +41,16 @@ from tax_estimator.models.international import (
 
 ZERO = Decimal(0)
 CENT = Decimal("0.01")
-SUPPORTED_TAX_YEAR = 2025
+REQUIRED_SECTIONS = (
+    "rate_schedule",
+    "employment_credit",
+    "cuneo_fiscale",
+    "trattamento_integrativo",
+    "social_insurance",
+    "surtaxes",
+    "capital_income",
+    "rental_income",
+)
 
 
 def _d(value: Any) -> Decimal:
@@ -52,29 +61,17 @@ def _cents(value: Decimal) -> Decimal:
     return value.quantize(CENT, rounding=ROUND_HALF_UP)
 
 
-@lru_cache(maxsize=4)
-def load_it_rules(tax_year: int = SUPPORTED_TAX_YEAR) -> dict[str, Any]:
-    """Load the Italian rules YAML (single source of truth)."""
-    path = _get_default_rules_dir() / "it" / f"{tax_year}.yaml"
-    with open(path, encoding="utf-8") as handle:
-        data = yaml.safe_load(handle)
-    for key in (
-        "rate_schedule",
-        "employment_credit",
-        "cuneo_fiscale",
-        "trattamento_integrativo",
-        "social_insurance",
-        "surtaxes",
-        "capital_income",
-        "rental_income",
-    ):
+def load_it_rules(tax_year: int) -> dict[str, Any]:
+    """Load the Italian rules YAML for ``tax_year`` (single source of truth)."""
+    data = load_country_rules("IT", tax_year)
+    for key in REQUIRED_SECTIONS:
         if key not in data:
-            raise ValueError(f"IT rules {path} missing required section {key!r}")
+            raise ValueError(f"IT {tax_year} rules missing required section {key!r}")
     return data
 
 
 class ITCalculator(BaseCountryCalculator):
-    """Italy 2025 IRPEF, addizionali, INPS and capital-income substitute tax."""
+    """Italy IRPEF, addizionali, INPS and capital-income substitute tax."""
 
     country_code = "IT"
     country_name = "Italy"
@@ -87,7 +84,7 @@ class ITCalculator(BaseCountryCalculator):
     @property
     def rules(self) -> dict[str, Any]:
         if self._rules is None:
-            self._rules = load_it_rules()
+            raise ValueError("IT rules are loaded per tax year inside calculate()")
         return self._rules
 
     @property
@@ -202,6 +199,10 @@ class ITCalculator(BaseCountryCalculator):
                     (_d(b["upper"]) if b["upper"] is not None else None, _d(b["rate"]))
                     for b in bands
                 ]
+            if st.get("unverified_option_policy") == "reject":
+                raise UnsupportedIncomeError(
+                    f"Italy: no verified addizionale regionale schedule for region {region!r}"
+                )
             warnings.append(
                 f"No verified addizionale regionale schedule for region {region!r}; "
                 f"default {_d(st['regional_default_rate']) * 100:.2f}% used."
@@ -227,15 +228,27 @@ class ITCalculator(BaseCountryCalculator):
     # ------------------------------------------------------------------
 
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        if tax_input.tax_year != SUPPORTED_TAX_YEAR:
-            raise ValueError(
-                f"Italy calculator supports tax year {SUPPORTED_TAX_YEAR} only; "
-                f"got {tax_input.tax_year}"
-            )
+        if self._rules is None:
+            return ITCalculator(rules=load_it_rules(tax_input.tax_year)).calculate(tax_input)
         rules = self.rules
+        declared = rules.get("tax_year")
+        if declared is not None and declared != tax_input.tax_year:
+            raise ValueError(f"IT rules are for {declared}; got tax year {tax_input.tax_year}")
         it = tax_input.it
         region = it.region if it else None
         municipality = it.municipality if it else None
+        bd = tax_input.income_breakdown
+        require_day1_profile(
+            tax_input,
+            dependants=it.num_dependents if it else 0,
+            self_employment=(bd.self_employment if bd else ZERO)
+            + (it.self_employment_income if it else ZERO),
+        )
+        st = rules["surtaxes"]
+        if municipality and st.get("unverified_option_policy") == "reject":
+            raise UnsupportedIncomeError(
+                f"Italy: no verified addizionale comunale schedule for {municipality!r}"
+            )
 
         income = self._resolve_income(tax_input)
         wages = income["employment"]
@@ -243,11 +256,13 @@ class ITCalculator(BaseCountryCalculator):
         other = income["other"]
         rental = income["rental"]
 
+        period = rules.get("period_label", f"Calendar {tax_input.tax_year}")
         notes = [
-            "Tax year 2025, resident private-sector employee.",
+            f"{period}, resident private-sector employee.",
             "INPS massimale applied (assumes first insured after 31/12/1995).",
         ]
-        warnings: list[str] = []
+        warnings: list[str] = rules_warnings(rules)
+        si_rules = rules["social_insurance"]
         breakdown: list[TaxComponent] = []
 
         inps, inps_base = self.inps(wages)
@@ -256,7 +271,12 @@ class ITCalculator(BaseCountryCalculator):
                 TaxComponent(
                     component_id="IT-INPS", name="INPS (employee contributions)", amount=inps,
                     rate=_d(rules["social_insurance"]["employee_rate"]), base=inps_base,
-                    notes="9.19% + 1% above 55,448, up to the 120,607 massimale",
+                    notes=(
+                        f"{_d(si_rules['employee_rate']) * 100:.2f}% + "
+                        f"{_d(si_rules['additional_rate']) * 100:.0f}% above "
+                        f"{_d(si_rules['additional_threshold']):,.0f}, up to the "
+                        f"{_d(si_rules['ceiling']):,.0f} massimale"
+                    ),
                 )
             )
 
@@ -269,7 +289,11 @@ class ITCalculator(BaseCountryCalculator):
         breakdown.append(
             TaxComponent(
                 component_id="IT-IRPEF", name="IRPEF lorda", amount=gross_irpef, rate=marginal,
-                base=r, notes="23% to 28,000; 35% to 50,000; 43% above",
+                base=r, notes="; ".join(
+                    f"{rate * 100:.0f}% to {upper:,.0f}" if upper is not None
+                    else f"{rate * 100:.0f}% above"
+                    for _lower, upper, rate in self.brackets
+                ),
             )
         )
 
@@ -306,9 +330,11 @@ class ITCalculator(BaseCountryCalculator):
             trattamento = _d(ti["amount"])
         for cid, name, amount, note in (
             ("IT-CUNEO-PAYMENT", "Cuneo fiscale payment (non-taxable)", cuneo_payment,
-             "L. 207/2024 art. 1 c.4: % of employment income when total income <= 20,000"),
+             "L. 207/2024 art. 1 c.4: % of employment income when total income <= "
+             f"{_d(rules['cuneo_fiscale']['payment_income_limit']):,.0f}"),
             ("IT-TRATTAMENTO-INTEGRATIVO", "Trattamento integrativo", trattamento,
-             "DL 3/2020: 1,200 when total income <= 15,000"),
+             f"DL 3/2020: {_d(ti['amount']):,.0f} when total income <= "
+             f"{_d(ti['income_limit']):,.0f}"),
         ):
             if amount > 0:
                 breakdown.append(
@@ -316,7 +342,6 @@ class ITCalculator(BaseCountryCalculator):
                 )
 
         # Addizionali: due only when net IRPEF is positive.
-        st = rules["surtaxes"]
         regional = municipal = ZERO
         if net_irpef > 0:
             regional = self._apply_schedule(r, self.surtax_rate_schedule(region, warnings))
@@ -347,7 +372,10 @@ class ITCalculator(BaseCountryCalculator):
                 TaxComponent(
                     component_id="IT-CAPITAL", name="Imposta sostitutiva (capital income)",
                     amount=capital_tax, rate=rate, base=capital,
-                    notes="26% on dividends, interest and gains; outside IRPEF, no INPS",
+                    notes=(
+                        f"{rate * 100:.0f}% on dividends, interest and gains; outside IRPEF, "
+                        "no INPS"
+                    ),
                 )
             )
             notes.append("12.5% rate on government bonds is not modelled.")
@@ -360,11 +388,15 @@ class ITCalculator(BaseCountryCalculator):
                 TaxComponent(
                     component_id="IT-CEDOLARE-SECCA", name="Cedolare secca (rental income)",
                     amount=rental_tax, rate=rental_rate, base=rental,
-                    notes="21% flat on annual residential rent; replaces IRPEF and addizionali",
+                    notes=(
+                        f"{rental_rate * 100:.0f}% flat on annual residential rent; replaces "
+                        "IRPEF and addizionali"
+                    ),
                 )
             )
             notes.append(
-                "Rental income taxed under cedolare secca at 21% of the annual rent (no expense "
+                f"Rental income taxed under cedolare secca at {rental_rate * 100:.0f}% of the "
+                "annual rent (no expense "
                 "deduction, no INPS); it still counts in reddito complessivo for detrazioni. "
                 "The IRPEF option and the 10% concessional rent (canone concordato) are not "
                 "modelled."

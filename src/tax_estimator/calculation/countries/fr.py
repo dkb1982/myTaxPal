@@ -1,5 +1,5 @@
 """
-France (FR) tax calculator for 2025 income (declared in 2026).
+France (FR) tax calculator (calendar-year income; ``tax_year`` = income year).
 
 Estimate for a resident private-sector employee (non-cadre):
 
@@ -13,22 +13,22 @@ Estimate for a resident private-sector employee (non-cadre):
 - Rental income (net, régime réel) at the barème plus 17.2% social levies.
 - Contribution exceptionnelle sur les hauts revenus (CEHR).
 
-All parameters are loaded from rules/countries/fr/2025.yaml.
+All parameters are loaded from rules/countries/fr/<tax_year>.yaml; 2026+
+estimates cover single employees without dependants only.
 """
 
 from __future__ import annotations
 
 from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
-from functools import lru_cache
 from typing import Any
-
-import yaml
 
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     UnsupportedIncomeError,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
 )
-from tax_estimator.calculation.countries.gb_loader import _get_default_rules_dir
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
@@ -37,7 +37,15 @@ from tax_estimator.models.international import (
 
 ZERO = Decimal(0)
 CENT = Decimal("0.01")
-SUPPORTED_TAX_YEAR = 2025
+REQUIRED_SECTIONS = (
+    "rate_schedule",
+    "family_quotient",
+    "decote",
+    "professional_deduction",
+    "cehr",
+    "social_contributions",
+    "capital_income",
+)
 
 
 def _d(value: Any) -> Decimal:
@@ -56,28 +64,17 @@ def _floor_euro(value: Decimal) -> Decimal:
     return value.quantize(Decimal(1), rounding=ROUND_DOWN)
 
 
-@lru_cache(maxsize=4)
-def load_fr_rules(tax_year: int = SUPPORTED_TAX_YEAR) -> dict[str, Any]:
-    """Load the French rules YAML (single source of truth)."""
-    path = _get_default_rules_dir() / "fr" / f"{tax_year}.yaml"
-    with open(path, encoding="utf-8") as handle:
-        data = yaml.safe_load(handle)
-    for key in (
-        "rate_schedule",
-        "family_quotient",
-        "decote",
-        "professional_deduction",
-        "cehr",
-        "social_contributions",
-        "capital_income",
-    ):
+def load_fr_rules(tax_year: int) -> dict[str, Any]:
+    """Load the French rules YAML for ``tax_year`` (single source of truth)."""
+    data = load_country_rules("FR", tax_year)
+    for key in REQUIRED_SECTIONS:
         if key not in data:
-            raise ValueError(f"FR rules {path} missing required section {key!r}")
+            raise ValueError(f"FR {tax_year} rules missing required section {key!r}")
     return data
 
 
 class FRCalculator(BaseCountryCalculator):
-    """France 2025-income IR, PFU, CEHR and employee social contributions."""
+    """France IR, PFU, CEHR and employee social contributions."""
 
     country_code = "FR"
     country_name = "France"
@@ -90,7 +87,7 @@ class FRCalculator(BaseCountryCalculator):
     @property
     def rules(self) -> dict[str, Any]:
         if self._rules is None:
-            self._rules = load_fr_rules()
+            raise ValueError("FR rules are loaded per tax year inside calculate()")
         return self._rules
 
     @property
@@ -192,7 +189,11 @@ class FRCalculator(BaseCountryCalculator):
                 TaxComponent(
                     component_id="FR-CSG", name="CSG", amount=csg, rate=_d(sc["csg_rate"]),
                     base=_cents(csg_base),
-                    notes=f"9.2% on 98.25% of gross; {csg_deductible} deductible (6.8%)",
+                    notes=(
+                        f"{_d(sc['csg_rate']) * 100:.1f}% on {_d(sc['csg_base_rate']) * 100:.2f}% "
+                        f"of gross; {csg_deductible} deductible "
+                        f"({_d(sc['csg_deductible_rate']) * 100:.1f}%)"
+                    ),
                 )
             )
             components.append(
@@ -292,16 +293,24 @@ class FRCalculator(BaseCountryCalculator):
     # ------------------------------------------------------------------
 
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        if tax_input.tax_year != SUPPORTED_TAX_YEAR:
-            raise ValueError(
-                f"France calculator supports {SUPPORTED_TAX_YEAR} income only; "
-                f"got {tax_input.tax_year}"
-            )
+        if self._rules is None:
+            return FRCalculator(rules=load_fr_rules(tax_input.tax_year)).calculate(tax_input)
         rules = self.rules
+        declared = rules.get("tax_year")
+        if declared is not None and declared != tax_input.tax_year:
+            raise ValueError(f"FR rules are for {declared}; got tax year {tax_input.tax_year}")
         fr = tax_input.fr
         is_married = fr.is_married if fr else False
         num_children = fr.num_children if fr else 0
         is_single_parent = fr.is_single_parent if fr else False
+        bd = tax_input.income_breakdown
+        require_day1_profile(
+            tax_input,
+            married=is_married,
+            dependants=num_children,
+            self_employment=(bd.self_employment if bd else ZERO)
+            + (fr.self_employment_income if fr else ZERO),
+        )
         use_frais_reels = fr.use_frais_reels if fr else False
         frais_reels = fr.frais_reels_amount if fr else ZERO
 
@@ -311,11 +320,12 @@ class FRCalculator(BaseCountryCalculator):
         gains = income["gains"]
         rental = income["rental"]
 
+        period = rules.get("period_label", f"{tax_input.tax_year} income")
         notes = [
-            "2025 income (barème LF 2026), resident private-sector non-cadre employee.",
+            f"{period}, resident private-sector non-cadre employee.",
             "Using quotient familial (family quotient) system.",
         ]
-        warnings: list[str] = []
+        warnings: list[str] = rules_warnings(rules)
         breakdown: list[TaxComponent] = []
 
         cotisations, csg, csg_deductible, crds, contrib_components = (
@@ -363,7 +373,10 @@ class FRCalculator(BaseCountryCalculator):
                 TaxComponent(
                     component_id="FR-PFU-IR", name="Prélèvement forfaitaire unique (impôt)",
                     amount=pfu, rate=_d(cap["pfu_income_tax_rate"]), base=pfu_base,
-                    notes="12.8% flat income tax on dividends, interest and gains",
+                    notes=(
+                        f"{_d(cap['pfu_income_tax_rate']) * 100:.1f}% flat income tax on "
+                        "dividends, interest and gains"
+                    ),
                 )
             )
         for cid, name, amount, rate, base in (
@@ -378,11 +391,8 @@ class FRCalculator(BaseCountryCalculator):
                 breakdown.append(
                     TaxComponent(component_id=cid, name=name, amount=amount, rate=rate, base=base)
                 )
-        if gains > 0:
-            notes.append(
-                "2025 securities gains bear 18.6% social levies (LFSS 2026 CSG rise applied "
-                "to 2025 revenus du patrimoine); dividends and interest received in 2025 bear 17.2%."
-            )
+        if pfu_base > 0 and cap.get("social_levies_note"):
+            notes.append(cap["social_levies_note"])
         if rental > 0:
             notes.append("Rental income treated as net (régime réel) at the barème.")
 

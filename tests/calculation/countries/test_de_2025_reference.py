@@ -161,9 +161,9 @@ def test_self_employment_rejected():
         _calc("50000", breakdown=bd)
 
 
-def test_non_2025_year_rejected():
-    with pytest.raises(ValueError, match="2025"):
-        CALC.calculate(InternationalTaxInput(country_code="DE", tax_year=2026, gross_income=D("1")))
+def test_year_without_rules_rejected():
+    with pytest.raises(ValueError, match="2027"):
+        CALC.calculate(InternationalTaxInput(country_code="DE", tax_year=2027, gross_income=D("1")))
 
 
 def test_compare_path_parity():

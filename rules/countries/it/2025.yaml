@@ -17,6 +17,7 @@ parent_jurisdiction_id: null
 country_code: "IT"
 currency_code: "EUR"
 tax_year_format: "calendar"
+period_label: "Calendar 2025"
 
 has_income_tax: true
 income_tax_type: "graduated"
@@ -85,6 +86,7 @@ surtaxes:
   regional_default_rate: 0.0173      # UNVERIFIED typical rate (national base is 1.23%)
   municipal_default_rate: 0.008      # UNVERIFIED typical rate (maximum is 0.8% in most comuni)
   regional_rates: {}                 # region-name -> list of {upper, rate}; none verified yet
+  unverified_option_policy: "warn"   # region/municipality without a verified schedule: warn, use default
 
 # Capital income: imposta sostitutiva 26% (art. 27 DPR 600/1973, art. 5 D.lgs. 461/1997)
 capital_income:

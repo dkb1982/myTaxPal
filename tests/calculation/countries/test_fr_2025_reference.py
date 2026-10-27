@@ -23,12 +23,13 @@ from decimal import Decimal
 import pytest
 
 from tax_estimator.calculation.comparison_enhanced import compare_regions_enhanced
+from tax_estimator.calculation.countries.base import load_country_rules
 from tax_estimator.calculation.countries.fr import FRCalculator
 from tax_estimator.models.income_breakdown import IncomeBreakdown
 from tax_estimator.models.international import FRTaxInput, InternationalTaxInput
 
 D = Decimal
-CALC = FRCalculator()
+CALC = FRCalculator(rules=load_country_rules("FR", 2025))
 
 
 def _calc(gross: str, breakdown: IncomeBreakdown | None = None, fr: FRTaxInput | None = None):

@@ -82,12 +82,20 @@ and the federal repair tests; passing tests does not establish full legal covera
 
 ### International calculators (October 2026)
 
-All twelve country calculators were re-derived from primary sources for their
-2025 period and load parameters from `rules/countries/<cc>/2025.yaml`. Each has
-hand-calculated reference tests in `tests/calculation/countries/` (working and
-source links in the test comments) plus a Compare-path parity test.
+All twelve country calculators load parameters for the requested year from
+`rules/countries/<cc>/<year>.yaml` (2025 and 2026). `tax_year` N means the native
+tax year with most of its months in calendar N. Each has hand-calculated reference
+tests in `tests/calculation/countries/` (working and source links in the test
+comments) plus a Compare-path parity test.
 
-| Code | `tax_year` 2025 means | Notes |
+2026 covers a single resident employee with no dependants: wages, interest,
+dividends and capital gains. Married/family profiles, self-employment and rental
+income are refused. France (2026 brackets from the PLF 2027, not yet enacted), Italy
+(default surtax rates) and Canada/Alberta (one derived threshold) carry provisional
+warnings. 2026 Compare converts currency at the IRS 2025 annual averages until the
+2026 averages are published.
+
+| Code | `tax_year` 2025 means (2026 is the next one) | Notes |
 | --- | --- | --- |
 | GB | 2025/26 | Income tax, NI, dividends, savings, CGT, Scottish bands |
 | DE | Calendar 2025 | §32a tariff, Vorsorgeaufwendungen, Soli zone, 25% Abgeltungsteuer |
@@ -96,9 +104,9 @@ source links in the test comments) plus a Compare-path parity test.
 | ES | 2025 | Madrid scale by default; savings base; foral regions rejected |
 | PT | 2025 income | Lei 55-A/2025 brackets, 28% capital rate, legacy NHR at 20% |
 | CA | 2025 | Credit-based; ON, BC, AB supported; QC and others rejected |
-| AU | FY 2024-25 | LITO, Medicare shade-in, MLS (assumes no hospital cover), CGT discount, franking |
+| AU | FY 2025-26 | LITO, Medicare shade-in, MLS (assumes no hospital cover), CGT discount, franking |
 | JP | Calendar 2025 | 2025 deduction reform, resident tax, 20.315% separate taxation |
-| SG | YA2025 (2024 income) | Earned income relief, YA2025 rebate, 2024 CPF rates |
+| SG | 2025 income (YA2026) | Earned income relief, no YA2026 rebate, 2025 CPF rates |
 | HK | 2025/26 | Includes the enacted HK$3,000 one-off reduction |
 | AE | 2025 | No personal income tax; GPSSA for nationals not modelled |
 

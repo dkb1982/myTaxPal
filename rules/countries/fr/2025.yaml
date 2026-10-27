@@ -21,6 +21,7 @@ parent_jurisdiction_id: null
 country_code: "FR"
 currency_code: "EUR"
 tax_year_format: "calendar"
+period_label: "2025 income (barème LF 2026)"
 
 # Tax characteristics
 has_income_tax: true
@@ -108,6 +109,9 @@ capital_income:
   social_levies_capital_gains: 0.186
   # Rental income (revenus fonciers) stays at 17.2% (excluded from the rise).
   social_levies_rental: 0.172
+  social_levies_note: >-
+    2025 securities gains bear 18.6% social levies (LFSS 2026 CSG rise applied to 2025
+    revenus du patrimoine); dividends and interest received in 2025 bear 17.2%.
 
 # Verification
 verification:

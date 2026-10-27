@@ -1,0 +1,147 @@
+# =============================================================================
+# Italy Tax Rules - 2026 Tax Year (periodo d'imposta 2026)
+# =============================================================================
+# Single source of truth for src/tax_estimator/calculation/countries/it.py.
+# Same structure as 2025.yaml. The calculator raises if a required key is
+# missing; no hard-coded fallback.
+#
+# 2026 scope (day 1): single employee without dependants.
+#
+# Italy Tax Year: January 1 to December 31
+# =============================================================================
+
+jurisdiction_id: "IT"
+tax_year: 2026
+jurisdiction_type: "country"
+jurisdiction_name: "Italy"
+jurisdiction_abbreviation: "IT"
+parent_jurisdiction_id: null
+
+country_code: "IT"
+currency_code: "EUR"
+tax_year_format: "calendar"
+period_label: "Calendar 2026"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# IRPEF (art. 11 c.1 TUIR): the second-bracket rate 35% -> 33% by art. 1 c.3
+# L. 30 dicembre 2025 n. 199 (Legge di Bilancio 2026) for the 2026 tax period.
+# Above 200,000 of reddito complessivo, art. 16-ter c.5-ter TUIR (art. 1 c.4
+# L. 199/2025) cuts 440 from detrazioni for oneri (19% expenses etc.); those
+# detrazioni are not modelled, so it has no effect here.
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - {bracket_id: "IT-2026-23", filing_status: "all", income_from: 0, income_to: 28000, rate: 0.23, base_tax: 0}
+    - {bracket_id: "IT-2026-33", filing_status: "all", income_from: 28000, income_to: 50000, rate: 0.33, base_tax: 6440}
+    - {bracket_id: "IT-2026-43", filing_status: "all", income_from: 50000, income_to: null, rate: 0.43, base_tax: 13700}
+  surtaxes: []
+
+# Art. 13 TUIR detrazione and the cuneo fiscale (L. 207/2024 art. 1 c.4-9,
+# structural from 2025) are unchanged for 2026.
+# Detrazione per lavoro dipendente, art. 13 c.1 and c.1.1 TUIR (R = reddito complessivo)
+employment_credit:
+  band1_upper: 15000
+  band1_amount: 1955                 # R <= 15,000
+  band2_upper: 28000
+  band2_base: 1910                   # 1,910 + 1,190 * (28,000 - R) / 13,000
+  band2_variable: 1190
+  band2_width: 13000
+  band3_upper: 50000
+  band3_base: 1910                   # 1,910 * (50,000 - R) / 22,000
+  band3_width: 22000
+  bonus_amount: 65                   # c.1.1: +65 if 25,000 < R <= 35,000
+  bonus_lower: 25000
+  bonus_upper: 35000
+
+# Cuneo fiscale, L. 207/2024 art. 1 commi 4-9, structural from 2025 (Circolare AdE 4/E/2025)
+cuneo_fiscale:
+  # Up to reddito complessivo 20,000: non-taxable payment = % of reddito di
+  # lavoro dipendente (bands measured on that income, net of INPS).
+  payment_income_limit: 20000
+  payment_bands:
+    - {upper: 8500, rate: 0.071}
+    - {upper: 15000, rate: 0.053}
+    - {upper: null, rate: 0.048}
+  # Above 20,000: extra detrazione 1,000 to 32,000, tapering to zero at 40,000.
+  extra_credit_amount: 1000
+  extra_credit_full_upper: 32000
+  extra_credit_upper: 40000
+
+# Trattamento integrativo, DL 3/2020 art. 1 (as amended by L. 234/2021):
+# 1,200 if R <= 15,000 and imposta lorda > detrazione art. 13 c.1 minus 75.
+trattamento_integrativo:
+  amount: 1200
+  income_limit: 15000
+  capienza_reduction: 75
+
+# INPS employee contributions 2026 (INPS circolare n. 6 del 30/01/2026)
+social_insurance:
+  employee_rate: 0.0919              # FPLD IVS employee share (general private-sector rate)
+  additional_rate: 0.01              # art. 3-ter DL 384/1992, above first pension band
+  additional_threshold: 56224        # prima fascia di retribuzione pensionabile 2026
+  ceiling: 122295                    # massimale 2026, post-1995 contributors only
+  apply_ceiling: true                # ASSUMPTION: worker first insured after 31/12/1995
+
+# Addizionali (regional/municipal surtaxes). Base = reddito complessivo.
+# Due only when net IRPEF is positive. Same documented default rates as 2025;
+# they are assumptions, not a verified schedule for any region/municipality.
+# For 2026 a named region or municipality without a verified schedule is
+# refused rather than silently priced at the default.
+surtaxes:
+  regional_default_rate: 0.0173      # ASSUMPTION typical rate (national base is 1.23%)
+  municipal_default_rate: 0.008      # ASSUMPTION typical rate (maximum is 0.8% in most comuni)
+  regional_rates: {}                 # region-name -> list of {upper, rate}; none verified yet
+  unverified_option_policy: "reject"
+
+# Capital income: imposta sostitutiva 26% (art. 27 DPR 600/1973, art. 5 D.lgs. 461/1997)
+capital_income:
+  substitute_tax_rate: 0.26          # 12.5% on Italian/white-list government bonds not modelled
+
+rental_income:  # Residential rent under cedolare secca (D.Lgs. 23/2011 art. 3)
+  regime: "cedolare_secca"
+  flat_rate: 0.21                    # canone libero; replaces IRPEF + addizionali on the rent
+  # Base is the annual rent agreed (canone annuo), with no expense deduction.
+  # Not modelled: IRPEF option (95% of rent in reddito complessivo), the 10%
+  # concessional rate for canone concordato, and 26% short lets (2nd+ unit).
+  # Cedolare income still counts in reddito complessivo for detrazioni and
+  # benefit thresholds (art. 3 c.7 D.Lgs. 23/2011). No INPS on rent.
+  source: "https://www.agenziaentrate.gov.it/portale/aree-tematiche/casa/affitto/cedolare-secca"
+
+verification:
+  status: "provisional"
+  provisional_items:
+    - "Italy regional (1.73%) and municipal (0.8%) surtaxes use typical default rates, not a specific region's schedule"
+  last_verified: "2026-10-27"
+  verified_by: "eu-b tax engineer (hand calculation)"
+  notes: >-
+    Verified: art. 11 TUIR 23/33/43% (Brocardi consolidated text citing L. 199/2025 art. 1
+    c.3; EC News on the 2026 tax period); 200k detrazioni cut limited to oneri (EC News);
+    INPS 2026 prima fascia 56,224 and massimale 122,295 (circolare 6/2026 via EC News);
+    art. 13 TUIR and cuneo fiscale unchanged (structural L. 207/2024). Assumptions: the
+    9.19% employee rate (unchanged general FPLD rate) and the default regional 1.73% /
+    municipal 0.8% addizionali. Not modelled: family detrazioni, self-employment,
+    12.5% bonds, detassazione of contract renewals/productivity bonuses.
+
+references:
+  - source_name: "TUIR art. 11 (Brocardi, testo vigente, aggiornato 26/09/2026)"
+    url: "https://www.brocardi.it/testo-unico-imposte-redditi/titolo-i/capo-i/art11.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "EC News - Legge di bilancio 2026: revisione delle aliquote IRPEF"
+    url: "https://www.ecnews.it/lavoro/news-del-giorno/legge-bilancio-2026-revisione-aliquote-irpef/"
+    retrieved_date: "2026-10-27"
+  - source_name: "Gazzetta Ufficiale - L. 30 dicembre 2025 n. 199 (GU n. 301 del 30/12/2025, S.O. n. 42)"
+    url: "https://www.gazzettaufficiale.it/"
+    retrieved_date: null
+    notes: "Primary GU text not fetched (no deep link verified); amendment confirmed via consolidated art. 11 TUIR."
+  - source_name: "EC News - Contributi INPS 2026: minimali e massimali (circolare INPS 6/2026)"
+    url: "https://www.ecnews.it/lavoro/news-del-giorno/contributi-inps-2026-stabiliti-minimali-massimali/"
+    retrieved_date: "2026-10-27"
+  - source_name: "TUIR art. 13 (Brocardi, testo vigente)"
+    url: "https://www.brocardi.it/testo-unico-imposte-redditi/titolo-i/capo-i/art13.html"
+    retrieved_date: "2026-10-23"

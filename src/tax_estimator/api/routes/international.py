@@ -6,7 +6,7 @@ Provides endpoints for:
 - Multi-country tax comparison
 - Country/currency information
 
-All calculations use PLACEHOLDER rates for development.
+Rates come from verified rules files per country and tax year.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from tax_estimator.calculation.comparison import (
     compare_regions,
 )
 from tax_estimator.calculation.countries import calculate_international_tax
-from tax_estimator.calculation.countries.base import get_country_name
+from tax_estimator.calculation.countries.base import get_country_name, period_label
 from tax_estimator.calculation.countries.router import CountryRouter
 from tax_estimator.models.income_breakdown import IncomeBreakdown
 from tax_estimator.models.international import (
@@ -59,7 +59,11 @@ class InternationalEstimateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     country_code: str = Field(..., description="ISO 3166-1 alpha-2 country code (e.g., GB, DE)")
-    tax_year: int = Field(default=2025, ge=2025, le=2025, description="Supported tax year")
+    tax_year: int = Field(
+        default=2025, ge=2025, le=2026,
+        description="Tax year: the native year with most months in this calendar year "
+        "(GB/HK 2026 = 2026/27, AU 2026 = 2026-27, SG 2026 = 2026 income)",
+    )
     gross_income: Decimal = Field(..., gt=0, description="Gross income in local currency")
     income: IncomeBreakdownRequest | None = Field(
         None, description="Detailed income breakdown by type"
@@ -106,6 +110,8 @@ class CountryInfo(BaseModel):
     currency_code: str
     has_income_tax: bool
     tax_year_format: str
+    tax_years: list[int] = Field(default_factory=list)
+    period_label: str | None = None
 
 
 class CountryListResponse(BaseModel):
@@ -165,7 +171,7 @@ COUNTRY_INFO: dict[str, dict[str, Any]] = {
         "notes": [
             "No capital gains tax",
             "CPF contributions for citizens/PRs",
-            "Non-residents taxed at flat 22%",
+            "Non-resident employment income taxed at 15% or resident rates, whichever is higher",
         ],
     },
     "HK": {
@@ -352,12 +358,17 @@ async def compare_tax_regions(
 
 
 @router.get("/countries", response_model=CountryListResponse)
-async def list_supported_countries() -> CountryListResponse:
+async def list_supported_countries(tax_year: int | None = None) -> CountryListResponse:
     """
-    List all supported countries for international tax estimation.
+    List supported countries, optionally only those validated for ``tax_year``.
     """
     countries = []
-    for country_code in sorted(CountryRouter.get_supported_countries()):
+    codes = (
+        CountryRouter.countries_for_tax_year(tax_year)
+        if tax_year is not None
+        else sorted(CountryRouter.get_supported_countries())
+    )
+    for country_code in codes:
         info = COUNTRY_INFO.get(country_code, {})
         countries.append(
             CountryInfo(
@@ -366,6 +377,8 @@ async def list_supported_countries() -> CountryListResponse:
                 currency_code=get_currency_for_country(country_code),
                 has_income_tax=info.get("has_income_tax", True),
                 tax_year_format=info.get("tax_year_format", "calendar"),
+                tax_years=CountryRouter.get_supported_tax_years(country_code),
+                period_label=period_label(country_code, tax_year) if tax_year else None,
             )
         )
 
@@ -395,9 +408,8 @@ async def get_country_details(country_code: str) -> CountryDetailResponse:
         tax_year_format=info.get("tax_year_format", "calendar"),
         notes=info.get("notes", []),
         disclaimers=[
-            "All tax rates are PLACEHOLDER values for development.",
-            "Do not use for actual tax planning or financial decisions.",
-            "Verify all rates with official government sources.",
+            "Estimates for the default resident-employee profile; not a tax return.",
+            "Personal reliefs, credits and regional variations outside that profile are not modelled.",
         ],
     )
 

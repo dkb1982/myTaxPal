@@ -1,0 +1,226 @@
+# =============================================================================
+# Spain Tax Rules - 2026 Tax Year (IRPF, calendar year)
+# =============================================================================
+# Single source of truth for es.py.  The calculator reads `country_parameters`
+# below; `rate_schedule` holds the STATE general scale (LIRPF art. 63.1) only.
+# The regional (autonomous-community) half of the general scale is selected
+# from `country_parameters.regional_general_scales`.
+#
+# 2026 scope (day 1): single employee without dependants; regional half only
+# for the Comunidad de Madrid (other communities are refused for 2026).
+# No 2026 Presupuestos were enacted; the LIRPF scales below are the statute
+# in force (BOE consolidated text retrieved 2026-10-27).
+# =============================================================================
+
+jurisdiction_id: "ES"
+tax_year: 2026
+jurisdiction_type: "country"
+jurisdiction_name: "Spain"
+jurisdiction_abbreviation: "ES"
+parent_jurisdiction_id: null
+
+country_code: "ES"
+currency_code: "EUR"
+tax_year_format: "calendar"
+period_label: "Calendar 2026"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# State half of the general scale (LIRPF art. 63.1).  NOT combined.
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - {bracket_id: "ES-STATE-2026-1", filing_status: "all", income_from: 0, income_to: 12450, rate: 0.095, base_tax: 0}
+    - {bracket_id: "ES-STATE-2026-2", filing_status: "all", income_from: 12450, income_to: 20200, rate: 0.12, base_tax: 1182.75}
+    - {bracket_id: "ES-STATE-2026-3", filing_status: "all", income_from: 20200, income_to: 35200, rate: 0.15, base_tax: 2112.75}
+    - {bracket_id: "ES-STATE-2026-4", filing_status: "all", income_from: 35200, income_to: 60000, rate: 0.185, base_tax: 4362.75}
+    - {bracket_id: "ES-STATE-2026-5", filing_status: "all", income_from: 60000, income_to: 300000, rate: 0.225, base_tax: 8950.75}
+    - {bracket_id: "ES-STATE-2026-6", filing_status: "all", income_from: 300000, income_to: null, rate: 0.245, base_tax: 62950.75}
+  surtaxes: []
+
+social_insurance:
+  components:
+    - component_id: "ES-SS-COMMON"
+      name: "Seguridad Social (Contingencias comunes)"
+      type: "general_social"
+      employee_rate: 0.047
+      employer_rate: 0.236
+      ceiling: 61214.40
+      floor: 0
+      notes: "Max base EUR 5,101.20/month x 12 (2026)"
+    - component_id: "ES-SS-UNEMPLOYMENT"
+      name: "Seguridad Social (Desempleo)"
+      type: "unemployment"
+      employee_rate: 0.0155
+      employer_rate: 0.055
+      ceiling: 61214.40
+      floor: 0
+      notes: "Indefinite contract"
+    - component_id: "ES-SS-TRAINING"
+      name: "Formacion Profesional"
+      type: "general_social"
+      employee_rate: 0.001
+      employer_rate: 0.006
+      ceiling: 61214.40
+      floor: 0
+      notes: ""
+    - component_id: "ES-SS-MEI"
+      name: "Mecanismo de Equidad Intergeneracional"
+      type: "pension"
+      employee_rate: 0.0015
+      employer_rate: 0.0075
+      ceiling: 61214.40
+      floor: 0
+      notes: "MEI 0.90% in 2026 (Orden PJC/297/2026 art. 16)"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: true
+    personal_exemption_amount: 5550   # Applied as a zero-rate band (arts. 56/63), not a base deduction
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+country_parameters:
+  social_security:
+    annual_max_base: 61214.40       # 5,101.20 x 12 (Orden PJC/297/2026 art. 2)
+    employee_rates:
+      common: 0.047
+      unemployment: 0.0155
+      training: 0.001
+      mei: 0.0015                   # 0.90% total, 0.15% employee (art. 16)
+    # Cotizacion adicional de solidaridad (salary above max base), 2026 rates
+    # (Orden PJC/297/2026 art. 17), with the employee rate stated per band:
+    #   5,101.21-5,611.32/month (max base +10%): 1.15% total, 0.19% employee
+    #   5,611.33-7,651.80/month (+50%):           1.25% total, 0.21% employee
+    #   above 7,651.80/month:                     1.46% total, 0.24% employee
+    # Applied to the annual excess over 12 x the monthly max base.
+    solidarity:
+      employee_share: 0.16607774       # fallback only; bands state employee_rate
+      note: "Employee share of the 2026 solidarity contribution (0.19% / 0.21% / 0.24%)"
+      bands:
+        - {upto_fraction: 0.10, rate: 0.0115, employee_rate: 0.0019}
+        - {upto_fraction: 0.50, rate: 0.0125, employee_rate: 0.0021}
+        - {upto_fraction: null, rate: 0.0146, employee_rate: 0.0024}
+
+  work_income:
+    other_expenses: 2000              # art. 19.2.f "otros gastos"
+    # art. 20 reduction; base = gross work income minus art. 19.2 a)-e) expenses
+    reduction:
+      full_amount: 7302
+      full_upto: 14852
+      middle_upto: 17673.52
+      middle_slope: 1.75
+      middle_end_amount: 2364.34
+      zero_at: 19747.5
+      end_slope: 1.14
+      max_other_income: 6500
+    # Disposicion adicional 61.a LIRPF as amended by RDL 5/2026 (17 Feb 2026,
+    # convalidated 18 Mar 2026) for SMI 2026 = 17,094: low-wage work deduction
+    smi_deduction:
+      amount: 590.89
+      full_upto: 17094
+      zero_at: 20048.45
+      slope: 0.2
+      max_other_income: 6500
+
+  personal_minimum:
+    state: 5550
+    regional:
+      madrid: 5956.65
+      generic: 5550
+
+  # Savings base scales (LIRPF arts. 66 and 76), state and regional halves.
+  savings_scale_state:
+    - [0, 6000, 0.095]
+    - [6000, 50000, 0.105]
+    - [50000, 200000, 0.115]
+    - [200000, 300000, 0.135]
+    - [300000, null, 0.15]
+  savings_scale_regional:
+    - [0, 6000, 0.095]
+    - [6000, 50000, 0.105]
+    - [50000, 200000, 0.115]
+    - [200000, 300000, 0.135]
+    - [300000, null, 0.15]
+
+  regional_general_scales:
+    # Comunidad de Madrid (Texto Refundido DLeg 1/2010 art. 1, as amended
+    # by Ley 8/2022 and Ley 11/2022).  Published by the Comunidad de Madrid.
+    madrid:
+      - [0, 13362.22, 0.085]
+      - [13362.22, 19004.63, 0.107]
+      - [19004.63, 35425.68, 0.128]
+      - [35425.68, 57320.40, 0.174]
+      - [57320.40, null, 0.205]
+    # GENERIC fallback for other common-regime communities: mirrors the state
+    # scale.  This is an approximation, flagged with a warning at runtime.
+    generic:
+      - [0, 12450, 0.095]
+      - [12450, 20200, 0.12]
+      - [20200, 35200, 0.15]
+      - [35200, 60000, 0.185]
+      - [60000, 300000, 0.225]
+      - [300000, null, 0.245]
+
+  generic_scale_policy: "reject"      # 2026: only Madrid's regional scale is verified
+  common_regime_communities:
+    - andalucia
+    - aragon
+    - asturias
+    - baleares
+    - canarias
+    - cantabria
+    - castilla_la_mancha
+    - castilla_y_leon
+    - cataluna
+    - extremadura
+    - galicia
+    - madrid
+    - murcia
+    - la_rioja
+    - valencia
+  foral_or_special:
+    - pais_vasco
+    - navarra
+    - ceuta
+    - melilla
+
+verification:
+  status: "verified"
+  provisional_items: []
+  last_verified: "2026-10-27"
+  verified_by: "eu-b tax engineer (primary sources below)"
+  notes: >-
+    Verified from BOE consolidated LIRPF (retrieved 2026-10-27): state scale (art. 63),
+    savings scales (arts. 66/76), art. 20 reduction, art. 57 minimum 5,550, DA 61a
+    deduction 590.89 / 17,094 / 20,048.45 (RDL 5/2026). Madrid scale and minimum
+    5,956.65 from the BOE consolidated DLeg 1/2010 (unchanged). SS 2026 from Orden
+    PJC/297/2026: max base 5,101.20/month, common 4.70%, unemployment 1.55% (indefinite
+    contract), FP 0.10%, MEI 0.15%, solidarity employee rates 0.19/0.21/0.24%.
+    Other common-regime communities are refused for 2026 (no verified 2026 scales).
+
+references:
+  - source_name: "BOE - Ley 35/2006 del IRPF (texto consolidado)"
+    url: "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764"
+    retrieved_date: "2026-10-27"
+  - source_name: "BOE - Orden PJC/297/2026, de 30 de marzo (cotizacion 2026)"
+    url: "https://www.boe.es/buscar/act.php?id=BOE-A-2026-7296"
+    retrieved_date: "2026-10-27"
+  - source_name: "BOE - Resolucion de 18 de marzo de 2026, convalidacion del RDL 5/2026"
+    url: "https://www.boe.es/eli/es/res/2026/03/18/(1)"
+    retrieved_date: "2026-10-27"
+  - source_name: "BOE - DLeg 1/2010 Comunidad de Madrid tributos cedidos (texto consolidado)"
+    url: "https://www.boe.es/buscar/act.php?id=BOCM-m-2010-90068"
+    retrieved_date: "2026-10-27"

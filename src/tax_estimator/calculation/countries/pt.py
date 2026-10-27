@@ -1,14 +1,15 @@
 """
-Portugal (PT) tax calculator - IRS on 2025 income and employee social security.
+Portugal (PT) tax calculator - IRS on calendar-year income and employee
+social security.
 
-All parameters are loaded from ``rules/countries/pt/2025.yaml``
+All parameters are loaded from ``rules/countries/pt/<tax_year>.yaml``
 (``country_parameters``), the single source of truth.
 
-Model (CIRS, 2025 income, rates per Lei 55-A/2025):
+Model (CIRS):
 
 * Employment (category A): 11% employee social security (no ceiling).
-  Specific deduction = greater of 8.54 x IAS (EUR 4,462.15) or SS paid
-  (art. 25), capped at gross income.
+  Specific deduction = greater of 8.54 x IAS or SS paid (art. 25), capped at
+  gross income.
 * Aggregated taxable income (rendimento coletavel) is taxed on the art. 68
   scale.  Gains on assets held < 365 days are aggregated when the taxable
   income including them reaches the top bracket (art. 72 n.14).
@@ -24,17 +25,16 @@ Model (CIRS, 2025 income, rates per Lei 55-A/2025):
 
 from __future__ import annotations
 
-import os
 from decimal import Decimal
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
-
-import yaml
 
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     UnsupportedIncomeError,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
 )
 from tax_estimator.models.international import (
     InternationalTaxInput,
@@ -46,16 +46,9 @@ ZERO = Decimal(0)
 CENT = Decimal("0.01")
 
 
-def _rules_path() -> Path:
-    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
-    root = Path(env_dir) if env_dir else Path(__file__).resolve().parents[4] / "rules"
-    return root / "countries" / "pt" / "2025.yaml"
-
-
-@lru_cache(maxsize=1)
-def _load_rules() -> dict[str, Any]:
-    with open(_rules_path(), encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+@lru_cache(maxsize=8)
+def _load_rules(tax_year: int) -> dict[str, Any]:
+    return load_country_rules("PT", tax_year)
 
 
 def _d(value: Any) -> Decimal:
@@ -63,7 +56,7 @@ def _d(value: Any) -> Decimal:
 
 
 class PTCalculator(BaseCountryCalculator):
-    """Portugal IRS + employee social security calculator (2025 income)."""
+    """Portugal IRS + employee social security calculator (calendar-year income)."""
 
     country_code = "PT"
     country_name = "Portugal"
@@ -73,20 +66,15 @@ class PTCalculator(BaseCountryCalculator):
         super().__init__()
         self._rules = rules
 
-    @property
-    def rules(self) -> dict[str, Any]:
-        return self._rules if self._rules is not None else _load_rules()
+    def rules_for(self, tax_year: int) -> dict[str, Any]:
+        return self._rules if self._rules is not None else _load_rules(tax_year)
 
-    @property
-    def params(self) -> dict[str, Any]:
-        return self.rules["country_parameters"]
-
-    @property
-    def brackets(self) -> list[tuple[Decimal, Decimal | None, Decimal]]:
+    @staticmethod
+    def brackets(rules: dict[str, Any]) -> list[tuple[Decimal, Decimal | None, Decimal]]:
         return [
             (_d(b["income_from"]), None if b["income_to"] is None else _d(b["income_to"]),
              _d(b["rate"]))
-            for b in self.rules["rate_schedule"]["brackets"]
+            for b in rules["rate_schedule"]["brackets"]
         ]
 
     def _resolve_income(self, tax_input: InternationalTaxInput) -> dict[str, Decimal]:
@@ -136,12 +124,15 @@ class PTCalculator(BaseCountryCalculator):
             "rental": ZERO,
         }
 
-    def _scale_tax(self, amount: Decimal) -> tuple[Decimal, Decimal, list[TaxComponent]]:
-        return self._apply_brackets(amount, self.brackets, "PT-IRS")
+    def _scale_tax(
+        self, rules: dict[str, Any], amount: Decimal
+    ) -> tuple[Decimal, Decimal, list[TaxComponent]]:
+        return self._apply_brackets(amount, self.brackets(rules), "PT-IRS")
 
-    def _solidarity(self, taxable: Decimal) -> Decimal:
+    @staticmethod
+    def _solidarity(p: dict[str, Any], taxable: Decimal) -> Decimal:
         total = ZERO
-        for band in self.params["solidarity_surcharge"]:
+        for band in p["solidarity_surcharge"]:
             lo = _d(band["from"])
             hi = None if band["to"] is None else _d(band["to"])
             if taxable > lo:
@@ -150,14 +141,22 @@ class PTCalculator(BaseCountryCalculator):
         return total.quantize(CENT)
 
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        p = self.params
+        rules = self.rules_for(tax_input.tax_year)
+        p = rules["country_parameters"]
         income = self._resolve_income(tax_input)
-        is_nhr = bool(tax_input.pt and tax_input.pt.is_nhr)
+        pt_profile = tax_input.pt
+        require_day1_profile(
+            tax_input,
+            married=bool(pt_profile and pt_profile.is_married),
+            dependants=pt_profile.num_dependents if pt_profile else 0,
+        )
+        is_nhr = bool(pt_profile and pt_profile.is_nhr)
         notes = [
-            "Portugal IRS on 2025 income (rates per Lei 55-A/2025); employee contributions only.",
+            f"Portugal IRS on {rules['period_label'].lower()} income ({p['rates_note']}); "
+            "employee contributions only.",
             "IRS Jovem and IFICI are not modelled.",
         ]
-        warnings: list[str] = []
+        warnings: list[str] = rules_warnings(rules)
         breakdown: list[TaxComponent] = []
 
         wages = income["employment"]
@@ -207,7 +206,7 @@ class PTCalculator(BaseCountryCalculator):
                     "because taxable income reaches the top bracket (art. 72 n.14)."
                 )
             taxable = net_wages + aggregated_short
-            scale_tax, marginal, scale_parts = self._scale_tax(taxable)
+            scale_tax, marginal, scale_parts = self._scale_tax(rules, taxable)
             breakdown.extend(scale_parts)
             family = min(_d(p["general_family_expenses_deduction"]), scale_tax)
             if family > 0:
@@ -218,17 +217,18 @@ class PTCalculator(BaseCountryCalculator):
                     notes="Assumes qualifying expenses of at least EUR 714",
                 ))
             englobed_tax = scale_tax - family
-            solidarity = self._solidarity(taxable)
+            solidarity = self._solidarity(p, taxable)
             if solidarity > 0:
                 breakdown.append(TaxComponent(
                     component_id="PT-SOLIDARITY", name="Taxa adicional de solidariedade",
                     amount=solidarity, base=taxable,
                     notes="2.5% on taxable income EUR 80k-250k, 5% above",
                 ))
-            if 0 < wages <= _d(p["minimo_existencia_exclusion_gross"]):
+            exclusion = _d(p["minimo_existencia_exclusion_gross"])
+            if 0 < wages <= exclusion:
                 warnings.append(
                     "Minimo de existencia (CIRS art. 70) is not modelled; tax may be "
-                    "overstated for gross employment income at or below EUR 16,093."
+                    f"overstated for gross employment income at or below EUR {exclusion:,.2f}."
                 )
 
         capital_rate = _d(rates["capital_income"])

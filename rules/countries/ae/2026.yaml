@@ -1,0 +1,75 @@
+# =============================================================================
+# UAE (United Arab Emirates) Tax Rules - 2026
+# =============================================================================
+# The UAE levies NO personal income tax on individuals (employment income,
+# personal investment income and non-licensed real estate income).  Natural
+# persons are within Corporate Tax only for licensed business activity with
+# turnover above AED 1,000,000 in a calendar year (Cabinet Decision No. 49 of
+# 2023), which is outside the 2026 day-1 scope (self-employment refused).
+# =============================================================================
+
+jurisdiction_id: "AE"
+tax_year: 2026
+
+jurisdiction_type: "country"
+jurisdiction_name: "United Arab Emirates"
+jurisdiction_abbreviation: "UAE"
+parent_jurisdiction_id: null
+
+country_code: "AE"
+currency_code: "AED"
+tax_year_format: "calendar"
+period_label: "Calendar 2026"
+
+has_income_tax: false
+income_tax_type: "none"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "none"
+  flat_rate: null
+  brackets: []
+  surtaxes: []
+
+# No social insurance for expatriate employees.  NOT MODELLED: GPSSA pension
+# for UAE nationals (Federal Decree-Law No. 57 of 2023); the calculator
+# assumes an expatriate employee.
+social_insurance: null
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+verification:
+  status: "verified"
+  provisional_items: []
+  last_verified: "2026-10-27"
+  verified_by: "intl-2026 CA/JP/PT/AE engineer"
+  notes: |
+    The UAE government portal states "The UAE does not levy income tax on
+    individuals" (retrieved 2026-10-27); no personal income tax has been
+    enacted for 2026.  Cabinet Decision No. 49 of 2023 limits Corporate Tax
+    on natural persons to business/business activity turnover above AED 1
+    million; wages and personal investment income are excluded.  GPSSA rates
+    for nationals (11% / 5% legacy employee share, AED 70k/month cap) are
+    documented in the calculator notes but not modelled or re-verified.
+
+references:
+  - source_name: "UAE Government portal (u.ae) - Taxation"
+    url: "https://u.ae/en/information-and-services/finance-and-investment/taxation"
+    retrieved_date: "2026-10-27"
+  - source_name: "UAE Ministry of Finance - Cabinet Decision No. 49 of 2023 (natural persons and Corporate Tax)"
+    url: "https://mof.gov.ae/wp-content/uploads/2023/05/Cabinet-Decision-No.-49-of-2023.pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "UAE Federal Tax Authority"
+    url: "https://tax.gov.ae"
+    retrieved_date: null

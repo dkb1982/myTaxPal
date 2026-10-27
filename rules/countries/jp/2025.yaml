@@ -52,6 +52,7 @@ reconstruction_tax_rate: 0.021
 # Below ¥6.6M the statutory table 別表第五 applies; it is reproduced by
 # rounding salary down to a ¥4,000 multiple before applying the formula.
 employment_income_deduction:
+  note: "2025 statutory employment income deduction (minimum ¥650,000)"
   minimum: 650000
   minimum_applies_up_to: 1900000
   table_rounding_unit: 4000
@@ -95,6 +96,7 @@ dependent_deduction:
 
 # Resident tax (個人住民税), standard rates (地方税法)
 resident_tax:
+  note: "Resident tax on 2025 income is levied in fiscal 2026 (令和8年度); standard 10% rate and a ¥5,000 per-capita levy (incl. ¥1,000 forest environment tax)."
   municipal_rate: 0.06
   prefectural_rate: 0.04
   basic_deduction:  # unchanged at ¥430k for 令和8年度
@@ -136,6 +138,7 @@ social_insurance:
   care_rate: 0.00795            # 1.59% total, employee half, age 40-64
   pension_rate: 0.0915          # 18.3% total, employee half
   employment_insurance_rate: 0.0055  # general business, from 2025-04-01 (0.6% Jan-Mar)
+  employment_insurance_note: "0.55% employee rate (general business, from April 2025)"
   enrolment_monthly_wage_threshold: 88000
   bonus_health_annual_cap: 5730000
   bonus_pension_per_payment_cap: 1500000

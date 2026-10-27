@@ -1,28 +1,28 @@
 """
 Singapore (SG) tax calculator.
 
-Period semantics: ``tax_year=2025`` means Year of Assessment 2025, i.e. income
-earned in calendar 2024. All parameters (resident rates, CPF 2024 rates and
-ceilings, earned income relief, YA2025 rebate) are loaded from
-rules/countries/sg/<year>.yaml and are consistent with that choice.
+Period semantics: ``tax_year=N`` means income earned in calendar N, assessed
+in Year of Assessment N+1 (2025 = 2025 income / YA2026, 2026 = 2026 income /
+YA2027). All parameters (resident rates, CPF rates and ceilings for year N,
+reliefs, any rebate for YA N+1) are loaded from rules/countries/sg/<N>.yaml.
 
 Calculates:
-- Resident income tax (progressive, after reliefs and the YA2025 rebate)
+- Resident income tax (progressive, after reliefs and any enacted rebate)
 - Non-resident tax (employment at max(15%, resident rates); other income at 24%)
 - Employee CPF contributions for citizens / PRs (ordinary + additional wages)
 """
 
 from __future__ import annotations
 
-import os
 from decimal import Decimal
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
-import yaml
-
-from tax_estimator.calculation.countries.base import BaseCountryCalculator
+from tax_estimator.calculation.countries.base import (
+    BaseCountryCalculator,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
+)
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
@@ -30,22 +30,12 @@ from tax_estimator.models.international import (
     TaxComponent,
 )
 
-RULES_YEAR = 2025
 CENT = Decimal("0.01")
 
 
-def _rules_dir() -> Path:
-    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
-    if env_dir:
-        return Path(env_dir) / "countries"
-    return Path(__file__).resolve().parents[4] / "rules" / "countries"
-
-
-@lru_cache(maxsize=4)
-def load_sg_rules(tax_year: int = RULES_YEAR) -> dict[str, Any]:
-    """Load Singapore rules for a Year of Assessment."""
-    with (_rules_dir() / "sg" / f"{tax_year}.yaml").open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+def load_sg_rules(tax_year: int) -> dict[str, Any]:
+    """Load Singapore rules for income year ``tax_year`` (assessed in YA tax_year+1)."""
+    return load_country_rules("SG", tax_year)
 
 
 def _d(value: Any) -> Decimal:
@@ -64,26 +54,37 @@ def _brackets(rules: dict[str, Any]) -> list[tuple[Decimal, Decimal | None, Deci
 
 
 class SGCalculator(BaseCountryCalculator):
-    """Singapore tax calculator (YA2025 = 2024 income)."""
+    """Singapore tax calculator (tax_year 2025 = 2025 income / YA2026)."""
 
     country_code = "SG"
     country_name = "Singapore"
     currency_code = "SGD"
 
+    def __init__(self, rules: dict[str, Any] | None = None):
+        super().__init__()
+        self._override = rules
+
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        rules = load_sg_rules(RULES_YEAR)
+        rules = self._override or load_sg_rules(tax_input.tax_year)
+        if rules.get("tax_year") != tax_input.tax_year:
+            raise ValueError(
+                f"SG rules are for tax year {rules.get('tax_year')}; got {tax_input.tax_year}"
+            )
         breakdown: list[TaxComponent] = []
-        warnings: list[str] = []
+        warnings: list[str] = rules_warnings(rules)
         notes: list[str] = [
             f"Period: {rules['period_label']}.",
             "Singapore does not tax capital gains or one-tier dividends; interest from "
             "approved banks/finance companies is exempt for individuals.",
         ]
-        if tax_input.tax_year != RULES_YEAR:
-            warnings.append(
-                f"Singapore rules are modelled for YA{RULES_YEAR}; tax year "
-                f"{tax_input.tax_year} uses YA{RULES_YEAR} parameters."
-            )
+        require_day1_profile(
+            tax_input,
+            self_employment=(
+                tax_input.income_breakdown.self_employment
+                if tax_input.income_breakdown is not None
+                else Decimal(0)
+            ),
+        )
 
         sg = tax_input.sg
         bd = tax_input.income_breakdown
@@ -172,7 +173,12 @@ class SGCalculator(BaseCountryCalculator):
         eir = min(eir_amount, earned_income)
 
         cpf_relief = sg.cpf_relief if sg and sg.cpf_relief > 0 else cpf
-        course_fees = min(sg.course_fees_relief, _d(reliefs_cfg["course_fees_cap"])) if sg else 0
+        course_cap = _d(reliefs_cfg["course_fees_cap"])
+        course_fees = min(sg.course_fees_relief, course_cap) if sg else Decimal(0)
+        if sg and sg.course_fees_relief and course_cap == 0:
+            notes.append(
+                "Course fees relief has lapsed for this Year of Assessment and is not applied."
+            )
         life_insurance = Decimal(0)
         if sg and sg.life_insurance_relief:
             room = _d(reliefs_cfg["life_insurance_cpf_threshold"]) - cpf_relief
@@ -206,18 +212,25 @@ class SGCalculator(BaseCountryCalculator):
         )
         breakdown.extend(tax_parts)
 
-        reb = rules["personal_income_tax_rebate"]
-        rebate = min((gross_tax * _d(reb["rate"])).quantize(CENT), _d(reb["cap"]))
+        reb = rules.get("personal_income_tax_rebate")
+        rebate = Decimal(0)
+        if reb:
+            rate, cap = _d(reb["rate"]), _d(reb["cap"])
+            rebate = min((gross_tax * rate).quantize(CENT), cap)
         if rebate:
             breakdown.append(
                 TaxComponent(
                     component_id="SG-REBATE",
-                    name="Personal Income Tax Rebate (YA2025)",
+                    name=f"Personal Income Tax Rebate (YA{rules['year_of_assessment']})",
                     amount=-rebate,
-                    rate=_d(reb["rate"]),
+                    rate=rate,
                     base=gross_tax,
-                    notes="60% of tax payable, capped at S$200",
+                    notes=f"{rate * 100:.0f}% of tax payable, capped at S${cap:,.0f}",
                 )
+            )
+        if not reb:
+            notes.append(
+                f"No Personal Income Tax Rebate applies for YA{rules['year_of_assessment']}."
             )
         notes.append(
             "Only earned income, CPF, course fees and life insurance reliefs are modelled."
@@ -288,17 +301,19 @@ class SGCalculator(BaseCountryCalculator):
             return Decimal(0), None
         if monthly <= _d(c["full_rate_monthly_wage"]):
             notes.append(
-                "Wages of S$750/month or less have phased-in employee CPF rates; the full "
-                "rate is applied here."
+                f"Wages of S${_d(c['full_rate_monthly_wage']):,.0f}/month or less have "
+                "phased-in employee CPF rates; the full rate is applied here."
             )
         ow_subject = min(ordinary, _d(c["ordinary_wage_ceiling_monthly"]) * 12)
         aw_ceiling = max(Decimal(0), _d(c["annual_salary_ceiling"]) - ow_subject)
         aw_subject = min(bonus, aw_ceiling)
         base = ow_subject + aw_subject
         cpf = (base * rate).quantize(CENT)
+        ow_ceiling = _d(c["ordinary_wage_ceiling_monthly"])
+        annual_ceiling = _d(c["annual_salary_ceiling"])
         notes.append(
-            "CPF uses 2024 employee rates and the S$6,800/month ordinary wage ceiling "
-            "(1st/2nd-year PR graduated rates not modelled)."
+            f"CPF uses {rules['income_year']} employee rates and the S${ow_ceiling:,.0f}/month "
+            "ordinary wage ceiling (1st/2nd-year PR graduated rates not modelled)."
         )
         return cpf, TaxComponent(
             component_id="SG-CPF",
@@ -306,6 +321,7 @@ class SGCalculator(BaseCountryCalculator):
             amount=cpf,
             rate=rate,
             base=base,
-            notes=f"Employee CPF {rate * 100:.1f}% on ordinary wages up to S$6,800/month "
-            f"and additional wages up to the S$102,000 annual ceiling",
+            notes=f"Employee CPF {rate * 100:.1f}% on ordinary wages up to "
+            f"S${ow_ceiling:,.0f}/month and additional wages up to the "
+            f"S${annual_ceiling:,.0f} annual ceiling",
         )

@@ -12,7 +12,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+import yaml
 
 from tax_estimator.models.international import (
     InternationalTaxInput,
@@ -54,6 +56,53 @@ def get_country_name(country_code: str) -> str:
 # =============================================================================
 # Base Calculator
 # =============================================================================
+
+
+def load_country_rules(country_code: str, tax_year: int) -> dict[str, Any]:
+    """Load ``rules/countries/<cc>/<tax_year>.yaml``; fail closed if absent.
+
+    ``tax_year`` is the native fiscal year with most of its months in that
+    calendar year (e.g. GB 2026 = 2026/27, AU 2026 = 2026-27, SG 2026 = 2026
+    income / YA2027).
+    """
+    from tax_estimator.calculation.countries.gb_loader import _get_default_rules_dir
+
+    path = _get_default_rules_dir() / country_code.lower() / f"{tax_year}.yaml"
+    try:
+        with path.open(encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+    except FileNotFoundError:
+        raise ValueError(f"No {country_code.upper()} rules for tax year {tax_year}") from None
+    if not isinstance(data, dict) or data.get("tax_year") != tax_year:
+        raise ValueError(f"{country_code.upper()} rules file does not declare tax year {tax_year}")
+    return data
+
+
+def period_label(country_code: str, tax_year: int) -> str | None:
+    """Native period covered by ``tax_year`` (e.g. "2026/27 tax year ..."), if recorded."""
+    try:
+        return load_country_rules(country_code, tax_year).get("period_label")
+    except ValueError:
+        return None
+
+
+def rules_warnings(rules: dict[str, Any]) -> list[str]:
+    """User-facing warnings for provisional values recorded in a rules file."""
+    verification = rules.get("verification") or {}
+    return [
+        f"{item} (provisional)" for item in verification.get("provisional_items") or []
+    ]
+
+
+def require_day1_profile(tax_input: InternationalTaxInput, *, married: bool = False,
+                         dependants: int = 0, self_employment: Decimal = Decimal(0)) -> None:
+    """Fail closed for profiles outside the 2026+ scope (single, no dependants, employee)."""
+    if tax_input.tax_year < 2026:
+        return
+    if married or dependants or self_employment:
+        raise UnsupportedIncomeError(
+            f"{tax_input.tax_year} estimates cover single employees without dependants only"
+        )
 
 
 class UnsupportedIncomeError(ValueError):

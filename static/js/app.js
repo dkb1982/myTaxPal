@@ -46,10 +46,12 @@ const MAX_COMPARISON_REGIONS = 6;
 const REGION_PERIODS_2025 = {
     GB: '2025/26 tax year (Apr–Apr)',
     HK: '2025/26 year of assessment (Apr–Mar)',
-    AU: '2024-25 financial year (Jul–Jun)',
-    SG: 'YA2025 (2024 income)',
+    AU: '2025-26 financial year (Jul–Jun)',
+    SG: '2025 income (YA2026)',
 };
-function regionPeriodLabel(regionId, taxYear) {
+// The API's period_label (native tax year) wins; the map covers older responses.
+function regionPeriodLabel(regionId, taxYear, apiLabel) {
+    if (apiLabel) return apiLabel;
     if (String(taxYear) !== '2025') return `Calendar ${taxYear}`;
     return REGION_PERIODS_2025[regionId] || 'Calendar 2025';
 }
@@ -234,6 +236,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Setup country selector currency hint
     setupCountrySelector();
+    document.getElementById('intl-tax-year')?.addEventListener('change', updateIntlYearAvailability);
+    updateIntlYearAvailability();
 
     // Load comparison regions (US states, cities, international)
     setComparisonYearMode();
@@ -372,6 +376,7 @@ function setupCountrySelector() {
     if (countrySelect && currencyHint) {
         countrySelect.addEventListener('change', () => {
             const countryCode = countrySelect.value;
+            updateIntlYearAvailability();
             if (countryCode && COUNTRY_CURRENCIES[countryCode]) {
                 const currency = COUNTRY_CURRENCIES[countryCode];
                 const symbol = CURRENCY_SYMBOLS[currency] || currency;
@@ -380,6 +385,35 @@ function setupCountrySelector() {
                 currencyHint.textContent = 'Enter amount in local currency';
             }
         });
+    }
+}
+
+/**
+ * Mark countries without rules for the chosen year and show the native period.
+ */
+async function updateIntlYearAvailability() {
+    const yearSelect = document.getElementById('intl-tax-year');
+    const countrySelect = document.getElementById('intl-country');
+    const hint = document.getElementById('intl-period-hint');
+    if (!yearSelect || !countrySelect) return;
+    const year = yearSelect.value;
+    try {
+        const response = await fetch(`${API_BASE}/international/countries?tax_year=${year}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (yearSelect.value !== year) return;
+        const byCode = new Map((data.countries || []).map(c => [c.country_code, c]));
+        Array.from(countrySelect.options).forEach(option => {
+            if (option.value) option.disabled = !byCode.has(option.value);
+        });
+        if (countrySelect.value && !byCode.has(countrySelect.value)) countrySelect.value = '';
+        const info = byCode.get(countrySelect.value);
+        if (hint) {
+            hint.textContent = info?.period_label || '';
+            hint.hidden = !info?.period_label;
+        }
+    } catch (err) {
+        console.warn('Failed to load countries for tax year:', year, err);
     }
 }
 
@@ -407,6 +441,9 @@ async function loadComparisonRegions() {
 
         // Populate US cities
         populateUSCities(data.us_cities || []);
+
+        // Only countries validated for this year stay selectable.
+        setAvailableCountries(data.international || []);
 
         // The standalone form may have a different selected tax year.
         if (document.getElementById('tax-year')?.value === year) {
@@ -471,18 +508,13 @@ function setComparisonYearMode() {
     const scope = document.getElementById('compare-year-scope');
     if (scope) scope.hidden = !limited;
     const legend = document.getElementById('compare-region-legend');
-    if (legend) legend.textContent = limited ? 'Verified 2026 US places (choose 1 or more)' : 'Places to compare (2–6)';
+    if (legend) legend.textContent = limited ? 'Verified 2026 places (choose 1 or more)' : 'Places to compare (2–6)';
     const submit = document.getElementById('compare-calculate-btn');
     if (submit) submit.textContent = limited ? 'Calculate 2026 take-home pay' : 'Compare take-home pay';
     const scopeDisclosure = document.getElementById('compare-us-scope');
     if (scopeDisclosure) scopeDisclosure.textContent = limited
-        ? '2026 estimates cover the listed verified states and cities only: single, age 40, full-year resident and employee in each place, no dependants, standard deduction, wages, dividends and direct securities gains. Special deductions are outside scope.'
+        ? '2026 estimates cover the listed verified states, cities and countries only: single, age 40, full-year resident and employee in each place, no dependants, standard deduction or default reliefs, wages, dividends and direct securities gains. Countries use the tax year with most months in 2026 (UK and Hong Kong 2026/27, Australia 2026-27, Singapore 2026 income).'
         : 'Each place is modelled as a full-year resident and worker. US places assume age 40, no dependants and the standard deduction; only single filers with wages, dividends and direct securities gains are source-checked.';
-    // 2026 has no countries, but Arizona and Philadelphia facts still apply.
-    for (const id of ['compare-country-profiles']) {
-        const section = document.getElementById(id);
-        if (section) section.style.display = limited ? 'none' : '';
-    }
     const currency = document.getElementById('compare-currency');
     const filingStatus = document.getElementById('compare-filing-status');
     if (currency) {
@@ -497,15 +529,27 @@ function setComparisonYearMode() {
             option.disabled = limited && option.value !== 'single';
         });
     }
-    const international = document.getElementById('international-section');
-    if (international) {
-        international.hidden = limited;
-        if (limited) international.querySelectorAll('input[name="regions"]').forEach(input => {
-            input.checked = false;
-        });
-    }
     updateSelectionCount();
     updateChips();
+}
+
+/**
+ * Show only the countries the API lists for the selected comparison year.
+ */
+function setAvailableCountries(countries) {
+    const section = document.getElementById('international-section');
+    if (!section) return;
+    const available = new Set(countries.map(country => country.region_id));
+    section.querySelectorAll('input[name="regions"]').forEach(input => {
+        const label = input.closest('label');
+        const shown = available.has(input.value);
+        if (label) label.hidden = !shown;
+        input.disabled = !shown;
+        if (!shown) input.checked = false;
+    });
+    section.hidden = available.size === 0;
+    const count = section.querySelector('.region-count');
+    if (count) count.textContent = `(${available.size})`;
 }
 
 /**
@@ -1279,7 +1323,7 @@ async function calculateComparison() {
     const minimumRegions = formData.tax_year === 2026 ? 1 : 2;
     if (formData.regions.length < minimumRegions) {
         showError({ error: { message: minimumRegions === 1
-            ? 'Please select at least one verified 2026 state or city.'
+            ? 'Please select at least one verified 2026 place.'
             : 'Please select at least 2 regions to compare.' } });
         return;
     }
@@ -1556,6 +1600,8 @@ function displayCompareResults(result) {
     // Store result for modal access (Phase 2)
     lastCompareResult = result;
     const is2026 = result.tax_year === 2026;
+    // A 2026 result with only US places is USD-only; any country brings FX back.
+    const usOnly2026 = is2026 && (result.regions || []).every(r => (r.region_id || '').startsWith('US-'));
     const single2026 = is2026 && (result.regions || []).length === 1;
     const singleStateName = single2026 ? (result.regions[0].region_name || result.regions[0].region_id) : '';
     const heading = document.getElementById('compare-results-heading');
@@ -1575,7 +1621,7 @@ function displayCompareResults(result) {
         const fxSourceHtml = urlMatch
             ? `<a href="${escapeHtml(urlMatch[0])}" target="_blank" rel="noopener noreferrer">${escapeHtml(fxSourceText)}</a>`
             : escapeHtml(fxSource);
-        infoEl.innerHTML = is2026
+        infoEl.innerHTML = usOnly2026
             ? `${single2026 ? 'Estimating' : 'Comparing'} take-home pay on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (USD). No currency conversion is applied.`
             : `Comparing take-home pay on <strong>${symbol}${formatNumber(totalIncome)}</strong> gross income (${escapeHtml(result.base_currency)}). FX snapshot: ${escapeHtml(fxDate)} (${fxSourceHtml}).`;
     }
@@ -1586,9 +1632,11 @@ function displayCompareResults(result) {
 
     // Handle both old format (countries) and new format (regions)
     const regions = result.regions || result.countries || [];
-    document.getElementById('compare-assumptions').innerHTML = is2026
+    document.getElementById('compare-assumptions').innerHTML = usOnly2026
         ? `<p>Only verified 2026 states and cities are shown. Single, age 40, full-year resident and employee in each place, with standard deduction; special deductions and state/local employee payroll programmes are outside scope.${single2026 ? ' One destination is an estimate, not a location ranking.' : ''}</p>`
-        : buildCompareAssumptionsHtml(regions);
+        : (is2026
+            ? '<p>Only verified 2026 places are shown: single, age 40, no dependants, full-year resident employee. Countries use the tax year with most months in 2026 (UK and Hong Kong 2026/27, Australia 2026-27, Singapore 2026 income). The 2026 average exchange rate is published in January 2027, so the IRS 2025 annual average is used.</p>'
+            : '') + (usOnly2026 ? '' : buildCompareAssumptionsHtml(regions));
     const skippedEl = document.getElementById('compare-skipped');
     if (skippedEl) {
         const skipped = result.skipped_regions || [];
@@ -1650,11 +1698,14 @@ function displayCompareResults(result) {
             if (isLowestTax && !isBestNet) {
                 badgesHtml += '<span class="compare-card-badge compare-card-badge--low-tax">Lowest Tax</span>';
             }
+            if (region.provisional) {
+                badgesHtml += '<span class="compare-card-badge compare-card-badge--provisional" title="Includes figures derived from official formulas or not yet enacted">Provisional</span>';
+            }
 
             card.innerHTML = `
                 <div class="compare-card-badges">${badgesHtml}</div>
                 <h4 class="compare-card-name">${escapeHtml(regionName)}</h4>
-                <p class="compare-card-period">${escapeHtml(regionPeriodLabel(regionId, result.tax_year))}</p>
+                <p class="compare-card-period">${escapeHtml(regionPeriodLabel(regionId, result.tax_year, region.period_label))}</p>
                 <div class="compare-card-stats">
                     <div class="compare-card-stat">
                         <span class="compare-card-stat-label">Take-home</span>

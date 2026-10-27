@@ -21,6 +21,7 @@ parent_jurisdiction_id: null
 country_code: "AE"
 currency_code: "AED"
 tax_year_format: "calendar"
+period_label: "Calendar 2025"
 
 # Tax characteristics
 has_income_tax: false

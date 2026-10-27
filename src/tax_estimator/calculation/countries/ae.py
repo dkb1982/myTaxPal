@@ -13,13 +13,25 @@ nationality field; the calculator assumes an expatriate employee.
 from __future__ import annotations
 
 from decimal import Decimal
+from functools import lru_cache
+from typing import Any
 
-from tax_estimator.calculation.countries.base import BaseCountryCalculator
+from tax_estimator.calculation.countries.base import (
+    BaseCountryCalculator,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
+)
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
     TaxComponent,
 )
+
+
+@lru_cache(maxsize=8)
+def _load_rules(tax_year: int) -> dict[str, Any]:
+    return load_country_rules("AE", tax_year)
 
 
 class AECalculator(BaseCountryCalculator):
@@ -34,10 +46,20 @@ class AECalculator(BaseCountryCalculator):
     country_name = "United Arab Emirates"
     currency_code = "AED"
 
+    def __init__(self, rules: dict[str, Any] | None = None):
+        super().__init__()
+        self._rules = rules
+
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
         """Calculate UAE tax (always zero for personal income)."""
+        rules = self._rules if self._rules is not None else _load_rules(tax_input.tax_year)
+        bd = tax_input.income_breakdown
+        require_day1_profile(
+            tax_input, self_employment=bd.self_employment if bd is not None else Decimal(0)
+        )
         breakdown: list[TaxComponent] = []
         notes: list[str] = [
+            f"Period: {rules['period_label']}.",
             "The UAE has NO personal income tax.",
             "Employment income is not taxed.",
             "There is no social security/pension requirement for expatriate employees.",
@@ -80,4 +102,5 @@ class AECalculator(BaseCountryCalculator):
             breakdown=breakdown,
             marginal_rate=Decimal(0),
             notes=notes,
+            warnings=rules_warnings(rules),
         )

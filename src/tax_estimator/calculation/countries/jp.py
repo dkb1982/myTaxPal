@@ -1,10 +1,10 @@
 """
-Japan (JP) tax calculator - 2025 income (令和7年分).
+Japan (JP) tax calculator - calendar-year income (e.g. 2025 = 令和7年分).
 
 Calculates, for a Japanese tax resident employee:
 - Shotokuzei (national income tax) on aggregate income
 - Fukko Tokubetsu Shotokuzei (2.1% reconstruction surtax)
-- Juminzei (resident tax) on the same 2025 income (levied as 令和8年度)
+- Juminzei (resident tax) on the same income (levied the following fiscal year)
 - Employee social insurance (health, long-term care, pension, employment)
 - Separate 20.315% taxation of listed-share dividends/gains and deposit interest
 
@@ -14,15 +14,16 @@ truth). Tax year runs January 1 to December 31.
 
 from __future__ import annotations
 
-import os
 from decimal import ROUND_DOWN, ROUND_HALF_DOWN, Decimal
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
-import yaml
-
-from tax_estimator.calculation.countries.base import BaseCountryCalculator
+from tax_estimator.calculation.countries.base import (
+    BaseCountryCalculator,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
+)
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
@@ -30,22 +31,11 @@ from tax_estimator.models.international import (
     TaxComponent,
 )
 
-RULES_YEAR = 2025
 
-
-def _rules_dir() -> Path:
-    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
-    if env_dir:
-        return Path(env_dir) / "countries"
-    return Path(__file__).resolve().parents[4] / "rules" / "countries"
-
-
-@lru_cache(maxsize=4)
-def load_jp_rules(tax_year: int = RULES_YEAR) -> dict[str, Any]:
-    """Load the Japan rules YAML for a modelled year."""
-    path = _rules_dir() / "jp" / f"{tax_year}.yaml"
-    with path.open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+@lru_cache(maxsize=8)
+def load_jp_rules(tax_year: int) -> dict[str, Any]:
+    """Load the Japan rules YAML for a modelled year (fails closed if absent)."""
+    return load_country_rules("JP", tax_year)
 
 
 def _d(value: Any) -> Decimal:
@@ -72,34 +62,39 @@ def _tier(table: list[dict[str, Any]], key: str, income: Decimal) -> dict[str, A
 
 
 class JPCalculator(BaseCountryCalculator):
-    """Japan tax calculator for 2025 income."""
+    """Japan tax calculator (calendar-year income)."""
 
     country_code = "JP"
     country_name = "Japan"
     currency_code = "JPY"
 
+    def __init__(self, rules: dict[str, Any] | None = None):
+        super().__init__()
+        self._rules = rules
+
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        rules = load_jp_rules(RULES_YEAR)
+        rules = self._rules if self._rules is not None else load_jp_rules(tax_input.tax_year)
         breakdown: list[TaxComponent] = []
-        warnings: list[str] = []
+        warnings: list[str] = rules_warnings(rules)
         notes: list[str] = [
             f"Period: {rules['period_label']}.",
             "Assumes a Japanese tax resident employee enrolled in Kyokai Kenpo (Tokyo) "
             "health insurance and employees' pension, with salary paid evenly over 12 months.",
-            "Resident tax on 2025 income is levied in fiscal 2026 (令和8年度); standard 10% "
-            "rate and a ¥5,000 per-capita levy (incl. ¥1,000 forest environment tax).",
+            rules["resident_tax"]["note"],
         ]
-        if tax_input.tax_year != RULES_YEAR:
-            warnings.append(
-                f"Japan rules are modelled for {RULES_YEAR} income; tax year "
-                f"{tax_input.tax_year} uses {RULES_YEAR} parameters."
-            )
 
         jp = tax_input.jp
         bd = tax_input.income_breakdown
         age_category = jp.age_category if jp else JPAgeCategory.UNDER_40
         num_dependents = jp.num_dependents if jp else 0
         has_spouse = jp.has_spouse if jp else False
+        require_day1_profile(
+            tax_input,
+            married=has_spouse,
+            dependants=num_dependents,
+            self_employment=(bd.self_employment if bd is not None else Decimal(0))
+            + (jp.business_income if jp else Decimal(0)),
+        )
         spouse_income = jp.spouse_income if jp else Decimal(0)
         social_insurance_paid = jp.social_insurance_paid if jp else Decimal(0)
         income_tax_withheld = jp.income_tax_withheld if jp else Decimal(0)
@@ -158,7 +153,7 @@ class JPCalculator(BaseCountryCalculator):
                 name="Kyuyo Shotoku Kojo (Employment Income Deduction)",
                 amount=-(wages - employment_income),
                 base=wages,
-                notes="2025 statutory employment income deduction (minimum ¥650,000)",
+                notes=rules["employment_income_deduction"]["note"],
                 is_deductible=True,
             )
         )
@@ -201,8 +196,8 @@ class JPCalculator(BaseCountryCalculator):
                 )
         elif has_spouse:
             notes.append(
-                "Spouse income exceeds the ¥580,000 limit; the spouse special deduction "
-                "(配偶者特別控除) is not modelled."
+                f"Spouse income exceeds the ¥{_d(sp_rules['spouse_income_limit']):,.0f} limit; "
+                "the spouse special deduction (配偶者特別控除) is not modelled."
             )
 
         dep_rules = rules["dependent_deduction"]
@@ -216,7 +211,7 @@ class JPCalculator(BaseCountryCalculator):
                     name="Fuyou Kojo (Dependent Deduction)",
                     amount=-dependents_it,
                     notes=f"{num_dependents} general dependent(s) aged 16-18 or 23-69 with "
-                    "income ≤ ¥580,000 assumed",
+                    f"income ≤ ¥{_d(dep_rules['dependent_income_limit']):,.0f} assumed",
                     is_deductible=True,
                 )
             )
@@ -337,12 +332,19 @@ class JPCalculator(BaseCountryCalculator):
 
     @staticmethod
     def _employment_income(rules: dict[str, Any], salary: Decimal) -> Decimal:
-        """給与所得の金額 (salary less 給与所得控除), 2025 rules incl. 別表第五."""
+        """給与所得の金額 (salary less 給与所得控除), incl. the 別表第五 table."""
         r = rules["employment_income_deduction"]
         if salary <= 0:
             return Decimal(0)
         if salary < _d(r["minimum_applies_up_to"]):
-            return max(Decimal(0), salary - _d(r["minimum"]))
+            # 別表第五: nil below (minimum + ¥1,000), then salary - minimum.
+            if salary < _d(r["minimum"]) + 1000:
+                return Decimal(0)
+            return salary - _d(r["minimum"])
+        # Fixed table rows bridging the special minimum to the formula (e.g. 2026).
+        for row in r.get("fixed_rows") or []:
+            if _d(row["from"]) <= salary < _d(row["to"]):
+                return _d(row["employment_income"])
         if salary < _d(r["table_upper_limit"]):
             base = _floor(salary, int(r["table_rounding_unit"]))
         else:
@@ -436,9 +438,10 @@ class JPCalculator(BaseCountryCalculator):
             bonus_health = min(std_bonus, _d(si["bonus_health_annual_cap"]))
             bonus_pension = min(std_bonus, _d(si["bonus_pension_per_payment_cap"]))
 
-            def add(cid: str, name: str, rate: Decimal, std: Decimal, bonus_base: Decimal) -> None:
+            def add(cid: str, name: str, rate: Decimal, std: Decimal, bonus_base: Decimal,
+                    months: int = 12, note: str | None = None) -> None:
                 nonlocal total
-                amount = _premium(std * rate) * 12 + _premium(bonus_base * rate)
+                amount = _premium(std * rate) * months + _premium(bonus_base * rate)
                 total += amount
                 parts.append(
                     TaxComponent(
@@ -446,13 +449,18 @@ class JPCalculator(BaseCountryCalculator):
                         name=name,
                         amount=amount,
                         rate=rate,
-                        base=std * 12 + bonus_base,
-                        notes=f"Standard monthly remuneration ¥{std:,.0f}",
+                        base=std * months + bonus_base,
+                        notes=note or f"Standard monthly remuneration ¥{std:,.0f}",
                     )
                 )
 
             add("JP-HEALTH", "Kenko Hoken (Health Insurance)", _d(si["health_rate"]),
                 std_health, bonus_health)
+            levy = si.get("child_support_levy")
+            if levy:
+                add("JP-CHILD-LEVY", "Kodomo Kosodate Shienkin (Child and Childcare Support Levy)",
+                    _d(levy["rate"]), std_health, bonus_health, months=int(levy["months"]),
+                    note=levy["note"])
             if age_category == JPAgeCategory.AGE_40_TO_64:
                 add("JP-LTC", "Kaigo Hoken (Long-term Care)", _d(si["care_rate"]),
                     std_health, bonus_health)
@@ -464,7 +472,8 @@ class JPCalculator(BaseCountryCalculator):
                              "payroll, and is not modelled.")
         elif regular_wages > 0:
             notes.append(
-                "Monthly salary below ¥88,000: employee health/pension insurance not "
+                f"Monthly salary below ¥{_d(si['enrolment_monthly_wage_threshold']):,.0f}: "
+                "employee health/pension insurance not "
                 "applied (National Health Insurance/pension not modelled)."
             )
 
@@ -480,7 +489,7 @@ class JPCalculator(BaseCountryCalculator):
                     amount=emp_ins,
                     rate=rate,
                     base=wages,
-                    notes="0.55% employee rate (general business, from April 2025)",
+                    notes=si["employment_insurance_note"],
                 )
             )
         return total, parts

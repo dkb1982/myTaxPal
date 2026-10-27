@@ -30,6 +30,7 @@ from tax_estimator.calculation.comparison_regions import (
     US_STATES,
     is_valid_region,
 )
+from tax_estimator.calculation.countries.base import period_label
 from tax_estimator.models.income_breakdown import IncomeBreakdown
 from tax_estimator.models.us_scenario import USScenarioFacts
 
@@ -151,6 +152,7 @@ class InternationalCountryInfo(BaseModel):
     has_income_tax: bool
     has_capital_gains_tax: bool
     popular: bool
+    period_label: str | None = None
 
 
 class ComparisonRegionsResponse(BaseModel):
@@ -301,6 +303,7 @@ async def list_comparison_regions(
                 has_income_tax=i["has_income_tax"],
                 has_capital_gains_tax=i["has_capital_gains_tax"],
                 popular=i.get("popular", False),
+                period_label=period_label(i["region_id"], tax_year),
             )
             for i in regions["international"]
         ],
@@ -481,8 +484,7 @@ async def get_region_details(
                 "Federal income tax applies to all US locations",
             ],
             "disclaimers": [
-                "All rates are PLACEHOLDER values for development.",
-                "Verify with official IRS and state tax authority.",
+                "Estimate for the default single-employee profile; not a tax return.",
             ],
         }
     elif region_id in US_CITIES:
@@ -501,8 +503,7 @@ async def get_region_details(
                 "Federal income tax also applies",
             ],
             "disclaimers": [
-                "All rates are PLACEHOLDER values for development.",
-                "Verify with official IRS, state, and local tax authorities.",
+                "Estimate for the default single-employee profile; not a tax return.",
             ],
         }
     elif region_id in INTERNATIONAL_COUNTRIES:
@@ -520,9 +521,9 @@ async def get_region_details(
             "has_income_tax": info.has_income_tax,
             "has_capital_gains_tax": info.has_capital_gains_tax,
             "notes": notes,
+            "period_label": period_label(region_id, tax_year),
             "disclaimers": [
-                "All rates are PLACEHOLDER values for development.",
-                "Verify with official government tax authority.",
+                "Estimate for the default resident-employee profile; not a tax return.",
             ],
         }
 

@@ -1,0 +1,138 @@
+# =============================================================================
+# Portugal Tax Rules - 2026 income (IRS, calendar year)
+# =============================================================================
+# Single source of truth for pt.py.  General rates per CIRS art. 68 as
+# amended by Lei n.o 73-A/2025 (30 December 2025, Orcamento do Estado para
+# 2026, in force 1 January 2026): bracket limits updated by 3.51% and the
+# 2nd-5th bracket rates cut by 0.3 points.
+# =============================================================================
+
+jurisdiction_id: "PT"
+tax_year: 2026
+jurisdiction_type: "country"
+jurisdiction_name: "Portugal"
+jurisdiction_abbreviation: "PT"
+parent_jurisdiction_id: null
+
+country_code: "PT"
+currency_code: "EUR"
+tax_year_format: "calendar"
+period_label: "Calendar 2026"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - {bracket_id: "PT-2026-1", filing_status: "all", income_from: 0, income_to: 8342, rate: 0.125, base_tax: 0}
+    - {bracket_id: "PT-2026-2", filing_status: "all", income_from: 8342, income_to: 12587, rate: 0.157, base_tax: 1042.75}
+    - {bracket_id: "PT-2026-3", filing_status: "all", income_from: 12587, income_to: 17838, rate: 0.212, base_tax: 1709.22}
+    - {bracket_id: "PT-2026-4", filing_status: "all", income_from: 17838, income_to: 23089, rate: 0.241, base_tax: 2822.43}
+    - {bracket_id: "PT-2026-5", filing_status: "all", income_from: 23089, income_to: 29397, rate: 0.311, base_tax: 4087.92}
+    - {bracket_id: "PT-2026-6", filing_status: "all", income_from: 29397, income_to: 43090, rate: 0.349, base_tax: 6049.71}
+    - {bracket_id: "PT-2026-7", filing_status: "all", income_from: 43090, income_to: 46566, rate: 0.431, base_tax: 10828.56}
+    - {bracket_id: "PT-2026-8", filing_status: "all", income_from: 46566, income_to: 86634, rate: 0.446, base_tax: 12326.72}
+    - {bracket_id: "PT-2026-9", filing_status: "all", income_from: 86634, income_to: null, rate: 0.48, base_tax: 30197.05}
+  surtaxes: []
+
+social_insurance:
+  components:
+    - component_id: "PT-SS"
+      name: "Seguranca Social"
+      type: "general_social"
+      employee_rate: 0.11
+      employer_rate: 0.2375
+      ceiling: null
+      floor: 0
+      notes: "Employee 11%, no ceiling"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+country_parameters:
+  rates_note: "rates per Lei 73-A/2025"
+  ias: 537.13                         # IAS 2026, Portaria 480-A/2025/1 (30 Dec 2025)
+  social_security_employee_rate: 0.11
+  # CIRS art. 25 n.1 a) / n.2: 8.54 x IAS (8.54 x 537.13 = 4,587.09), or total
+  # mandatory contributions if higher; capped at gross category A.
+  specific_deduction: 4587.09
+  # CIRS art. 78-B: 35% of general expenses up to EUR 250 per taxpayer
+  # (assumed fully used); unchanged.
+  general_family_expenses_deduction: 250
+  # CIRS art. 68-A (not indexed): on rendimento coletavel
+  solidarity_surcharge:
+    - {from: 80000, to: 250000, rate: 0.025}
+    - {from: 250000, to: null, rate: 0.05}
+  # CIRS art. 72 (n.1 c)/d) and n.2 unchanged by Lei 73-A/2025)
+  autonomous_rates:
+    capital_income: 0.28
+    capital_gains: 0.28
+    rental_residential: 0.25
+  # art. 72 n.14: aggregation when taxable income incl. the gains reaches the
+  # last bracket of art. 68 (86,634 for 2026).
+  short_term_gain_aggregation_threshold: 86634
+  nhr_rate: 0.20
+  # art. 70 n.4 a): no minimo de existencia above 2.2 x 14 x IAS gross
+  # (2.2 x 14 x 537.13 = 16,543.60); reference value n.1 = max(12,880;
+  # 1.5 x 14 x IAS) per Lei 73-A/2025.  Not modelled (warning only).
+  minimo_existencia_exclusion_gross: 16543.60
+
+verification:
+  status: "verified"
+  provisional_items: []
+  last_verified: "2026-10-27"
+  verified_by: "intl-2026 CA/JP/PT/AE engineer (primary sources below)"
+  notes: >-
+    Art. 68 2026 table checked in Lei 73-A/2025 (Portal das Financas copy,
+    taxa media column consistent) and the consolidated CIRS art. 68, whose
+    amendment list shows no later change.  Art. 25 (8.54 x IAS), 68-A,
+    72 n.1/n.2/n.14 and 78-B unchanged (consolidated CIRS).  IAS 2026 EUR
+    537.13 per Portaria 480-A/2025/1.  Employee social security 11%
+    unchanged.  Minimo de existencia, IRS Jovem and IFICI are not modelled.
+    2026 scope: single, no dependants, employee (married/dependants refused;
+    category B always refused).
+
+references:
+  - source_name: "Lei n.o 73-A/2025 - Orcamento do Estado para 2026 (Portal das Financas)"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/legislacao/diplomas_legislativos/Documents/Lei-73-A-2025.pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "Lei n.o 73-A/2025 (Diario da Republica)"
+    url: "https://diariodarepublica.pt/dr/detalhe/lei/73-a-2025-993270096"
+    retrieved_date: null
+  - source_name: "CIRS art. 68 - Taxas gerais (consolidated)"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs68.aspx"
+    retrieved_date: "2026-10-27"
+  - source_name: "CIRS art. 25 - Rendimentos do trabalho dependente: deducoes"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs25.aspx"
+    retrieved_date: "2026-10-27"
+  - source_name: "CIRS art. 68-A - Taxa adicional de solidariedade"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs68a.aspx"
+    retrieved_date: "2026-10-27"
+  - source_name: "CIRS art. 70 - Minimo de existencia"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs70.aspx"
+    retrieved_date: "2026-10-27"
+  - source_name: "CIRS art. 72 - Taxas especiais"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs72.aspx"
+    retrieved_date: "2026-10-27"
+  - source_name: "CIRS art. 78-B - Deducao de despesas gerais familiares"
+    url: "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs78b.aspx"
+    retrieved_date: "2026-10-27"
+  - source_name: "Portaria n.o 480-A/2025/1 - IAS 2026 (copy, AT Madeira)"
+    url: "https://at.madeira.gov.pt/ficheiros/Portaria_480_A_2025_1%5B1%5D.pdf"
+    retrieved_date: "2026-10-27"

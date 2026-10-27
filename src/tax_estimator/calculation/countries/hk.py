@@ -5,80 +5,89 @@ Calculates Hong Kong Salaries Tax, employee MPF contributions and Property
 Tax on rental income (15% of net assessable value after the 20% statutory
 allowance; rates paid and personal assessment are not modelled).
 
-Period semantics: ``tax_year=2025`` means the 2025/26 year of assessment
-(1 April 2025 - 31 March 2026). Parameters are loaded from
-rules/countries/hk/<year>.yaml, including the enacted one-off 2025/26
-salaries tax reduction (100%, capped at HK$3,000).
+Period semantics: ``tax_year=N`` is the year of assessment starting 1 April N
+(2025 = 2025/26, 2026 = 2026/27). Parameters, including any enacted one-off
+salaries tax reduction, are loaded from rules/countries/hk/<N>.yaml.
 """
 
 from __future__ import annotations
 
-import os
+from dataclasses import dataclass
 from decimal import Decimal
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
-import yaml
-
-from tax_estimator.calculation.countries.base import BaseCountryCalculator
+from tax_estimator.calculation.countries.base import (
+    BaseCountryCalculator,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
+)
 from tax_estimator.models.international import (
     InternationalTaxInput,
     InternationalTaxResult,
     TaxComponent,
 )
 
-RULES_YEAR = 2025
-
-
-def _rules_dir() -> Path:
-    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
-    if env_dir:
-        return Path(env_dir) / "countries"
-    return Path(__file__).resolve().parents[4] / "rules" / "countries"
-
-
-@lru_cache(maxsize=4)
-def load_hk_rules(tax_year: int = RULES_YEAR) -> dict[str, Any]:
-    """Load Hong Kong rules for a year of assessment (2025 = 2025/26)."""
-    with (_rules_dir() / "hk" / f"{tax_year}.yaml").open(encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
-
 
 def _d(value: Any) -> Decimal:
     return Decimal(str(value))
 
 
-_RULES = load_hk_rules(RULES_YEAR)
-_RS = _RULES["rate_schedule"]
+@dataclass(frozen=True)
+class HKParams:
+    """Typed view of one year-of-assessment rules file."""
 
-HK_PROGRESSIVE_BRACKETS = [
-    (_d(b["income_from"]), None if b["income_to"] is None else _d(b["income_to"]), _d(b["rate"]))
-    for b in _RS["brackets"]
-]
-STANDARD_RATE = _d(_RS["standard_rate_tiers"][0]["rate"])
-STANDARD_RATE_TIER2 = _d(_RS["standard_rate_tiers"][1]["rate"])
-STANDARD_RATE_TIER1_THRESHOLD = _d(_RS["standard_rate_tiers"][0]["threshold"])
+    raw: dict[str, Any]
+    brackets: list[tuple[Decimal, Decimal | None, Decimal]]
+    standard_rate: Decimal
+    standard_rate_tier2: Decimal
+    standard_rate_tier1_threshold: Decimal
+    basic_allowance: Decimal
+    married_allowance: Decimal
+    child_allowance: Decimal
+    single_parent_allowance: Decimal
+    dependent_parent_allowance: Decimal
+    mpf_rate: Decimal
+    mpf_max_monthly: Decimal
+    mpf_min_income_monthly: Decimal
+    reduction_rate: Decimal
+    reduction_cap: Decimal
+    property_tax_rate: Decimal
+    property_allowance_rate: Decimal
 
-_ALLOW = _RULES["allowances"]
-BASIC_ALLOWANCE = _d(_ALLOW["basic"])
-MARRIED_ALLOWANCE = _d(_ALLOW["married"])
-CHILD_ALLOWANCE = _d(_ALLOW["child_each"])
-SINGLE_PARENT_ALLOWANCE = _d(_ALLOW["single_parent"])
-DEPENDENT_PARENT_ALLOWANCE = _d(_ALLOW["dependent_parent_60_plus"])
+    @classmethod
+    def from_rules(cls, rules: dict[str, Any]) -> HKParams:
+        rs, allow, mpf = rules["rate_schedule"], rules["allowances"], rules["mpf"]
+        reduction, prop = rules["one_off_reduction"], rules["property_tax"]
+        enacted = bool(reduction.get("enacted"))
+        return cls(
+            raw=rules,
+            brackets=[
+                (_d(b["income_from"]), None if b["income_to"] is None else _d(b["income_to"]),
+                 _d(b["rate"]))
+                for b in rs["brackets"]
+            ],
+            standard_rate=_d(rs["standard_rate_tiers"][0]["rate"]),
+            standard_rate_tier2=_d(rs["standard_rate_tiers"][1]["rate"]),
+            standard_rate_tier1_threshold=_d(rs["standard_rate_tiers"][0]["threshold"]),
+            basic_allowance=_d(allow["basic"]),
+            married_allowance=_d(allow["married"]),
+            child_allowance=_d(allow["child_each"]),
+            single_parent_allowance=_d(allow["single_parent"]),
+            dependent_parent_allowance=_d(allow["dependent_parent_60_plus"]),
+            mpf_rate=_d(mpf["employee_rate"]),
+            mpf_max_monthly=_d(mpf["max_contribution_monthly"]),
+            mpf_min_income_monthly=_d(mpf["min_relevant_income_monthly"]),
+            reduction_rate=_d(reduction["rate"]) if enacted else Decimal(0),
+            reduction_cap=_d(reduction["cap"]) if enacted else Decimal(0),
+            property_tax_rate=_d(prop["standard_rate"]),
+            property_allowance_rate=_d(prop["statutory_allowance_rate"]),
+        )
 
-_MPF = _RULES["mpf"]
-MPF_RATE = _d(_MPF["employee_rate"])
-MPF_MAX_MONTHLY = _d(_MPF["max_contribution_monthly"])
-MPF_MIN_INCOME_MONTHLY = _d(_MPF["min_relevant_income_monthly"])
 
-_REDUCTION = _RULES["one_off_reduction"]
-ONE_OFF_REDUCTION_RATE = _d(_REDUCTION["rate"]) if _REDUCTION["enacted"] else Decimal(0)
-ONE_OFF_REDUCTION_CAP = _d(_REDUCTION["cap"]) if _REDUCTION["enacted"] else Decimal(0)
-
-_PROPERTY = _RULES["property_tax"]
-PROPERTY_TAX_RATE = _d(_PROPERTY["standard_rate"])
-PROPERTY_ALLOWANCE_RATE = _d(_PROPERTY["statutory_allowance_rate"])
+def load_hk_rules(tax_year: int) -> dict[str, Any]:
+    """Load Hong Kong rules for a year of assessment (2026 = 2026/27)."""
+    return load_country_rules("HK", tax_year)
 
 
 class HKCalculator(BaseCountryCalculator):
@@ -86,8 +95,8 @@ class HKCalculator(BaseCountryCalculator):
     Hong Kong tax calculator.
 
     Calculates:
-    - Salaries Tax (lower of progressive or standard rate), less the one-off
-      2025/26 reduction
+    - Salaries Tax (lower of progressive or standard rate), less any enacted
+      one-off reduction for the year
     - MPF contributions
     - Property Tax on rental income (other_taxes)
     """
@@ -96,19 +105,25 @@ class HKCalculator(BaseCountryCalculator):
     country_name = "Hong Kong"
     currency_code = "HKD"
 
+    def __init__(self, rules: dict[str, Any] | None = None):
+        super().__init__()
+        self._override = rules
+        self.p: HKParams | None = None
+
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
         """Calculate Hong Kong tax."""
+        rules = self._override or load_hk_rules(tax_input.tax_year)
+        if rules.get("tax_year") != tax_input.tax_year:
+            raise ValueError(
+                f"HK rules are for tax year {rules.get('tax_year')}; got {tax_input.tax_year}"
+            )
+        self.p = p = HKParams.from_rules(rules)
         breakdown: list[TaxComponent] = []
         notes: list[str] = [
-            f"Period: {_RULES['period_label']}.",
+            f"Period: {rules['period_label']}.",
             "No capital gains tax, no dividend tax.",
         ]
-        warnings: list[str] = []
-        if tax_input.tax_year != RULES_YEAR:
-            warnings.append(
-                f"Hong Kong rules are modelled for {_RULES['year_of_assessment']}; tax year "
-                f"{tax_input.tax_year} uses those parameters."
-            )
+        warnings: list[str] = rules_warnings(rules)
 
         # Get HK-specific input or use defaults
         hk = tax_input.hk
@@ -130,6 +145,17 @@ class HKCalculator(BaseCountryCalculator):
             mpf_deducted = Decimal(0)
 
         rental_income = Decimal(0)
+        self_employment = (
+            tax_input.income_breakdown.self_employment
+            if tax_input.income_breakdown is not None
+            else Decimal(0)
+        )
+        require_day1_profile(
+            tax_input,
+            married=is_married,
+            dependants=num_children + int(has_dependent_parent) + int(is_single_parent),
+            self_employment=self_employment,
+        )
         if tax_input.income_breakdown is not None:
             income = tax_input.income_breakdown
             employment_income = income.employment_wages
@@ -174,7 +200,7 @@ class HKCalculator(BaseCountryCalculator):
 
         # Calculate both methods
         progressive_tax, marginal_rate, _ = self._apply_brackets(
-            net_chargeable_income, HK_PROGRESSIVE_BRACKETS, "HK-PROG"
+            net_chargeable_income, p.brackets, "HK-PROG"
         )
         standard_tax = self._apply_standard_rate(net_income_for_standard)
 
@@ -195,12 +221,18 @@ class HKCalculator(BaseCountryCalculator):
         else:
             income_tax = standard_tax
             tax_method = "Standard rate"
-            if net_income_for_standard > STANDARD_RATE_TIER1_THRESHOLD:
-                marginal_rate = STANDARD_RATE_TIER2
-                rate_note = "Two-tier standard rate: 15% up to HKD 5M, 16% above"
+            if net_income_for_standard > p.standard_rate_tier1_threshold:
+                marginal_rate = p.standard_rate_tier2
+                rate_note = (
+                    f"Two-tier standard rate: {p.standard_rate * 100:.0f}% up to HKD "
+                    f"{p.standard_rate_tier1_threshold:,.0f}, "
+                    f"{p.standard_rate_tier2 * 100:.0f}% above"
+                )
             else:
-                marginal_rate = STANDARD_RATE
-                rate_note = "Standard rate 15% (lower than progressive)"
+                marginal_rate = p.standard_rate
+                rate_note = (
+                    f"Standard rate {p.standard_rate * 100:.0f}% (lower than progressive)"
+                )
             breakdown.append(
                 TaxComponent(
                     component_id="HK-TAX",
@@ -214,27 +246,30 @@ class HKCalculator(BaseCountryCalculator):
 
         notes.append(f"Tax calculated using {tax_method}.")
 
-        # One-off reduction of final 2025/26 salaries tax (enacted May 2026)
+        # One-off reduction of final salaries tax (only when enacted for the year)
         reduction = min(
-            (income_tax * ONE_OFF_REDUCTION_RATE).quantize(Decimal("0.01")),
-            ONE_OFF_REDUCTION_CAP,
+            (income_tax * p.reduction_rate).quantize(Decimal("0.01")),
+            p.reduction_cap,
         )
         if reduction > 0:
             income_tax -= reduction
             breakdown.append(
                 TaxComponent(
                     component_id="HK-REDUCTION",
-                    name="One-off Salaries Tax Reduction (2025/26)",
+                    name=f"One-off Salaries Tax Reduction ({rules['year_of_assessment']})",
                     amount=-reduction,
-                    rate=ONE_OFF_REDUCTION_RATE,
-                    notes="100% of final tax, capped at HKD 3,000 per case",
+                    rate=p.reduction_rate,
+                    notes=(
+                        f"{p.reduction_rate * 100:.0f}% of final tax, capped at HKD "
+                        f"{p.reduction_cap:,.0f} per case"
+                    ),
                 )
             )
         if has_dependent_parent:
             notes.append(
                 "Dependent parent allowance assumes one parent aged 60+ not living with you "
-                "(HKD 50,000); the 55-59 tier (HKD 25,000) and the additional allowance for "
-                "living together are not modelled (no input fields)."
+                f"(HKD {p.dependent_parent_allowance:,.0f}); the 55-59 tier and the additional "
+                "allowance for living together are not modelled (no input fields)."
             )
 
         property_tax = self._property_tax(rental_income, breakdown, notes)
@@ -252,47 +287,48 @@ class HKCalculator(BaseCountryCalculator):
             warnings=warnings,
         )
 
-    @staticmethod
     def _property_tax(
-        rent: Decimal, breakdown: list[TaxComponent], notes: list[str]
+        self, rent: Decimal, breakdown: list[TaxComponent], notes: list[str]
     ) -> Decimal:
-        """Property Tax: 15% of net assessable value (rent less 20% allowance)."""
+        """Property Tax: standard rate on net assessable value (rent less statutory allowance)."""
         if rent <= 0:
             return Decimal(0)
-        allowance = (rent * PROPERTY_ALLOWANCE_RATE).quantize(Decimal("0.01"))
+        assert self.p is not None
+        rate, allowance_rate = self.p.property_tax_rate, self.p.property_allowance_rate
+        allowance = (rent * allowance_rate).quantize(Decimal("0.01"))
         nav = rent - allowance
-        tax = (nav * PROPERTY_TAX_RATE).quantize(Decimal("0.01"))
+        tax = (nav * rate).quantize(Decimal("0.01"))
         breakdown.append(
             TaxComponent(
                 component_id="HK-PROPERTY-TAX",
                 name="Property Tax",
                 amount=tax,
-                rate=PROPERTY_TAX_RATE,
+                rate=rate,
                 base=nav,
                 notes=(
-                    f"15% of net assessable value {nav:,.2f} (rent {rent:,.2f} less 20% "
-                    "statutory allowance for repairs and outgoings)"
+                    f"{rate * 100:.0f}% of net assessable value {nav:,.2f} (rent {rent:,.2f} "
+                    f"less {allowance_rate * 100:.0f}% statutory allowance for repairs and "
+                    "outgoings)"
                 ),
             )
         )
         notes.append(
             "Property Tax: rental amount treated as rent receivable; only the 20% statutory "
             "allowance is deductible (actual expenses are not). Rates paid by the owner, "
-            "irrecoverable rent and personal assessment election are not modelled; the "
-            "2025/26 one-off reduction does not apply to Property Tax."
+            "irrecoverable rent and personal assessment election are not modelled; any "
+            "one-off salaries tax reduction does not apply to Property Tax."
         )
         return tax
 
     def _apply_standard_rate(self, net_income: Decimal) -> Decimal:
-        """Apply two-tier standard rate (2024/25 onwards).
+        """Apply the two-tier standard rate (2024/25 onwards)."""
+        assert self.p is not None
+        p = self.p
+        if net_income <= p.standard_rate_tier1_threshold:
+            return (net_income * p.standard_rate).quantize(Decimal("0.01"))
 
-        15% on the first HKD 5,000,000, 16% on the remainder.
-        """
-        if net_income <= STANDARD_RATE_TIER1_THRESHOLD:
-            return (net_income * STANDARD_RATE).quantize(Decimal("0.01"))
-
-        tier1_tax = STANDARD_RATE_TIER1_THRESHOLD * STANDARD_RATE
-        tier2_tax = (net_income - STANDARD_RATE_TIER1_THRESHOLD) * STANDARD_RATE_TIER2
+        tier1_tax = p.standard_rate_tier1_threshold * p.standard_rate
+        tier2_tax = (net_income - p.standard_rate_tier1_threshold) * p.standard_rate_tier2
         return (tier1_tax + tier2_tax).quantize(Decimal("0.01"))
 
     def _calculate_allowances(
@@ -303,28 +339,32 @@ class HKCalculator(BaseCountryCalculator):
         is_single_parent: bool,
     ) -> Decimal:
         """Calculate total allowances."""
-        allowances = MARRIED_ALLOWANCE if is_married else BASIC_ALLOWANCE
+        assert self.p is not None
+        p = self.p
+        allowances = p.married_allowance if is_married else p.basic_allowance
 
         if is_single_parent and not is_married:
-            allowances += SINGLE_PARENT_ALLOWANCE
+            allowances += p.single_parent_allowance
 
-        allowances += CHILD_ALLOWANCE * num_children
+        allowances += p.child_allowance * num_children
 
         if has_dependent_parent:
-            allowances += DEPENDENT_PARENT_ALLOWANCE
+            allowances += p.dependent_parent_allowance
 
         return allowances
 
     def _calculate_mpf(self, income: Decimal) -> tuple[Decimal, list[TaxComponent]]:
         """Calculate MPF contribution."""
+        assert self.p is not None
+        p = self.p
         # Monthly income (assume 12 months)
         monthly_income = income / 12
 
-        if monthly_income < MPF_MIN_INCOME_MONTHLY:
+        if monthly_income < p.mpf_min_income_monthly:
             return Decimal(0), []
 
         # Calculate monthly contribution
-        monthly_contribution = min(monthly_income * MPF_RATE, MPF_MAX_MONTHLY)
+        monthly_contribution = min(monthly_income * p.mpf_rate, p.mpf_max_monthly)
 
         # Annual contribution
         mpf = (monthly_contribution * 12).quantize(Decimal("0.01"))
@@ -334,9 +374,12 @@ class HKCalculator(BaseCountryCalculator):
                 component_id="HK-MPF",
                 name="MPF Contribution",
                 amount=mpf,
-                rate=MPF_RATE,
+                rate=p.mpf_rate,
                 base=income,
-                notes=f"Mandatory Provident Fund: 5% (max HKD {MPF_MAX_MONTHLY:,.0f}/month)",
+                notes=(
+                    f"Mandatory Provident Fund: {p.mpf_rate * 100:.0f}% "
+                    f"(max HKD {p.mpf_max_monthly:,.0f}/month)"
+                ),
             )
         ]
 

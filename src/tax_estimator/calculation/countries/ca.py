@@ -1,16 +1,16 @@
 """
-Canada (CA) tax calculator - 2025 federal + provincial income tax, CPP, EI.
+Canada (CA) tax calculator - federal + provincial income tax, CPP, EI.
 
-All parameters are loaded from ``rules/countries/ca/2025.yaml``
-(``country_parameters``), the single source of truth.
+All parameters are loaded from ``rules/countries/ca/<tax_year>.yaml``
+(calendar year; ``country_parameters``), the single source of truth.
 
-Model (2025 T1 return logic):
+Model (T1 return logic):
 
 * Credit-based: tax on taxable income minus non-refundable credits at the
-  lowest rate (federal 14.5% blended for 2025).  Federal BPA phases from
-  $16,129 down to $14,538 between $177,882 and $253,414 of net income.
+  lowest federal rate (``federal.credit_rate``).  The federal BPA phases
+  from ``bpa_max`` down to ``bpa_min`` across the 29% bracket.
 * Credits for CPP base contributions (4.95%) and EI premiums; Canada
-  employment amount ($1,471, federal only).  Enhanced CPP (1%) and CPP2
+  employment amount (federal only).  Enhanced CPP (1%) and CPP2
   are deductions.  Self-employment pays both CPP halves (no EI); the
   employer half and all enhanced parts are deductible.
 * Capital gains: 50% inclusion (short and long term).  Dividends: the
@@ -29,17 +29,16 @@ Model (2025 T1 return logic):
 
 from __future__ import annotations
 
-import os
 from decimal import Decimal
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
-
-import yaml
 
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     UnsupportedIncomeError,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
 )
 from tax_estimator.models.international import (
     InternationalTaxInput,
@@ -54,16 +53,9 @@ DEFAULT_PROVINCE = "ON"
 Brackets = list[tuple[Decimal, Decimal | None, Decimal]]
 
 
-def _rules_path() -> Path:
-    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
-    root = Path(env_dir) if env_dir else Path(__file__).resolve().parents[4] / "rules"
-    return root / "countries" / "ca" / "2025.yaml"
-
-
-@lru_cache(maxsize=1)
-def _load_rules() -> dict[str, Any]:
-    with open(_rules_path(), encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+@lru_cache(maxsize=8)
+def _load_rules(tax_year: int) -> dict[str, Any]:
+    return load_country_rules("CA", tax_year)
 
 
 def _d(value: Any) -> Decimal:
@@ -93,7 +85,7 @@ def _marginal(amount: Decimal, brackets: Brackets) -> Decimal:
 
 
 class CACalculator(BaseCountryCalculator):
-    """Canada federal + provincial (ON/BC/AB) calculator for 2025."""
+    """Canada federal + provincial (ON/BC/AB) calculator."""
 
     country_code = "CA"
     country_name = "Canada"
@@ -103,20 +95,15 @@ class CACalculator(BaseCountryCalculator):
         super().__init__()
         self._rules = rules
 
-    @property
-    def rules(self) -> dict[str, Any]:
-        return self._rules if self._rules is not None else _load_rules()
+    def rules_for(self, tax_year: int) -> dict[str, Any]:
+        return self._rules if self._rules is not None else _load_rules(tax_year)
 
-    @property
-    def params(self) -> dict[str, Any]:
-        return self.rules["country_parameters"]
-
-    @property
-    def federal_brackets(self) -> Brackets:
+    @staticmethod
+    def federal_brackets(rules: dict[str, Any]) -> Brackets:
         return [
             (_d(b["income_from"]), None if b["income_to"] is None else _d(b["income_to"]),
              _d(b["rate"]))
-            for b in self.rules["rate_schedule"]["brackets"]
+            for b in rules["rate_schedule"]["brackets"]
         ]
 
     # ------------------------------------------------------------------
@@ -161,7 +148,8 @@ class CACalculator(BaseCountryCalculator):
             "gains": ZERO,
         }, notes
 
-    def _province(self, tax_input: InternationalTaxInput) -> str:
+    @staticmethod
+    def _province(tax_input: InternationalTaxInput, p: dict[str, Any]) -> str:
         raw = tax_input.ca.province if tax_input.ca and tax_input.ca.province else DEFAULT_PROVINCE
         code = raw.strip().upper()
         if code == "QC":
@@ -169,15 +157,16 @@ class CACalculator(BaseCountryCalculator):
                 "Canada: Quebec is not supported (separate provincial return, QPP, QPIP "
                 "and federal abatement are not modelled)"
             )
-        if code not in self.params["provinces"]:
-            supported = ", ".join(sorted(self.params["provinces"]))
+        if code not in p["provinces"]:
+            supported = ", ".join(sorted(p["provinces"]))
             raise UnsupportedIncomeError(
                 f"Canada: province {raw!r} is not supported; supported provinces: {supported}"
             )
         return code
 
-    def _payroll(self, emp: Decimal, se: Decimal) -> dict[str, Decimal]:
-        cpp = self.params["cpp"]
+    @staticmethod
+    def _payroll(p: dict[str, Any], emp: Decimal, se: Decimal) -> dict[str, Decimal]:
+        cpp = p["cpp"]
         ympe, yampe = _d(cpp["ympe"]), _d(cpp["yampe"])
         exemption = _d(cpp["basic_exemption"])
         base_rate, enh_rate = _d(cpp["base_rate"]), _d(cpp["first_enhanced_rate"])
@@ -190,7 +179,7 @@ class CACalculator(BaseCountryCalculator):
         total_cpp2_base = max(ZERO, min(emp + se, yampe) - ympe)
         se_cpp2_base = total_cpp2_base - emp_cpp2_base
 
-        ei = self.params["ei"]
+        ei = p["ei"]
         ei_base = min(emp, _d(ei["max_insurable"]))
         out = {
             "emp_cpp_base": (emp_pens * base_rate).quantize(CENT),
@@ -218,8 +207,9 @@ class CACalculator(BaseCountryCalculator):
         )
         return out
 
-    def _federal_bpa(self, net_income: Decimal) -> Decimal:
-        f = self.params["federal"]
+    @staticmethod
+    def _federal_bpa(p: dict[str, Any], net_income: Decimal) -> Decimal:
+        f = p["federal"]
         bpa_max, bpa_min = _d(f["bpa_max"]), _d(f["bpa_min"])
         start, end = _d(f["bpa_phaseout_start"]), _d(f["bpa_phaseout_end"])
         if net_income <= start:
@@ -230,13 +220,21 @@ class CACalculator(BaseCountryCalculator):
 
     # ------------------------------------------------------------------
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        p = self.params
+        rules = self.rules_for(tax_input.tax_year)
+        p = rules["country_parameters"]
         income, notes = self._resolve_income(tax_input)
-        province = self._province(tax_input)
+        require_day1_profile(tax_input, self_employment=income["self_employment"])
+        province = self._province(tax_input, p)
+        credit_pct = _d(p["federal"]["credit_rate"]) * 100
         notes = [
-            "Canada 2025 (federal lowest rate 14.5% blended); employee contributions only.",
+            f"Canada, {rules['period_label']} (federal lowest rate "
+            f"{credit_pct.normalize()}%); employee contributions only.",
             f"Provincial tax for {province}.",
         ] + notes
+        warnings = rules_warnings(rules) + [
+            f"{item} (provisional)"
+            for item in p["provinces"][province].get("provisional_items") or []
+        ]
         if income["foreign_div"]:
             notes.append(
                 "Dividends are treated as foreign dividends: fully taxable as ordinary income "
@@ -248,7 +246,7 @@ class CACalculator(BaseCountryCalculator):
         rrsp = tax_input.ca.rrsp_contributions if tax_input.ca else ZERO
         union = tax_input.ca.union_dues if tax_input.ca else ZERO
         emp, se = income["employment"], income["self_employment"]
-        pay = self._payroll(emp, se)
+        pay = self._payroll(p, emp, se)
 
         taxable_gains = (income["gains"] * _d(p["capital_gains_inclusion"])).quantize(CENT)
 
@@ -275,10 +273,10 @@ class CACalculator(BaseCountryCalculator):
 
         # ---------------- Federal ----------------
         f = p["federal"]
-        fed_brackets = self.federal_brackets
+        fed_brackets = self.federal_brackets(rules)
         fed_gross = _tax_on(taxable_income, fed_brackets)
         fed_credit_amount = (
-            self._federal_bpa(net_income)
+            self._federal_bpa(p, net_income)
             + min(_d(f["canada_employment_amount"]), emp)
             + credit_base
         )
@@ -369,6 +367,7 @@ class CACalculator(BaseCountryCalculator):
             breakdown=breakdown,
             marginal_rate=marginal,
             notes=notes,
+            warnings=warnings,
         )
 
     @staticmethod

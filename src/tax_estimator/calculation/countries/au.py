@@ -1,19 +1,17 @@
 """
-Australia (AU) tax calculator - income year 2024-25.
+Australia (AU) tax calculator.
 
-``tax_year=2025`` means the Australian income year 1 July 2024 - 30 June 2025
-(FY 2024-25).  All parameters are loaded from
-``rules/countries/au/2025.yaml`` (``country_parameters``).
+``tax_year=N`` is the Australian income year with most months in calendar N:
+2025 = 2025-26 (1 July 2025 - 30 June 2026), 2026 = 2026-27.  All parameters
+are loaded from ``rules/countries/au/<N>.yaml``.
 
 Model:
 
-* Resident brackets; low income tax offset (LITO, up to $700); small
-  business income tax offset on business income (16%, cap $1,000).
-* Medicare levy 2% with the low-income threshold ($27,222) and 10% shade-in
-  (full levy from $34,027).
-* Medicare levy surcharge (MLS) 1% / 1.25% / 1.5% above $97k / $113k / $151k
-  (singles).  ASSUMPTION: no private hospital cover unless the profile sets
-  ``has_private_health=True``.
+* Resident brackets; low income tax offset (LITO); small business income tax
+  offset on business income.
+* Medicare levy with the singles low-income threshold and 10% shade-in.
+* Medicare levy surcharge (MLS) tiers for singles.  ASSUMPTION: no private
+  hospital cover unless the profile sets ``has_private_health=True``.
 * Capital gains: 50% CGT discount on long-term gains (held > 12 months).
 * Dividends: the Compare ``income_breakdown`` uses US-defined categories, so
   both ``dividends_qualified`` and ``dividends_ordinary`` are treated as
@@ -21,24 +19,24 @@ Model:
   no franking credit (franking only attaches to Australian-company
   dividends).  The foreign income tax offset for overseas withholding is not
   modelled.  There is no AU-profile field for franked Australian dividends.
-* Superannuation is employer-paid and excluded.  HELP repayments optional.
+* Superannuation is employer-paid and excluded.  HELP repayments optional
+  (marginal system from 2025-26: 15% / 17% above indexed thresholds, capped
+  at 10% of repayment income; repayment income approximated by taxable income).
 * Non-residents: no tax-free threshold, no LITO, no Medicare levy;
   non-resident investment income (withholding regimes, CGT rules) is rejected.
 """
 
 from __future__ import annotations
 
-import os
 from decimal import Decimal
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
-
-import yaml
 
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     UnsupportedIncomeError,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
 )
 from tax_estimator.models.international import (
     InternationalTaxInput,
@@ -52,18 +50,6 @@ CENT = Decimal("0.01")
 Brackets = list[tuple[Decimal, Decimal | None, Decimal]]
 
 
-def _rules_path() -> Path:
-    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
-    root = Path(env_dir) if env_dir else Path(__file__).resolve().parents[4] / "rules"
-    return root / "countries" / "au" / "2025.yaml"
-
-
-@lru_cache(maxsize=1)
-def _load_rules() -> dict[str, Any]:
-    with open(_rules_path(), encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
-
-
 def _d(value: Any) -> Decimal:
     return Decimal(str(value))
 
@@ -73,7 +59,7 @@ def _scale(rows: list[list[Any]]) -> Brackets:
 
 
 class AUCalculator(BaseCountryCalculator):
-    """Australia calculator for income year 2024-25 (tax_year 2025)."""
+    """Australia calculator (tax_year 2025 = 2025-26, 2026 = 2026-27)."""
 
     country_code = "AU"
     country_name = "Australia"
@@ -81,11 +67,14 @@ class AUCalculator(BaseCountryCalculator):
 
     def __init__(self, rules: dict[str, Any] | None = None):
         super().__init__()
-        self._rules = rules
+        self._override = rules
+        self._rules: dict[str, Any] | None = rules
 
     @property
     def rules(self) -> dict[str, Any]:
-        return self._rules if self._rules is not None else _load_rules()
+        if self._rules is None:
+            raise ValueError("AU rules are loaded per tax year by calculate()")
+        return self._rules
 
     @property
     def params(self) -> dict[str, Any]:
@@ -164,18 +153,25 @@ class AUCalculator(BaseCountryCalculator):
                 rate = _d(tier["rate"])
         return rate
 
-    def _help_rate(self, income: Decimal) -> Decimal:
-        rate = ZERO
-        for threshold, r in self.params["help_thresholds"]:
-            if income >= _d(threshold):
-                rate = _d(r)
-            else:
-                break
-        return rate
+    def _help_repayment(self, income: Decimal) -> Decimal:
+        """HESA s 154-20: least of the marginal amount and 10% of repayment income."""
+        h = self.params["help_repayment"]
+        floor, second = _d(h["minimum_repayment_income"]), _d(h["second_threshold"])
+        if income <= floor:
+            return ZERO
+        marginal = (min(income, second) - floor) * _d(h["first_rate"])
+        marginal += max(ZERO, income - second) * _d(h["second_rate"])
+        return min(marginal, income * _d(h["total_income_cap_rate"])).quantize(CENT)
 
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
+        self._rules = self._override or load_country_rules("AU", tax_input.tax_year)
+        if self._rules.get("tax_year") != tax_input.tax_year:
+            raise ValueError(
+                f"AU rules are for tax year {self._rules.get('tax_year')}; got {tax_input.tax_year}"
+            )
         p = self.params
         income, extra_notes = self._resolve_income(tax_input)
+        require_day1_profile(tax_input, self_employment=income["business"])
         au = tax_input.au
         is_resident = au.is_resident if au else True
         has_private_health = au.has_private_health if au else False
@@ -183,11 +179,10 @@ class AUCalculator(BaseCountryCalculator):
         work_deductions = au.work_deductions if au else ZERO
 
         notes = [
-            "Australian income year 2024-25 (1 July 2024 - 30 June 2025); tax_year 2025 "
-            "denotes the year ending 30 June 2025.",
+            f"Period: {self.rules['period_label']}.",
             "Superannuation guarantee is employer-paid and excluded.",
         ] + extra_notes
-        warnings: list[str] = []
+        warnings: list[str] = rules_warnings(self.rules)
         breakdown: list[TaxComponent] = []
 
         if not is_resident and (
@@ -263,14 +258,18 @@ class AUCalculator(BaseCountryCalculator):
                 breakdown.append(TaxComponent(
                     component_id="AU-MEDICARE", name="Medicare levy", amount=medicare,
                     rate=_d(p["medicare_levy"]["rate"]), base=taxable,
-                    notes="2% with low-income shade-in from $27,222",
+                    notes=(
+                        f"{_d(p['medicare_levy']['rate']) * 100:.0f}% with low-income shade-in "
+                        f"from ${_d(p['medicare_levy']['low_income_threshold']):,.0f}"
+                    ),
                 ))
             if has_private_health:
                 notes.append("Private hospital cover declared: no Medicare levy surcharge.")
             else:
+                mls_floor = _d(p["medicare_levy_surcharge"][0]["from"])
                 notes.append(
                     "ASSUMPTION: no private hospital cover, so the Medicare levy surcharge "
-                    "applies above $97,000 (set has_private_health to change)."
+                    f"applies above ${mls_floor:,.0f} (set has_private_health to change)."
                 )
                 mls_rate = self._mls_rate(taxable)
                 if mls_rate > 0:
@@ -282,12 +281,13 @@ class AUCalculator(BaseCountryCalculator):
 
         help_repayment = ZERO
         if has_help_debt:
-            help_rate = self._help_rate(taxable)
-            if help_rate > 0:
-                help_repayment = (taxable * help_rate).quantize(CENT)
+            help_repayment = self._help_repayment(taxable)
+            if help_repayment > 0:
                 breakdown.append(TaxComponent(
                     component_id="AU-HELP", name="HELP repayment", amount=help_repayment,
-                    rate=help_rate, base=taxable,
+                    base=taxable,
+                    notes="Repayment income approximated by taxable income (no reportable "
+                    "fringe benefits, super contributions or net investment losses)",
                 ))
 
         other_taxes = medicare + mls + help_repayment

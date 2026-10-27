@@ -7,7 +7,7 @@ Loads UK tax rules from YAML files and provides typed access to them.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -24,6 +24,10 @@ def _get_default_rules_dir() -> Path:
     current_file = Path(__file__)
     project_root = current_file.parent.parent.parent.parent.parent
     return project_root / "rules" / "countries"
+
+
+def _d(value: Any) -> Decimal:
+    return Decimal(str(value))
 
 
 @dataclass
@@ -71,6 +75,28 @@ class Class4NIRules:
 
 
 @dataclass
+class SavingsRules:
+    """Savings income rates and nil-rate amounts (ITA 2007 ss 7, 12, 12B)."""
+
+    starting_rate_limit: Decimal
+    psa_basic: Decimal
+    psa_higher: Decimal
+    basic_rate: Decimal
+    higher_rate: Decimal
+    additional_rate: Decimal
+
+
+@dataclass
+class DividendRules:
+    """Dividend allowance and rates (ITA 2007 ss 8, 13A)."""
+
+    allowance: Decimal
+    ordinary_rate: Decimal
+    upper_rate: Decimal
+    additional_rate: Decimal
+
+
+@dataclass
 class GBRules:
     """UK tax rules loaded from YAML."""
 
@@ -99,9 +125,19 @@ class GBRules:
     # Capital gains
     capital_gains: CapitalGainsRules
 
+    # Savings and dividends
+    savings: SavingsRules
+    dividends: DividendRules
+
+    # Relief-at-source pension payments: annual allowance cap modelled
+    pension_annual_allowance: Decimal
+
     # Verification status
     verification_status: str
     last_verified: str | None
+
+    period_label: str = ""
+    provisional_items: list[str] = field(default_factory=list)
 
 
 class GBRulesLoader:
@@ -126,7 +162,7 @@ class GBRulesLoader:
         rules_path = self.get_rules_file_path(tax_year)
 
         if not rules_path.exists():
-            raise FileNotFoundError(f"GB rules file not found: {rules_path}")
+            raise ValueError(f"No GB rules for tax year {tax_year}")
 
         try:
             with open(rules_path, encoding="utf-8") as f:
@@ -134,6 +170,8 @@ class GBRulesLoader:
         except yaml.YAMLError as e:
             raise ValueError(f"Failed to parse GB YAML: {e}") from e
 
+        if not isinstance(data, dict) or data.get("tax_year") != tax_year:
+            raise ValueError(f"GB rules file does not declare tax year {tax_year}")
         rules = self._parse_rules(data)
         self._cache[cache_key] = rules
         return rules
@@ -189,19 +227,36 @@ class GBRulesLoader:
             )
 
         # Parse capital gains
-        cg_data = data.get("capital_gains", {})
+        cg_data = data["capital_gains"]
         capital_gains = CapitalGainsRules(
-            annual_exempt_amount=Decimal(str(cg_data.get("annual_exempt_amount", 3000))),
-            basic_rate=Decimal(str(cg_data.get("basic_rate", 0.18))),
-            higher_rate=Decimal(str(cg_data.get("higher_rate", 0.24))),
+            annual_exempt_amount=_d(cg_data["annual_exempt_amount"]),
+            basic_rate=_d(cg_data["basic_rate"]),
+            higher_rate=_d(cg_data["higher_rate"]),
         )
 
-        class_4_data = data.get("social_insurance", {}).get("class_4", {})
+        class_4_data = data["social_insurance"]["class_4"]
         class_4_ni = Class4NIRules(
-            lower_profits_limit=Decimal(str(class_4_data.get("lower_profits_limit", 12570))),
-            upper_profits_limit=Decimal(str(class_4_data.get("upper_profits_limit", 50270))),
-            main_rate=Decimal(str(class_4_data.get("main_rate", "0.06"))),
-            additional_rate=Decimal(str(class_4_data.get("additional_rate", "0.02"))),
+            lower_profits_limit=_d(class_4_data["lower_profits_limit"]),
+            upper_profits_limit=_d(class_4_data["upper_profits_limit"]),
+            main_rate=_d(class_4_data["main_rate"]),
+            additional_rate=_d(class_4_data["additional_rate"]),
+        )
+
+        sav = data["savings"]
+        savings = SavingsRules(
+            starting_rate_limit=_d(sav["starting_rate_limit"]),
+            psa_basic=_d(sav["personal_savings_allowance"]["basic"]),
+            psa_higher=_d(sav["personal_savings_allowance"]["higher"]),
+            basic_rate=_d(sav["rates"]["basic"]),
+            higher_rate=_d(sav["rates"]["higher"]),
+            additional_rate=_d(sav["rates"]["additional"]),
+        )
+        div = data["dividends"]
+        dividends = DividendRules(
+            allowance=_d(div["allowance"]),
+            ordinary_rate=_d(div["rates"]["ordinary"]),
+            upper_rate=_d(div["rates"]["upper"]),
+            additional_rate=_d(div["rates"]["additional"]),
         )
 
         # Verification
@@ -209,19 +264,24 @@ class GBRulesLoader:
 
         return GBRules(
             jurisdiction_id=data.get("jurisdiction_id", "GB"),
-            tax_year=data.get("tax_year", 2025),
+            tax_year=data["tax_year"],
             jurisdiction_name=data.get("jurisdiction_name", "United Kingdom"),
             income_tax_brackets=brackets,
             scotland_brackets=scotland_data,
-            personal_allowance=Decimal(str(taper.get("base_amount", 12570))),
-            taper_threshold=Decimal(str(taper.get("taper_threshold", 100000))),
-            taper_rate=Decimal(str(taper.get("taper_rate", 0.5))),
+            personal_allowance=_d(taper["base_amount"]),
+            taper_threshold=_d(taper["taper_threshold"]),
+            taper_rate=_d(taper["taper_rate"]),
             ni_components=ni_components,
             class_4_ni=class_4_ni,
             student_loan_plans=student_loans,
             capital_gains=capital_gains,
+            savings=savings,
+            dividends=dividends,
+            pension_annual_allowance=_d(data["pension"]["annual_allowance"]),
             verification_status=verification.get("status", "placeholder"),
             last_verified=verification.get("last_verified"),
+            period_label=data.get("period_label", ""),
+            provisional_items=list(verification.get("provisional_items") or []),
         )
 
 

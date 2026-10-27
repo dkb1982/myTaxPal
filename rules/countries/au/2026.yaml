@@ -1,0 +1,117 @@
+# =============================================================================
+# Australia Tax Rules - "2026" = income year 2026-27 (1 July 2026 - 30 June 2027)
+# =============================================================================
+# tax_year 2026 is the Australian income year with most months in calendar 2026.
+# Single source of truth for au.py.
+# =============================================================================
+
+jurisdiction_id: "AU"
+tax_year: 2026
+jurisdiction_type: "country"
+jurisdiction_name: "Australia"
+jurisdiction_abbreviation: "AU"
+parent_jurisdiction_id: null
+
+country_code: "AU"
+currency_code: "AUD"
+tax_year_format: "aus_fiscal"
+period_label: "2026-27 income year (1 July 2026 - 30 June 2027)"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-07-01"
+effective_end_date: "2027-06-30"
+
+# Resident rates 2026-27 (Income Tax Rates Act 1986 Sch 7 Pt I cl 1)
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - {bracket_id: "AU-2026-0", filing_status: "all", income_from: 0, income_to: 18200, rate: 0.00, base_tax: 0}
+    - {bracket_id: "AU-2026-15", filing_status: "all", income_from: 18200, income_to: 45000, rate: 0.15, base_tax: 0}
+    - {bracket_id: "AU-2026-30", filing_status: "all", income_from: 45000, income_to: 135000, rate: 0.30, base_tax: 4020}
+    - {bracket_id: "AU-2026-37", filing_status: "all", income_from: 135000, income_to: 190000, rate: 0.37, base_tax: 31020}
+    - {bracket_id: "AU-2026-45", filing_status: "all", income_from: 190000, income_to: null, rate: 0.45, base_tax: 51370}
+  surtaxes: []
+
+social_insurance: null   # Superannuation is employer-paid; no employee social insurance
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+country_parameters:
+  non_resident_brackets:              # Sch 7 Pt II (unchanged by the 2025 Act)
+    - [0, 135000, 0.30]
+    - [135000, 190000, 0.37]
+    - [190000, null, 0.45]
+  lito:                               # Low income tax offset, ITAA 1997 s 61-115
+    max: 700
+    first_threshold: 37500
+    first_rate: 0.05                  # to 45,000 (offset 325)
+    second_threshold: 45000
+    second_rate: 0.015                # to 66,667 (offset 0)
+  small_business_offset:              # ITAA 1997 s 328-360: 16%, cap $1,000
+    rate: 0.16
+    cap: 1000
+  medicare_levy:
+    rate: 0.02
+    low_income_threshold: 28011       # singles; Medicare Levy Act 1986 s 3(1), as amended by Act No. 58 of 2026 (2025-26 and later years)
+    shade_in_rate: 0.10               # full levy from 35,013 (phase-in limit)
+  medicare_levy_surcharge:            # singles, 2026-27; applies without private hospital cover
+    - {from: 105000, rate: 0.01}
+    - {from: 123000, rate: 0.0125}
+    - {from: 164000, rate: 0.015}
+  cgt_discount: 0.5                   # assets held > 12 months, resident individuals
+  # No franking parameters: Compare income_breakdown dividends use US-defined
+  # categories and are taxed as unfranked foreign dividends (franking applies
+  # only to Australian-company dividends; foreign income tax offset not modelled).
+  help_repayment:                     # Higher Education Support Act 2003 s 154-20 (marginal system from 2025-26)
+    minimum_repayment_income: 69528
+    second_threshold: 129717
+    first_rate: 0.15
+    second_rate: 0.17
+    total_income_cap_rate: 0.10       # liability never exceeds 10% of repayment income
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-27"
+  provisional_items: []
+  notes: >-
+    Resident 15% rate for 2026-27 legislated by Act No. 28 of 2025 (assent
+    27 March 2025). Medicare levy low-income threshold: the statute as
+    amended by Act No. 58 of 2026 sets $28,011 for 2025-26 "and later years";
+    a further increase for 2026-27, if any, would normally be announced in the
+    2027-28 Budget. MLS singles tiers 105,000 / 123,000 / 164,000 for 2026-27
+    from privatehealth.gov.au. HELP: minimum repayment income $69,528 and
+    replacement indexable amount $129,717 for 2026-27 (Commonwealth Gazette
+    C2026G00249, 20 April 2026). LITO, SBITO and CGT discount are
+    long-standing statutory values (not re-fetched).
+
+references:
+  - source_name: "Federal Register of Legislation - Treasury Laws Amendment (More Cost of Living Relief) Act 2025 (No. 28, 2025), Sch 1 resident rates 2024-25/2025-26 (16%), 2026-27 (15%), 2027-28+ (14%)"
+    url: "https://www.legislation.gov.au/C2025A00028/asmade/2025-03-27/text/original/pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "Federal Register of Legislation - Treasury Laws Amendment (Delivering an Efficient and Trusted Tax System) Act 2026 (No. 58, 2026), Sch 5 Medicare levy low-income thresholds ($28,011 / $35,013) for 2025-26 and later years"
+    url: "https://www.legislation.gov.au/C2026A00058/asmade/2026-06-30/text/original/pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "Federal Register of Legislation - Higher Education Support Act 2003, Compilation No. 104 (1 July 2026), ss 154-10, 154-20, 154-25"
+    url: "https://www.legislation.gov.au/C2004A01234/2026-07-01/2026-07-01/text/original/pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "privatehealth.gov.au (Department of Health) - Medicare Levy Surcharge thresholds 2025-26 and 2026-27"
+    url: "https://www.privatehealth.gov.au/health_insurance/surcharges_incentives/medicare_levy.htm"
+    retrieved_date: "2026-10-27"
+  - source_name: "ATO - Tax rates: Australian residents (not fetchable: HTTP 403)"
+    url: "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents"
+    retrieved_date: null
+  - source_name: "Commonwealth Gazette C2026G00249 - HELP minimum repayment income and replacement indexable amount for 2026-27"
+    url: "https://www.legislation.gov.au/C2026G00249/asmade/2026-04-20/text/original/pdf"
+    retrieved_date: "2026-10-27"

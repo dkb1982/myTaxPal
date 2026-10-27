@@ -1,34 +1,34 @@
 """
-Germany (DE) tax calculator, Veranlagungszeitraum 2025.
+Germany (DE) tax calculator (Veranlagungszeitraum = calendar year).
 
 Annual-assessment estimate for a resident employee:
 
-- Einkommensteuer from the statutory §32a EStG 2025 formula (with splitting
-  for tax class III only).
-- Solidaritaetszuschlag with the 2025 Freigrenze and 11.9% Milderungszone.
+- Einkommensteuer from the statutory §32a EStG formula of the tax year (with
+  splitting for tax class III only).
+- Solidaritaetszuschlag with the year's Freigrenze and 11.9% Milderungszone.
 - Kirchensteuer (opt-in; 8% BY/BW, 9% elsewhere).
 - Employee social insurance (pension, unemployment, health incl. half the
   average Zusatzbeitrag, long-term care incl. childless surcharge / child
   reductions).
-- Capital income (dividends, interest, gains) under the 25% Abgeltungsteuer
+- Capital income (dividends, interest, gains) under the flat Abgeltungsteuer
   after the Sparer-Pauschbetrag, plus Soli/church tax, with no social insurance.
 
-All parameters are loaded from rules/countries/de/2025.yaml.
+All parameters are loaded from rules/countries/de/<tax_year>.yaml; 2026+
+estimates cover single employees without children only.
 """
 
 from __future__ import annotations
 
 from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
-from functools import lru_cache
 from typing import Any
-
-import yaml
 
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     UnsupportedIncomeError,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
 )
-from tax_estimator.calculation.countries.gb_loader import _get_default_rules_dir
 from tax_estimator.models.international import (
     DETaxClass,
     InternationalTaxInput,
@@ -38,7 +38,14 @@ from tax_estimator.models.international import (
 
 ZERO = Decimal(0)
 CENT = Decimal("0.01")
-SUPPORTED_TAX_YEAR = 2025
+REQUIRED_SECTIONS = (
+    "income_tax_formula",
+    "solidarity_surcharge",
+    "church_tax",
+    "social_insurance",
+    "deductions",
+    "capital_income",
+)
 
 
 def _d(value: Any) -> Decimal:
@@ -57,27 +64,17 @@ def _floor_euro(value: Decimal) -> Decimal:
     return value.quantize(Decimal(1), rounding=ROUND_DOWN)
 
 
-@lru_cache(maxsize=4)
-def load_de_rules(tax_year: int = SUPPORTED_TAX_YEAR) -> dict[str, Any]:
-    """Load the German rules YAML (single source of truth)."""
-    path = _get_default_rules_dir() / "de" / f"{tax_year}.yaml"
-    with open(path, encoding="utf-8") as handle:
-        data = yaml.safe_load(handle)
-    for key in (
-        "income_tax_formula",
-        "solidarity_surcharge",
-        "church_tax",
-        "social_insurance",
-        "deductions",
-        "capital_income",
-    ):
+def load_de_rules(tax_year: int) -> dict[str, Any]:
+    """Load the German rules YAML for ``tax_year`` (single source of truth)."""
+    data = load_country_rules("DE", tax_year)
+    for key in REQUIRED_SECTIONS:
         if key not in data:
-            raise ValueError(f"DE rules {path} missing required section {key!r}")
+            raise ValueError(f"DE {tax_year} rules missing required section {key!r}")
     return data
 
 
 class DECalculator(BaseCountryCalculator):
-    """Germany 2025 income tax, Soli, church tax and employee social insurance."""
+    """Germany income tax, Soli, church tax and employee social insurance."""
 
     country_code = "DE"
     country_name = "Germany"
@@ -90,7 +87,7 @@ class DECalculator(BaseCountryCalculator):
     @property
     def rules(self) -> dict[str, Any]:
         if self._rules is None:
-            self._rules = load_de_rules()
+            raise ValueError("DE rules are loaded per tax year inside calculate()")
         return self._rules
 
     # ------------------------------------------------------------------
@@ -217,19 +214,23 @@ class DECalculator(BaseCountryCalculator):
             TaxComponent(
                 component_id="DE-PENSION", name="Rentenversicherung",
                 amount=amounts["pension"], rate=pension_rate, base=pension_base,
-                notes=f"9.3% employee share up to BBG {pension_ceiling:,.0f}",
+                notes=f"{pension_rate * 100:.1f}% employee share up to BBG {pension_ceiling:,.0f}",
             ),
             TaxComponent(
                 component_id="DE-UNEMPLOYMENT", name="Arbeitslosenversicherung",
                 amount=amounts["unemployment"], rate=unemployment_rate, base=pension_base,
-                notes=f"1.3% employee share up to BBG {pension_ceiling:,.0f}",
+                notes=(
+                    f"{unemployment_rate * 100:.1f}% employee share up to BBG "
+                    f"{pension_ceiling:,.0f}"
+                ),
             ),
             TaxComponent(
                 component_id="DE-HEALTH", name="Krankenversicherung",
                 amount=amounts["health"], rate=health_rate, base=health_base,
                 notes=(
-                    "7.3% + half of the 2.5% average Zusatzbeitrag (statutory insurance) "
-                    f"up to BBG {health_ceiling:,.0f}"
+                    f"{_d(si['health_rate_employee']) * 100:.1f}% + half of the "
+                    f"{_d(si['health_zusatzbeitrag_avg']) * 100:.1f}% average Zusatzbeitrag "
+                    f"(statutory insurance) up to BBG {health_ceiling:,.0f}"
                 ),
             ),
             TaxComponent(
@@ -249,8 +250,9 @@ class DECalculator(BaseCountryCalculator):
         reduction = _d(d["health_krankengeld_reduction"])
         basic = si["health"] * (1 - reduction) + si["care"]
         other = si["health"] * reduction + si["unemployment"]
-        # §10 Abs. 4: other Vorsorge up to 1,900, but basic cover always in full.
-        sonstige = max(basic, min(Decimal(1900), basic + other))
+        # §10 Abs. 4: other Vorsorge up to the employee cap, basic cover always in full.
+        cap = _d(d["sonstige_vorsorge_cap_employee"])
+        sonstige = max(basic, min(cap, basic + other))
         return _cents(max(ZERO, pension) + sonstige)
 
     # ------------------------------------------------------------------
@@ -258,17 +260,25 @@ class DECalculator(BaseCountryCalculator):
     # ------------------------------------------------------------------
 
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        if tax_input.tax_year != SUPPORTED_TAX_YEAR:
-            raise ValueError(
-                f"Germany calculator supports tax year {SUPPORTED_TAX_YEAR} only; "
-                f"got {tax_input.tax_year}"
-            )
+        if self._rules is None:
+            return DECalculator(rules=load_de_rules(tax_input.tax_year)).calculate(tax_input)
         rules = self.rules
+        declared = rules.get("tax_year")
+        if declared is not None and declared != tax_input.tax_year:
+            raise ValueError(f"DE rules are for {declared}; got tax year {tax_input.tax_year}")
         de = tax_input.de
         tax_class = de.tax_class if de else DETaxClass.I
         has_church = de.has_church_membership if de else False
         num_children = de.num_children if de else 0
         state = de.state if de else None
+        bd = tax_input.income_breakdown
+        require_day1_profile(
+            tax_input,
+            married=tax_class in (DETaxClass.III, DETaxClass.IV, DETaxClass.V),
+            dependants=num_children + (1 if tax_class == DETaxClass.II else 0),
+            self_employment=(bd.self_employment if bd else ZERO)
+            + (de.self_employment_income if de else ZERO),
+        )
 
         income = self._resolve_income(tax_input)
         wages = income["employment"]
@@ -277,11 +287,13 @@ class DECalculator(BaseCountryCalculator):
 
         joint = tax_class == DETaxClass.III
         d = rules["deductions"]
+        period = rules.get("period_label", f"Calendar {tax_input.tax_year}")
+        zusatz = _d(rules["social_insurance"]["health_zusatzbeitrag_avg"]) * 100
         notes = [
-            "Tax year 2025 annual assessment estimate (§32a EStG 2025 formula).",
-            "Statutory health insurance with the 2.5% average Zusatzbeitrag assumed.",
+            f"{period} annual assessment estimate (§32a EStG formula for that year).",
+            f"Statutory health insurance with the {zusatz:.1f}% average Zusatzbeitrag assumed.",
         ]
-        warnings: list[str] = []
+        warnings: list[str] = rules_warnings(rules)
         if tax_class in (DETaxClass.IV, DETaxClass.V, DETaxClass.VI):
             notes.append(
                 f"Tax class {tax_class.value}: assessed on the basic tariff for this income "
@@ -333,7 +345,7 @@ class DECalculator(BaseCountryCalculator):
             TaxComponent(
                 component_id="DE-EST", name="Einkommensteuer", amount=tariff_tax,
                 rate=marginal, base=zve,
-                notes="§32a EStG 2025" + (" (splitting)" if joint else ""),
+                notes=f"§32a EStG {tax_input.tax_year}" + (" (splitting)" if joint else ""),
             )
         )
         soli = self.solidarity_surcharge(tariff_tax, joint)
@@ -375,7 +387,8 @@ class DECalculator(BaseCountryCalculator):
                     component_id="DE-ABGELTUNG", name="Abgeltungsteuer",
                     amount=capital_tax, rate=_d(cap_rules["rate"]), base=taxable_capital,
                     notes=(
-                        f"25% on capital income after the {allowance:,.0f} Sparer-Pauschbetrag"
+                        f"{_d(cap_rules['rate']) * 100:.0f}% on capital income after the "
+                        f"{allowance:,.0f} Sparer-Pauschbetrag"
                         + (" (reduced for church-tax deductibility)" if church_rate else "")
                     ),
                 )

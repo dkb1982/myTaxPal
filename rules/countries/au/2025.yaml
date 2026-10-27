@@ -1,8 +1,8 @@
 # =============================================================================
-# Australia Tax Rules - "2025" = income year 2024-25 (1 July 2024 - 30 June 2025)
+# Australia Tax Rules - "2025" = income year 2025-26 (1 July 2025 - 30 June 2026)
 # =============================================================================
-# The integer tax_year 2025 used across the app means the Australian income
-# year ending 30 June 2025 (FY 2024-25).  Single source of truth for au.py.
+# tax_year 2025 is the Australian income year with most months in calendar 2025.
+# Single source of truth for au.py.
 # =============================================================================
 
 jurisdiction_id: "AU"
@@ -15,14 +15,15 @@ parent_jurisdiction_id: null
 country_code: "AU"
 currency_code: "AUD"
 tax_year_format: "aus_fiscal"
+period_label: "2025-26 income year (1 July 2025 - 30 June 2026)"
 
 has_income_tax: true
 income_tax_type: "graduated"
 
-effective_start_date: "2024-07-01"
-effective_end_date: "2025-06-30"
+effective_start_date: "2025-07-01"
+effective_end_date: "2026-06-30"
 
-# Resident rates 2024-25
+# Resident rates 2025-26 (Income Tax Rates Act 1986 Sch 7 Pt I cl 1)
 rate_schedule:
   rate_type: "graduated"
   flat_rate: null
@@ -48,76 +49,66 @@ deductions:
     dependent_exemption_amount: 0
 
 country_parameters:
-  non_resident_brackets:
+  non_resident_brackets:              # Sch 7 Pt II (unchanged by the 2025 Act)
     - [0, 135000, 0.30]
     - [135000, 190000, 0.37]
     - [190000, null, 0.45]
-  lito:                               # Low income tax offset
+  lito:                               # Low income tax offset, ITAA 1997 s 61-115
     max: 700
     first_threshold: 37500
     first_rate: 0.05                  # to 45,000 (offset 325)
     second_threshold: 45000
     second_rate: 0.015                # to 66,667 (offset 0)
-  small_business_offset:              # Small business income tax offset
+  small_business_offset:              # ITAA 1997 s 328-360: 16%, cap $1,000
     rate: 0.16
     cap: 1000
   medicare_levy:
     rate: 0.02
-    low_income_threshold: 27222       # singles, 2024-25
-    shade_in_rate: 0.10               # full levy from 34,027
-  medicare_levy_surcharge:            # singles, 2024-25; applies without private hospital cover
-    - {from: 97000, rate: 0.01}
-    - {from: 113000, rate: 0.0125}
-    - {from: 151000, rate: 0.015}
+    low_income_threshold: 28011       # singles; Medicare Levy Act 1986 s 3(1), as amended by Act No. 58 of 2026 (2025-26 and later years)
+    shade_in_rate: 0.10               # full levy from 35,013 (phase-in limit)
+  medicare_levy_surcharge:            # singles, 2025-26; applies without private hospital cover
+    - {from: 101000, rate: 0.01}
+    - {from: 118000, rate: 0.0125}
+    - {from: 158000, rate: 0.015}
   cgt_discount: 0.5                   # assets held > 12 months, resident individuals
   # No franking parameters: Compare income_breakdown dividends use US-defined
   # categories and are taxed as unfranked foreign dividends (franking applies
   # only to Australian-company dividends; foreign income tax offset not modelled).
-  help_thresholds:                    # 2024-25 repayment rates on repayment income
-    - [54435, 0.01]
-    - [62850, 0.02]
-    - [66620, 0.025]
-    - [70618, 0.03]
-    - [74855, 0.035]
-    - [79346, 0.04]
-    - [84107, 0.045]
-    - [89154, 0.05]
-    - [94503, 0.055]
-    - [100174, 0.06]
-    - [106185, 0.065]
-    - [112556, 0.07]
-    - [119309, 0.075]
-    - [126467, 0.08]
-    - [134056, 0.085]
-    - [142100, 0.09]
-    - [150626, 0.095]
-    - [159663, 0.10]
+  help_repayment:                     # Higher Education Support Act 2003 s 154-20 (marginal system from 2025-26)
+    minimum_repayment_income: 67000
+    second_threshold: 125000
+    first_rate: 0.15
+    second_rate: 0.17
+    total_income_cap_rate: 0.10       # liability never exceeds 10% of repayment income
 
 verification:
   status: "verified"
-  last_verified: "2026-10-23"
-  verified_by: "eu-b engineer"
+  last_verified: "2026-10-27"
+  provisional_items: []
   notes: >-
-    Brackets, Medicare levy low-income thresholds (27,222 / 34,027) and MLS
-    tiers (97,000 / 113,000 / 151,000) for 2024-25 confirmed against ATO pages
-    via search (direct fetch blocked by ato.gov.au, HTTP 403).  LITO, CGT
-    discount and SBITO are long-standing legislated values
-    (not re-fetched).  HELP table carried over from the previous file
-    (unverified; ATO lower bounds may differ by $1).
+    Rebuilt as 2025-26 (previously held 2024-25 figures). Resident rates
+    (16% band) from Act No. 28 of 2025 (Sch 7 heading "2024-25 or 2025-26").
+    Medicare levy singles low-income threshold $28,011 (phase-in limit
+    $35,013) from Act No. 58 of 2026, applying to 2025-26 and later years.
+    MLS singles tiers 101,000 / 118,000 / 158,000 from privatehealth.gov.au.
+    HELP: minimum repayment income $67,000 and $125,000 second threshold
+    (HESA ss 154-10, 154-20 as amended for 2025-26). LITO, SBITO and CGT
+    discount are long-standing statutory values (not re-fetched). ato.gov.au
+    blocks automated fetches (HTTP 403), so legislation was used instead.
 
 references:
-  - source_name: "ATO - Tax rates: Australian residents"
+  - source_name: "Federal Register of Legislation - Treasury Laws Amendment (More Cost of Living Relief) Act 2025 (No. 28, 2025), Sch 1 resident rates 2024-25/2025-26 (16%), 2026-27 (15%), 2027-28+ (14%)"
+    url: "https://www.legislation.gov.au/C2025A00028/asmade/2025-03-27/text/original/pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "Federal Register of Legislation - Treasury Laws Amendment (Delivering an Efficient and Trusted Tax System) Act 2026 (No. 58, 2026), Sch 5 Medicare levy low-income thresholds ($28,011 / $35,013) for 2025-26 and later years"
+    url: "https://www.legislation.gov.au/C2026A00058/asmade/2026-06-30/text/original/pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "Federal Register of Legislation - Higher Education Support Act 2003, Compilation No. 104 (1 July 2026), ss 154-10, 154-20, 154-25"
+    url: "https://www.legislation.gov.au/C2004A01234/2026-07-01/2026-07-01/text/original/pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "privatehealth.gov.au (Department of Health) - Medicare Levy Surcharge thresholds 2025-26 and 2026-27"
+    url: "https://www.privatehealth.gov.au/health_insurance/surcharges_incentives/medicare_levy.htm"
+    retrieved_date: "2026-10-27"
+  - source_name: "ATO - Tax rates: Australian residents (not fetchable: HTTP 403)"
     url: "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents"
-    retrieved_date: "2026-10-23"
-  - source_name: "ATO - Medicare levy reduction for low-income earners"
-    url: "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy/medicare-levy-reduction/medicare-levy-reduction-for-low-income-earners"
-    retrieved_date: "2026-10-23"
-  - source_name: "ATO - Individual tax return 2025 instructions, M2 Medicare levy surcharge"
-    url: "https://www.ato.gov.au/forms-and-instructions/individual-tax-return-2025-instructions/medicare-levy-questions-m1-m2-individual-tax-return-2025/m2-medicare-levy-surcharge-2025"
-    retrieved_date: "2026-10-23"
-  - source_name: "ATO - Low and middle income earner tax offsets"
-    url: "https://www.ato.gov.au/individuals-and-families/income-deductions-offsets-and-records/tax-offsets/low-and-middle-income-earner-tax-offsets"
-    retrieved_date: "2026-10-23"
-  - source_name: "ATO - Study and training loan repayment thresholds"
-    url: "https://www.ato.gov.au/tax-rates-and-codes/study-and-training-support-loans-rates-and-repayment-thresholds"
-    retrieved_date: "2026-10-23"
+    retrieved_date: null

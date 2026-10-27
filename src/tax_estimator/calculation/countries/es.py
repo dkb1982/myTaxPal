@@ -1,14 +1,15 @@
 """
-Spain (ES) tax calculator - IRPF 2025 and employee social security.
+Spain (ES) tax calculator - IRPF and employee social security (calendar year).
 
-All parameters are loaded from ``rules/countries/es/2025.yaml``
-(``country_parameters``), the single source of truth.
+All parameters are loaded from ``rules/countries/es/<tax_year>.yaml``
+(``country_parameters``), the single source of truth. 2026+ estimates cover
+single employees without dependants only.
 
-Model (LIRPF, Ley 35/2006, as applicable to 2025):
+Model (LIRPF, Ley 35/2006):
 
-* Employment income: employee SS (common 4.70%, unemployment 1.55%,
-  training 0.10%, MEI 0.13%) up to the 2025 maximum base, plus the
-  employee share of the solidarity contribution above it.
+* Employment income: employee SS (common contingencies, unemployment,
+  training, MEI) up to the year's maximum base, plus the employee share of
+  the solidarity contribution above it.
 * Net work income = gross - SS (art. 19.2 a); the art. 20 reduction is
   computed on that amount; the EUR 2,000 "otros gastos" (art. 19.2.f) is
   then deducted.
@@ -21,25 +22,24 @@ Model (LIRPF, Ley 35/2006, as applicable to 2025):
   any unused minimum is applied to the savings base.
 * Regional half: Comunidad de Madrid is implemented with its own scale and
   minimum.  Other common-regime communities use a GENERIC scale that mirrors
-  the state scale (flagged with a warning).  Foral regimes (Basque Country,
+  the state scale (flagged with a warning; refused where the year's rules
+  set ``generic_scale_policy: reject``).  Foral regimes (Basque Country,
   Navarre) and Ceuta/Melilla are rejected.
 * Self-employment (actividades economicas) is not modelled and is rejected.
 """
 
 from __future__ import annotations
 
-import os
 import unicodedata
 from decimal import Decimal
-from functools import lru_cache
-from pathlib import Path
 from typing import Any
-
-import yaml
 
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     UnsupportedIncomeError,
+    load_country_rules,
+    require_day1_profile,
+    rules_warnings,
 )
 from tax_estimator.models.international import (
     InternationalTaxInput,
@@ -53,16 +53,13 @@ CENT = Decimal("0.01")
 Brackets = list[tuple[Decimal, Decimal | None, Decimal]]
 
 
-def _rules_path() -> Path:
-    env_dir = os.environ.get("TAX_ESTIMATOR_RULES_DIR")
-    root = Path(env_dir) if env_dir else Path(__file__).resolve().parents[4] / "rules"
-    return root / "countries" / "es" / "2025.yaml"
-
-
-@lru_cache(maxsize=1)
-def _load_rules() -> dict[str, Any]:
-    with open(_rules_path(), encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+def load_es_rules(tax_year: int) -> dict[str, Any]:
+    """Load the Spanish rules YAML for ``tax_year`` (single source of truth)."""
+    data = load_country_rules("ES", tax_year)
+    for key in ("rate_schedule", "country_parameters"):
+        if key not in data:
+            raise ValueError(f"ES {tax_year} rules missing required section {key!r}")
+    return data
 
 
 def _d(value: Any) -> Decimal:
@@ -119,7 +116,7 @@ def _normalise_community(name: str) -> str:
 
 
 class ESCalculator(BaseCountryCalculator):
-    """Spain IRPF + employee social security calculator (2025)."""
+    """Spain IRPF + employee social security calculator."""
 
     country_code = "ES"
     country_name = "Spain"
@@ -131,7 +128,9 @@ class ESCalculator(BaseCountryCalculator):
 
     @property
     def rules(self) -> dict[str, Any]:
-        return self._rules if self._rules is not None else _load_rules()
+        if self._rules is None:
+            raise ValueError("ES rules are loaded per tax year inside calculate()")
+        return self._rules
 
     @property
     def params(self) -> dict[str, Any]:
@@ -203,6 +202,11 @@ class ESCalculator(BaseCountryCalculator):
         if key not in self.params["common_regime_communities"]:
             raise UnsupportedIncomeError(f"Spain: unknown autonomous community {raw!r}")
         scale_key = key if key in self.params["regional_general_scales"] else "generic"
+        if scale_key == "generic" and self.params.get("generic_scale_policy") == "reject":
+            raise UnsupportedIncomeError(
+                f"Spain: no verified regional IRPF scale for {raw!r} in "
+                f"{self.rules.get('tax_year')} (only Comunidad de Madrid is modelled)"
+            )
         return key, scale_key
 
     # ------------------------------------------------------------------
@@ -237,8 +241,14 @@ class ESCalculator(BaseCountryCalculator):
             for band in sol["bands"]:
                 upper = None if band["upto_fraction"] is None else max_base * _d(band["upto_fraction"])
                 top = excess if upper is None else min(excess, upper)
+                # Explicit employee rate when the Orden de cotizacion states one,
+                # otherwise the total rate split like common contingencies.
+                band_rate = (
+                    _d(band["employee_rate"]) if "employee_rate" in band
+                    else _d(band["rate"]) * share
+                )
                 if top > lower:
-                    solidarity += (top - lower) * _d(band["rate"]) * share
+                    solidarity += (top - lower) * band_rate
                 lower = top if upper is None else upper
                 if excess <= lower:
                     break
@@ -250,7 +260,7 @@ class ESCalculator(BaseCountryCalculator):
                     name="Cotizacion adicional de solidaridad (employee share)",
                     amount=solidarity,
                     base=excess,
-                    notes="Employee share (4.70/28.30) of the 2025 solidarity contribution",
+                    notes=sol.get("note", "Employee share of the solidarity contribution"),
                 )
             )
         return total, components
@@ -283,14 +293,28 @@ class ESCalculator(BaseCountryCalculator):
 
     # ------------------------------------------------------------------
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
+        if self._rules is None:
+            return ESCalculator(rules=load_es_rules(tax_input.tax_year)).calculate(tax_input)
+        declared = self.rules.get("tax_year")
+        if declared is not None and declared != tax_input.tax_year:
+            raise ValueError(f"ES rules are for {declared}; got tax year {tax_input.tax_year}")
+        es = tax_input.es
+        bd = tax_input.income_breakdown
+        require_day1_profile(
+            tax_input,
+            dependants=es.num_dependents if es else 0,
+            self_employment=(bd.self_employment if bd else ZERO)
+            + (es.self_employment_income if es else ZERO),
+        )
         income = self._resolve_income(tax_input)
         community, scale_key = self._community(tax_input)
         p = self.params
+        period = self.rules.get("period_label", f"Calendar {tax_input.tax_year}")
         notes = [
-            "Spain IRPF 2025 (calendar year); employee contributions only.",
+            f"Spain IRPF, {period}; employee contributions only.",
             "Personal minimum applied as a zero-rate band (LIRPF arts. 56/63).",
         ]
-        warnings: list[str] = []
+        warnings: list[str] = rules_warnings(self.rules)
         if scale_key == "generic":
             warnings.append(
                 f"Regional IRPF for {community} approximated with a GENERIC scale that "
@@ -367,7 +391,7 @@ class ESCalculator(BaseCountryCalculator):
         ))
         if savings_base > 0:
             breakdown.append(TaxComponent(
-                component_id="ES-IRPF-SAVINGS", name="IRPF savings base (19%-30%)",
+                component_id="ES-IRPF-SAVINGS", name="IRPF savings base",
                 amount=savings_tax, base=savings_base,
                 notes="Interest, dividends and capital gains; no social security",
             ))

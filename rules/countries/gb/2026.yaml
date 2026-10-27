@@ -1,0 +1,248 @@
+# =============================================================================
+# United Kingdom (UK) Tax Rules - 2026-27 Tax Year
+# =============================================================================
+# UK Tax Year: 6 April 2026 to 5 April 2027 (tax_year 2026)
+# Source: gov.uk (HMRC), legislation.gov.uk, gov.scot
+# =============================================================================
+
+# Identity
+jurisdiction_id: "GB"
+tax_year: 2026
+
+# Metadata
+jurisdiction_type: "country"
+jurisdiction_name: "United Kingdom"
+jurisdiction_abbreviation: "UK"
+parent_jurisdiction_id: null
+
+# International extensions
+country_code: "GB"
+currency_code: "GBP"
+tax_year_format: "uk_fiscal"
+period_label: "2026/27 tax year (6 April 2026 to 5 April 2027)"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "graduated"
+
+# Effective dates (UK fiscal year)
+effective_start_date: "2026-04-06"
+effective_end_date: "2027-04-05"
+
+# Income Tax Rate Schedule - England/Wales/NI (2026-27)
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # Coordinates are taxable income after allowances, not gross income.
+    - bracket_id: "GB-2026-BASIC"
+      filing_status: "all"
+      income_from: 0
+      income_to: 37700
+      rate: 0.20
+      base_tax: 0
+    - bracket_id: "GB-2026-HIGHER"
+      filing_status: "all"
+      income_from: 37700
+      income_to: 125140
+      rate: 0.40
+      base_tax: 7540  # 37700 * 0.20
+    - bracket_id: "GB-2026-ADDITIONAL"
+      filing_status: "all"
+      income_from: 125140
+      income_to: null
+      rate: 0.45
+      base_tax: 37488  # 7540 + (125140-50270) * 0.40 = 7540 + 29948 = 37488
+  surtaxes: []
+
+# Scotland Income Tax Brackets (2026-27)
+# Scotland has separate tax bands
+scotland_brackets:
+  # Taxable-income coordinates (after the Personal Allowance), per HMRC
+  # "Rates and thresholds for employers 2026 to 2027".
+  - bracket_id: "GB-2026-SCOTLAND-STARTER"
+    filing_status: "all"
+    income_from: 0
+    income_to: 3967
+    rate: 0.19
+    base_tax: 0
+  - bracket_id: "GB-2026-SCOTLAND-BASIC"
+    filing_status: "all"
+    income_from: 3967
+    income_to: 16956
+    rate: 0.20
+    base_tax: 753.73        # 3967 * 0.19
+  - bracket_id: "GB-2026-SCOTLAND-INTERMEDIATE"
+    filing_status: "all"
+    income_from: 16956
+    income_to: 31092
+    rate: 0.21
+    base_tax: 3351.53       # + 12989 * 0.20
+  - bracket_id: "GB-2026-SCOTLAND-HIGHER"
+    filing_status: "all"
+    income_from: 31092
+    income_to: 62430
+    rate: 0.42
+    base_tax: 6320.09       # + 14136 * 0.21
+  - bracket_id: "GB-2026-SCOTLAND-ADVANCED"
+    filing_status: "all"
+    income_from: 62430
+    income_to: 125140
+    rate: 0.45
+    base_tax: 19482.05      # + 31338 * 0.42
+  - bracket_id: "GB-2026-SCOTLAND-TOP"
+    filing_status: "all"
+    income_from: 125140
+    income_to: null
+    rate: 0.48
+    base_tax: 47701.55      # + 62710 * 0.45
+
+# Personal Allowance Taper (2026-27)
+personal_allowance_taper:
+  base_amount: 12570
+  taper_threshold: 100000
+  taper_rate: 0.5
+  minimum: 0
+
+# National Insurance Class 1 (2026-27)
+# Employee (Primary) and Employer (Secondary) contributions
+social_insurance:
+  components:
+    - component_id: "GB-NI-CLASS1-EMPLOYEE"
+      name: "National Insurance Class 1 (Employee)"
+      type: "general_social"
+      employee_rate: 0.08
+      employer_rate: null
+      primary_threshold: 12570
+      upper_limit: 50270
+      additional_rate: 0.02
+      notes: "8% on earnings £12,570 to £50,270, then 2% above £50,270"
+    - component_id: "GB-NI-CLASS1-EMPLOYER"
+      name: "National Insurance Class 1 (Employer)"
+      type: "employer_social"
+      employee_rate: null
+      employer_rate: 0.15
+      secondary_threshold: 5000
+      notes: "15% on earnings above £5,000 a year (£96/week, £417/month)"
+  calculation_method: "banded"
+  employer_contribution: true
+  employee_contribution: true
+  class_4:
+    lower_profits_limit: 12570
+    upper_profits_limit: 50270
+    main_rate: 0.06
+    additional_rate: 0.02
+    notes: "Annualised estimate: 6% on profits £12,570 to £50,270, then 2% above"
+
+# Student Loan Repayment Thresholds (2026-27)
+student_loan_plans:
+  - plan_id: "plan_1"
+    name: "Plan 1 (pre-2012)"
+    threshold: 26900
+    rate: 0.09
+  - plan_id: "plan_2"
+    name: "Plan 2 (post-2012)"
+    threshold: 29385
+    rate: 0.09
+  - plan_id: "plan_4"
+    name: "Plan 4 (Scotland)"
+    threshold: 33795
+    rate: 0.09
+  - plan_id: "plan_5"
+    name: "Plan 5 (post-2023)"
+    threshold: 25000
+    rate: 0.09
+  - plan_id: "postgrad"
+    name: "Postgraduate Loan"
+    threshold: 21000
+    rate: 0.06
+
+# Capital Gains Tax (2026-27)
+capital_gains:
+  annual_exempt_amount: 3000
+  basic_rate: 0.18
+  higher_rate: 0.24
+
+# Savings income (ITA 2007 ss 7, 12, 12B) - 2026-27
+savings:
+  starting_rate_limit: 5000        # 0% starting rate; reduced by non-savings taxable income
+  personal_savings_allowance:
+    basic: 1000
+    higher: 500                    # additional-rate taxpayers: nil
+  rates:                           # unchanged for 2026-27; 22/42/47% apply from 6 April 2027
+    basic: 0.20
+    higher: 0.40
+    additional: 0.45
+
+# Dividend income (ITA 2007 ss 8, 13A) - 2026-27
+dividends:
+  allowance: 500
+  rates:
+    ordinary: 0.1075               # Finance Act 2026: +2 points from 6 April 2026
+    upper: 0.3575                  # Finance Act 2026: +2 points from 6 April 2026
+    additional: 0.3935
+
+# Relief-at-source pensions: payments above the annual allowance are rejected
+pension:
+  annual_allowance: 60000
+
+# Deductions
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+# Verification
+verification:
+  status: "verified"
+  last_verified: "2026-10-27"
+  provisional_items: []
+  notes: >-
+    All figures fetched from gov.uk on 2026-10-27. Personal Allowance, bands
+    and £100,000 taper frozen; dividend ordinary/upper rates 10.75%/35.75%
+    from 6 April 2026 (Finance Act 2026, Royal Assent 18 March 2026);
+    savings rates stay 20/40/45% until 6 April 2027; PSA £1,000/£500 and
+    £5,000 starting rate for savings unchanged. Class 1 PT £12,570 and UEL
+    £50,270 (8%/2%); Class 4 £12,570/£50,270 (6%/2%). CGT £3,000 AEA,
+    18%/24%. Student loan 2026-27 thresholds from HMRC employer rates page.
+    Scottish 2026-27 bands as published by HMRC for 2026-27 PAYE (starter to
+    £3,967, basic to £16,956, intermediate to £31,092, higher to £62,430,
+    advanced to £125,140 of taxable income). Pension annual allowance £60,000.
+
+references:
+  - source_name: "gov.uk - Income Tax rates and allowances for current and past years"
+    url: "https://www.gov.uk/government/publications/rates-and-allowances-income-tax/income-tax-rates-and-allowances-current-and-past"
+    retrieved_date: "2026-10-27"
+  - source_name: "gov.uk - Rates and thresholds for employers 2026 to 2027"
+    url: "https://www.gov.uk/guidance/rates-and-thresholds-for-employers-2026-to-2027"
+    retrieved_date: "2026-10-27"
+  - source_name: "gov.uk - National Insurance rates and allowances"
+    url: "https://www.gov.uk/government/publications/rates-and-allowances-national-insurance-contributions/rates-and-allowances-national-insurance-contributions"
+    retrieved_date: "2026-10-27"
+  - source_name: "gov.uk - Income Tax: changes to tax rates for property, savings and dividend income (policy paper)"
+    url: "https://www.gov.uk/government/publications/income-tax-changes-to-tax-rates-for-property-savings-and-dividend-income/income-tax-changes-to-tax-rates-for-property-savings-and-dividend-income"
+    retrieved_date: "2026-10-27"
+  - source_name: "legislation.gov.uk - Finance Act 2026 (c. 11)"
+    url: "https://www.legislation.gov.uk/ukpga/2026/11/contents"
+    retrieved_date: "2026-10-27"
+  - source_name: "gov.scot - Scottish Income Tax rates and bands 2026 to 2027"
+    url: "https://www.gov.scot/publications/scottish-income-tax-rates-and-bands/pages/rates-and-bands-2026-to-2027/"
+    retrieved_date: "2026-10-27"
+  - source_name: "gov.uk - Tax-free interest on savings: how much is tax free"
+    url: "https://www.gov.uk/apply-tax-free-interest-on-savings/how-much-is-tax-free"
+    retrieved_date: "2026-10-27"
+  - source_name: "gov.uk - Capital Gains Tax rates and allowances"
+    url: "https://www.gov.uk/guidance/capital-gains-tax-rates-and-allowances"
+    retrieved_date: "2026-10-27"
+  - source_name: "gov.uk - Repaying your student loan: what you pay"
+    url: "https://www.gov.uk/repaying-your-student-loan/what-you-pay"
+    retrieved_date: "2026-10-27"
+  - source_name: "gov.uk - Tax on your private pension: annual allowance"
+    url: "https://www.gov.uk/tax-on-your-private-pension/annual-allowance"
+    retrieved_date: "2026-10-27"

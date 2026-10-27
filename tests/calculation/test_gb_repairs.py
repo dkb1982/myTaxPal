@@ -212,7 +212,7 @@ def test_option_only_profile_does_not_replace_breakdown_income():
 
 
 def test_direct_year_and_custom_rule_year_mismatch_are_rejected():
-    with pytest.raises(ValueError, match="rules are for tax year 2025"):
+    with pytest.raises(ValueError, match="No GB rules for tax year 2024"):
         GBCalculator().calculate(
             InternationalTaxInput(country_code="GB", tax_year=2024, gross_income=Decimal("50000"))
         )

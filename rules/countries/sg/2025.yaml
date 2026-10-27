@@ -1,9 +1,9 @@
 # =============================================================================
-# Singapore - Year of Assessment 2025 (income earned 1 Jan - 31 Dec 2024)
+# Singapore - tax_year 2025: income earned 1 Jan - 31 Dec 2025, assessed in YA2026
 # =============================================================================
-# Period semantics: tax_year 2025 in this app means YA2025, i.e. 2024 income.
-# Every parameter here (CPF rates and ceilings, reliefs, rebate) is the one
-# that applies to 2024 income assessed in YA2025.
+# Period semantics: tax_year N in this app means income earned in calendar N
+# (Year of Assessment N+1). CPF rates and ceilings are those for calendar 2025;
+# reliefs and rebates are those for YA2026.
 #
 # Loaded by src/tax_estimator/calculation/countries/sg.py.
 # =============================================================================
@@ -18,15 +18,15 @@ parent_jurisdiction_id: null
 country_code: "SG"
 currency_code: "SGD"
 tax_year_format: "year_of_assessment"
-year_of_assessment: 2025
-income_year: 2024
-period_label: "YA2025 (income earned in calendar 2024)"
+year_of_assessment: 2026
+income_year: 2025
+period_label: "2025 income (YA2026)"
 
 has_income_tax: true
 income_tax_type: "graduated"
 
-effective_start_date: "2024-01-01"
-effective_end_date: "2024-12-31"
+effective_start_date: "2025-01-01"
+effective_end_date: "2025-12-31"
 
 rate_schedule:
   rate_type: "graduated"
@@ -51,30 +51,28 @@ non_resident:
   employment_flat_rate: 0.15      # or resident rates (no reliefs), whichever is higher
   other_income_rate: 0.24         # from YA2024 (22% before)
 
-personal_income_tax_rebate:       # YA2025, tax residents only
-  rate: 0.60
-  cap: 200
+personal_income_tax_rebate: null  # none for YA2026 (IRAS lists rebates to YA2025; YA2026 sample calculations apply none)
 
 reliefs:
   earned_income_relief:           # by age; capped at earned income
     - {age_below: 55, amount: 1000}
     - {age_below: 60, amount: 6000}
     - {age_below: null, amount: 8000}
-  course_fees_cap: 5500
+  course_fees_cap: 0              # Course Fees Relief discontinued from YA2026 (last claimable YA2025)
   life_insurance_cpf_threshold: 5000  # relief = min(premiums, 5000 - CPF), only if CPF < 5000
   overall_relief_cap: 80000
 
 # CPF (Singapore citizens / 3rd-year+ PRs), employee share, wages > S$750/month,
-# rates from 1 January 2024. Age bands are "55 and below", "above 55 to 60", ...
+# rates from 1 January 2025. Age bands are "55 and below", "above 55 to 60", ...
 cpf:
-  ordinary_wage_ceiling_monthly: 6800  # 2024 (S$7,400 from 1 Jan 2025)
+  ordinary_wage_ceiling_monthly: 7400
   annual_salary_ceiling: 102000        # OW subject to CPF + AW ceiling
   no_contribution_monthly_wage: 500
   full_rate_monthly_wage: 750
   employee_rates:
     - {age_up_to: 55, rate: 0.20}
-    - {age_up_to: 60, rate: 0.16}
-    - {age_up_to: 65, rate: 0.105}
+    - {age_up_to: 60, rate: 0.17}
+    - {age_up_to: 65, rate: 0.115}
     - {age_up_to: 70, rate: 0.075}
     - {age_up_to: null, rate: 0.05}
 
@@ -86,9 +84,9 @@ social_insurance:
       type: "pension"
       employee_rate: 0.20
       employer_rate: 0.17
-      ceiling: 81600
+      ceiling: 88800
       floor: 0
-      notes: "2024 rates; age-banded rates in `cpf` above"
+      notes: "2025 rates; age-banded rates in `cpf` above"
   calculation_method: "percentage"
   employer_contribution: true
   employee_contribution: true
@@ -106,27 +104,37 @@ deductions:
 
 verification:
   status: "verified"
-  last_verified: "2026-10-23"
-  verified_by: "engineering (primary-source check)"
+  last_verified: "2026-10-27"
+  provisional_items: []
   notes: |
-    Verified on IRAS (resident bands, non-resident 15%/24%, YA2025 rebate 60%
-    capped at S$200) and CPF Board (2024 employee rates by age band).
-    Earned income relief amounts, S$102,000 annual salary ceiling and S$6,800
-    2024 OW ceiling are standard published values, not re-fetched in this pass.
+    Rebuilt as 2025 income / YA2026 (previously YA2025 = 2024 income).
+    Resident bands unchanged since YA2024 (IRAS). No Personal Income Tax
+    Rebate for YA2026: the IRAS rates page lists rebates only to YA2025 and
+    the IRAS YA2026 sample calculations apply none. Course Fees Relief
+    discontinued from YA2026 (IRAS). CPF 2025: OW ceiling S$7,400/month,
+    annual salary ceiling S$102,000, employee rates 20 / 17 / 11.5 / 7.5 / 5%
+    (CPF table from 1 January 2025). Earned income relief amounts are the
+    standard published values, not re-fetched.
     Not modelled: graduated rates for 1st/2nd-year PRs, phase-in rates for
     wages of S$500-750/month, other personal reliefs (spouse, child, parent,
     SRS, CPF top-ups), self-employed MediSave.
 
 references:
-  - source_name: "IRAS Individual income tax rates"
+  - source_name: "IRAS Individual income tax rates (resident bands YA2024+, non-resident 15%/24%, rebates listed to YA2025 only)"
     url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-residency-and-tax-rates/individual-income-tax-rates"
-    retrieved_date: "2026-10-23"
+    retrieved_date: "2026-10-27"
+  - source_name: "IRAS Sample income tax calculations (YA2026; no Personal Income Tax Rebate applied)"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-residency-and-tax-rates/sample-income-tax-calculations"
+    retrieved_date: "2026-10-27"
+  - source_name: "IRAS Course Fees Relief (discontinued from YA2026)"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-reliefs-rebates-and-deductions/tax-reliefs/course-fees-relief"
+    retrieved_date: "2026-10-27"
   - source_name: "IRAS Earned Income Relief"
-    url: "https://www.iras.gov.sg/taxes/individual-income-tax/employees/deductions-for-individuals/personal-reliefs-and-tax-rebates/earned-income-relief"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-reliefs-rebates-and-deductions/tax-reliefs/earned-income-relief"
     retrieved_date: null
-  - source_name: "CPF contribution rates from 1 Jan 2024"
-    url: "https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/CPF_contribution_rates_from_1_Jan_2024.pdf"
-    retrieved_date: "2026-10-23"
-  - source_name: "CPF FAQ - changes from 1 Jan 2024"
-    url: "https://cpf.gov.sg/member/faq/growing-your-savings/saving-as-an-employee/what-were-the-changes-to-the-cpf-contribution-rates-from-1-january-2024"
-    retrieved_date: "2026-10-23"
+  - source_name: "CPF contribution rate table from 1 January 2025"
+    url: "https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/CPF_contribution_rates_from_1_Jan_2025.pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "CPF - Changes to contribution rates for senior workers from 1 January 2026"
+    url: "https://www.cpf.gov.sg/service/article/what-are-the-changes-to-the-cpf-contribution-rates-for-senior-workers-from-1-january-2026"
+    retrieved_date: "2026-10-27"

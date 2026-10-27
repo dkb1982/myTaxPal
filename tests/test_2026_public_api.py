@@ -33,6 +33,7 @@ def _compare(income, *, regions=None, currency="USD", year=2026):
 
 def test_2026_discovery_is_limited_to_supported_states():
     from tax_estimator.calculation.comparison_regions import US_STATES
+    from tax_estimator.calculation.countries.router import CountryRouter
     from tax_estimator.calculation.coverage import enabled_us_cities, enabled_us_states
 
     enabled = enabled_us_states(2026)
@@ -44,13 +45,14 @@ def test_2026_discovery_is_limited_to_supported_states():
     assert response.status_code == 200, response.text
     assert {state["region_id"] for state in response.json()["us_states"]} == supported
     assert {city["region_id"] for city in response.json()["us_cities"]} == cities
-    assert response.json()["international"] == []
+    countries = set(CountryRouter.countries_for_tax_year(2026))
+    assert {c["region_id"] for c in response.json()["international"]} == countries
     states_group = client.get("/v1/comparison/regions/us-states?tax_year=2026")
     assert states_group.status_code == 200, states_group.text
     assert states_group.json()["total"] == len(supported)
     assert set(states_group.json()["no_income_tax_states"]) == no_tax
     assert client.get("/v1/comparison/regions/us-cities?tax_year=2026").json()["total"] == len(cities)
-    assert client.get("/v1/comparison/regions/international?tax_year=2026").json()["total"] == 0
+    assert client.get("/v1/comparison/regions/international?tax_year=2026").json()["total"] == len(countries)
     assert client.get("/v1/comparison/regions/US-TX?tax_year=2026").status_code == 200
     for region_id in sorted(set(US_STATES) - supported)[:1]:
         assert client.get(f"/v1/comparison/regions/{region_id}?tax_year=2026").status_code == 404

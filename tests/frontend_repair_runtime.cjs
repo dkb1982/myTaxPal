@@ -17,6 +17,8 @@ function element() {
     addEventListener(type, listener) { listeners.set(type, listener); },
     dispatch(type) { listeners.get(type)?.({target: this}); },
     querySelectorAll(selector) { return selector === 'input' ? children.filter(child => child.type === 'input') : []; },
+    querySelector() { return element(); }, setAttribute() {}, append(...items) { children.push(...items); }, classList: {add() {}, remove() {}, toggle() {}},
+    dataset: {},
   };
 }
 const document = {
@@ -175,12 +177,29 @@ assert.equal(elements.get('us-philly-first-half-wages').value, '');
 assert.equal(elements.get('us-philly-six-month-gains').value, '');
 const html = fs.readFileSync(path.join(__dirname, '../static/index.html'), 'utf8');
 for (const id of requestedIds) assert.ok(html.includes(`id="${id}"`), `Missing real form element: ${id}`);
-// 2026 Compare offers Philadelphia and Arizona, so their fact inputs stay visible;
-// only country profiles are hidden.
+// 2026 Compare offers Philadelphia, Arizona and countries, so their inputs stay visible.
 vm.runInContext('updateSelectionCount = () => {}; updateChips = () => {};', context);
 document.getElementById('compare-tax-year').value = '2026';
 context.setComparisonYearMode();
 assert.notEqual(elements.get('compare-state-details')?.style.display, 'none');
 assert.notEqual(elements.get('compare-country-details')?.style.display, 'none');
-assert.equal(elements.get('compare-country-profiles').style.display, 'none');
+assert.notEqual(elements.get('compare-country-profiles')?.style.display, 'none');
+// 2026 Compare with a country shows the FX snapshot and the country period, not "no conversion".
+const mixed2026 = {tax_year: 2026, base_currency: 'USD', total_gross_income: 100000,
+  exchange_rates: {rate_date: '2025 annual average', source: 'IRS yearly average rates'},
+  regions: [
+    {region_id: 'US-TX', region_name: 'Texas, USA', total_tax_base: 20000, net_income_base: 80000, effective_rate: .2, notes: []},
+    {region_id: 'FR', region_name: 'France', total_tax_base: 25000, net_income_base: 75000, effective_rate: .25,
+     period_label: 'Calendar 2026', provisional: true, notes: ['Domestic profile used (FR): {}']},
+  ], lowest_tax_region: 'US-TX', highest_net_income_region: 'US-TX', skipped_regions: []};
+context.displayCompareResults(mixed2026);
+assert.doesNotMatch(elements.get('compare-info').innerHTML, /No currency conversion/);
+assert.match(elements.get('compare-info').innerHTML, /2025 annual average/);
+assert.match(elements.get('compare-assumptions').innerHTML, /most months in 2026/);
+assert.match(elements.get('compare-assumptions').innerHTML, /Domestic profile used/);
+const cardsHtml = elements.get('compare-cards').children.map(card => card.innerHTML).join('');
+assert.match(cardsHtml, /Provisional/);
+assert.match(cardsHtml, /Calendar 2026/);
+context.displayCompareResults({...mixed2026, regions: [mixed2026.regions[0]], exchange_rates: {}});
+assert.match(elements.get('compare-info').innerHTML, /No currency conversion/);
 console.log('Frontend runtime contracts passed');

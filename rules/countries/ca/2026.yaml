@@ -1,0 +1,225 @@
+# =============================================================================
+# Canada Tax Rules - 2026 Tax Year (calendar year)
+# =============================================================================
+# Single source of truth for ca.py.  `rate_schedule` = federal brackets; all
+# other parameters (credits, CPP/EI, provinces) are under
+# `country_parameters`.  Supported provinces: ON, BC, AB.  QC and all other
+# provinces/territories are rejected by the calculator.
+#
+# 2026 forms (T1, ON428, BC428, AB428) were not yet published when this file
+# was written; figures come from the CRA 2026 rates/indexation pages and the
+# CRA payroll formulas T4127 (122nd ed. Jan 2026, 123rd ed. Jul 2026), which
+# carry the annual provincial amounts.
+# =============================================================================
+
+jurisdiction_id: "CA"
+tax_year: 2026
+jurisdiction_type: "country"
+jurisdiction_name: "Canada"
+jurisdiction_abbreviation: "CA"
+parent_jurisdiction_id: null
+
+country_code: "CA"
+currency_code: "CAD"
+tax_year_format: "calendar"
+period_label: "Calendar 2026"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# Federal brackets 2026 (indexed 2.0%).  Lowest rate 14% for the full year.
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - {bracket_id: "CA-FED-2026-1", filing_status: "all", income_from: 0, income_to: 58523, rate: 0.14, base_tax: 0}
+    - {bracket_id: "CA-FED-2026-2", filing_status: "all", income_from: 58523, income_to: 117045, rate: 0.205, base_tax: 8193.22}
+    - {bracket_id: "CA-FED-2026-3", filing_status: "all", income_from: 117045, income_to: 181440, rate: 0.26, base_tax: 20190.23}
+    - {bracket_id: "CA-FED-2026-4", filing_status: "all", income_from: 181440, income_to: 258482, rate: 0.29, base_tax: 36932.93}
+    - {bracket_id: "CA-FED-2026-5", filing_status: "all", income_from: 258482, income_to: null, rate: 0.33, base_tax: 59275.11}
+  surtaxes: []
+
+social_insurance:
+  components:
+    - component_id: "CA-CPP"
+      name: "Canada Pension Plan"
+      type: "pension"
+      employee_rate: 0.0595
+      employer_rate: 0.0595
+      ceiling: 74600
+      floor: 3500
+      notes: "Base 4.95% (credit) + first enhanced 1% (deduction); max 4,230.45"
+    - component_id: "CA-CPP2"
+      name: "Canada Pension Plan (second additional)"
+      type: "pension"
+      employee_rate: 0.04
+      employer_rate: 0.04
+      ceiling: 85000
+      floor: 74600
+      notes: "Deductible; max 416.00"
+    - component_id: "CA-EI"
+      name: "Employment Insurance"
+      type: "unemployment"
+      employee_rate: 0.0163
+      employer_rate: 0.02282
+      ceiling: 68900
+      floor: 0
+      notes: "EI premiums 2026 (outside Quebec); max 1,123.07"
+  calculation_method: "percentage"
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+country_parameters:
+  federal:
+    credit_rate: 0.14
+    bpa_max: 16452
+    bpa_min: 14829
+    bpa_phaseout_start: 181440
+    bpa_phaseout_end: 258482
+    canada_employment_amount: 1501
+  # Dividends from the Compare income_breakdown are taxed as foreign dividends
+  # (fully taxable, no gross-up/DTC; foreign tax credit not modelled).
+  capital_gains_inclusion: 0.5
+  cpp:
+    ympe: 74600
+    yampe: 85000
+    basic_exemption: 3500
+    base_rate: 0.0495               # employee base part (credit)
+    first_enhanced_rate: 0.01       # employee first-enhanced part (deduction)
+    cpp2_rate: 0.04
+  ei:
+    rate: 0.0163
+    max_insurable: 68900
+  provinces:
+    "ON":
+      brackets:
+        - [0, 53891, 0.0505]
+        - [53891, 107785, 0.0915]
+        - [107785, 150000, 0.1116]
+        - [150000, 220000, 0.1216]
+        - [220000, null, 0.1316]
+      credit_rate: 0.0505
+      bpa: 12989
+      surtax:
+        - {threshold: 5818, rate: 0.20}
+        - {threshold: 7446, rate: 0.36}
+      tax_reduction_basic: 300       # x2, minus Ontario tax
+      lift:                          # not indexed (unchanged since 2022)
+        max: 875
+        rate_on_employment: 0.0505
+        threshold: 32500
+        reduction_rate: 0.05
+      health_premium:                # statutory schedule, not indexed
+        - [0, 20000, 0, 0, 0]
+        - [20000, 25000, 0, 0.06, 300]
+        - [25000, 36000, 300, 0, 300]
+        - [36000, 38500, 300, 0.06, 450]
+        - [38500, 48000, 450, 0, 450]
+        - [48000, 48600, 450, 0.25, 600]
+        - [48600, 72000, 600, 0, 600]
+        - [72000, 72600, 600, 0.25, 750]
+        - [72600, 200000, 750, 0, 750]
+        - [200000, 200600, 750, 0.25, 900]
+        - [200600, null, 900, 0, 900]
+    "BC":
+      # Budget 2026 (Budget Measures Implementation Act, 2026, S.B.C. 2026
+      # c. 5): lowest rate and credit rate 5.06% -> 5.60%; BC tax reduction
+      # 575 -> 690 for 2026 (full year; CRA payroll prorates from July).
+      brackets:
+        - [0, 50363, 0.056]
+        - [50363, 100728, 0.077]
+        - [100728, 115648, 0.105]
+        - [115648, 140430, 0.1229]
+        - [140430, 190405, 0.147]
+        - [190405, 265545, 0.168]
+        - [265545, null, 0.205]
+      credit_rate: 0.056
+      bpa: 13216
+      tax_reduction:
+        basic: 690
+        threshold: 25570
+        rate: 0.0356
+    "AB":
+      brackets:
+        - [0, 61200, 0.08]
+        - [61200, 154259, 0.10]
+        - [154259, 185111, 0.12]
+        - [185111, 246813, 0.13]
+        - [246813, 370220, 0.14]
+        - [370220, null, 0.15]
+      credit_rate: 0.08
+      bpa: 22769
+      supplemental_credit:
+        # 2% of credit amounts above the indexed threshold (= 25% of the 8%
+        # credit value above 8% x threshold).  The 2025 threshold of 60,000 is
+        # indexed by the Alberta escalator from 2026; 61,200 is derived (2.0%),
+        # matching the indexed first bracket.  It cannot apply to a single
+        # employee (max credit amount ~27,400), so it never changes a result.
+        base_amount: 4896
+        rate: 0.25
+      provisional_items:
+        - "Alberta supplemental credit threshold for 2026 ($61,200) is derived by indexation; it does not affect single employees"
+
+verification:
+  status: "verified"
+  provisional_items: []
+  last_verified: "2026-10-27"
+  verified_by: "intl-2026 CA/JP/PT/AE engineer (primary sources below)"
+  notes: >-
+    Federal 2026 brackets, 14% lowest rate, BPA 16,452/14,829 and Canada
+    employment amount 1,501 from the CRA 2026 rates and indexation pages.
+    CPP 2026: YMPE 74,600, exemption 3,500, 5.95%, max 4,230.45 (CRA);
+    YAMPE 85,000 and CPP2 max 416.00 (ESDC CPP figures / T4127).  EI 2026:
+    1.63% to 68,900, max 1,123.07 (CRA).  ON/BC/AB brackets from the CRA
+    2026 rates page; provincial BPAs, ON surtax 5,818/7,446, ON tax reduction
+    300, BC tax reduction 690 / 25,570 / 3.56% and BC credit rate 5.60% from
+    T4127 (Jan and Jul 2026 editions) and the BC budget tax-changes page.
+    ON LIFT (875, 5.05%, 32,500, 5%) from ontario.ca (unchanged since 2022);
+    the Ontario Health Premium schedule is statutory and not indexed.  The
+    federal top-up credit (Budget 2025, keeping 15% on credit amounts above
+    the first bracket) cannot apply here because the modelled credit amounts
+    stay below 58,523.  2026 T1/428 forms were not yet published.
+
+references:
+  - source_name: "CRA - Tax rates and income brackets used on the 2026 return"
+    url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/frequently-asked-questions-individuals/canadian-income-tax-rates-individuals-current-previous-years/current-year.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "CRA - Adjustment of personal income tax and benefit amounts (2026 indexation)"
+    url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/frequently-asked-questions-individuals/adjustment-personal-income-tax-benefit-amounts.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "CRA T4127 Payroll Deductions Formulas, 122nd edition (1 January 2026)"
+    url: "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas/t4127-jan/t4127-jan-payroll-deductions-formulas-computer-programs.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "CRA T4127 Payroll Deductions Formulas, 123rd edition (1 July 2026)"
+    url: "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas/t4127-jul/t4127-jul-payroll-deductions-formulas.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "CRA - CPP contribution rates, maximums and exemptions"
+    url: "https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/payroll-deductions-contributions/canada-pension-plan-cpp/cpp-contribution-rates-maximums-exemptions.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "ESDC - CPP maximum benefit amounts and related figures 2026 (YAMPE 85,000)"
+    url: "https://www.canada.ca/en/employment-social-development/programs/pensions/pension/statistics/2026-quarterly-january-march.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "CRA - EI premium rates and maximums"
+    url: "https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/payroll/payroll-deductions-contributions/employment-insurance-ei/ei-premium-rates-maximums.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "Government of BC - Provincial budget tax changes (Budget 2026)"
+    url: "https://www2.gov.bc.ca/gov/content/taxes/tax-updates/budget-changes"
+    retrieved_date: "2026-10-27"
+  - source_name: "Ontario - Low-income Individuals and Families Tax (LIFT) credit"
+    url: "https://www.ontario.ca/page/low-income-individuals-and-families-tax-credit"
+    retrieved_date: "2026-10-27"
+  - source_name: "CRA Form ON428 (5006-C) 2025 - Ontario Health Premium schedule (unchanged statute)"
+    url: "https://www.canada.ca/content/dam/cra-arc/formspubs/pbg/5006-c/5006-c-25e.pdf"
+    retrieved_date: "2026-10-23"

@@ -33,7 +33,12 @@ from tax_estimator.calculation.comparison_us import (
     USStateComparisonCalculator,
 )
 from tax_estimator.calculation.countries import calculate_international_tax
-from tax_estimator.calculation.countries.base import UnsupportedIncomeError, get_country_name
+from tax_estimator.calculation.countries.base import (
+    UnsupportedIncomeError,
+    get_country_name,
+    period_label,
+)
+from tax_estimator.calculation.countries.router import CountryRouter
 from tax_estimator.calculation.coverage import (
     UnsupportedCoverageError,
     enabled_us_cities,
@@ -132,6 +137,8 @@ class EnhancedRegionResult(BaseModel):
     region_name: str
     region_type: str  # "us_state", "us_city", "international"
     currency_code: str
+    period_label: str | None = None  # native tax period for countries
+    provisional: bool = False  # some figures derived or not yet enacted
 
     # Totals in local currency
     gross_income_local: Decimal
@@ -194,7 +201,7 @@ class EnhancedComparisonResult(BaseModel):
     disclaimers: list[str] = Field(
         default_factory=lambda: [
             "This comparison is for informational purposes only.",
-            "Each place is estimated for a default profile checked against official 2025 sources; this is not a complete tax return, and personal circumstances outside that profile are not modelled.",
+            "Each place is estimated for a default profile checked against official sources for the tax year shown; this is not a complete tax return, and personal circumstances outside that profile are not modelled.",
             "Default FX is the published IRS 2025 annual average, not a live or transaction-date rate.",
             "Independent full-year domestic scenarios with equal converted gross income; continuing home-country tax, treaties, immigration and cost of living are not modelled.",
             "Consult a tax professional before making relocation decisions.",
@@ -218,7 +225,6 @@ class EnhancedComparisonEngine:
     - Income type breakdown
     - Currency conversion for mixed comparisons
 
-    IMPORTANT: All calculations use PLACEHOLDER rates.
     """
 
     def __init__(
@@ -307,27 +313,31 @@ class EnhancedComparisonEngine:
         else:
             income_breakdown = income
 
+        us_regions = [r for r in regions if r.startswith("US-")]
         if tax_year == 2026:
             supported_regions = {
                 f"US-{code}"
                 for code in enabled_us_states(2026, rules_root=self._rules_dir)
-            } | enabled_us_cities(2026, rules_root=self._rules_dir)
+            } | enabled_us_cities(2026, rules_root=self._rules_dir) | set(
+                CountryRouter.countries_for_tax_year(2026)
+            )
             unsupported = sorted(set(regions) - supported_regions)
             if unsupported:
+                pending = [
+                    f"{code} ({reason})" for code in unsupported
+                    if (reason := CountryRouter.pending_reason(code, 2026))
+                ]
                 raise UnsupportedComparisonCoverageError(
                     "2026 comparison is not validated for: " + ", ".join(unsupported)
+                    + (". " + "; ".join(pending) if pending else "")
                 )
-            if base_currency != "USD":
+            if us_regions and base_currency != "USD":
                 raise UnsupportedComparisonCoverageError(
-                    "2026 US comparison requires USD; no 2026 annual-average FX rate is available"
+                    "2026 comparisons that include US places use USD as the base currency"
                 )
             if filing_status != "single":
                 raise UnsupportedComparisonCoverageError(
                     "2026 US comparison currently supports single filers only"
-                )
-            if country_profiles:
-                raise UnsupportedComparisonCoverageError(
-                    "2026 US comparison does not support country profiles"
                 )
             facts = us_scenario or USScenarioFacts()
             required = []
@@ -349,12 +359,14 @@ class EnhancedComparisonEngine:
                 name for name, amount in income_breakdown.to_dict().items() if amount
             )
             try:
+                # Countries are validated by CountryRouter; the US coverage
+                # registry and its earnings-period check apply to US places.
                 coverage = tuple(
                     require_coverage(
                         region_id, 2026, rules_root=self._rules_dir,
                         income_categories=active_income
                     )
-                    for region_id in regions
+                    for region_id in us_regions
                 )
                 require_aligned_earnings_period(coverage)
             except UnsupportedCoverageError as exc:
@@ -404,7 +416,7 @@ class EnhancedComparisonEngine:
                 continue
             results.append(result)
         if not results:
-            raise ValueError("; ".join(item.reason for item in skipped))
+            raise ValueError("; ".join(dict.fromkeys(item.reason for item in skipped)))
 
         # Find best options
         lowest_tax_region = None
@@ -421,11 +433,12 @@ class EnhancedComparisonEngine:
                 highest_net_region = result.region_id
 
         # Create exchange rate info
+        us_only_2026 = tax_year == 2026 and len(us_regions) == len(regions)
         exchange_info = ExchangeRateInfo(
             base_currency=base_currency,
-            rates={"USD": Decimal(1)} if tax_year == 2026 else dict(self._rates),
-            rate_date="not applicable" if tax_year == 2026 else self._rate_date,
-            source="No currency conversion (USD only)" if tax_year == 2026 else self._rate_source,
+            rates={"USD": Decimal(1)} if us_only_2026 else dict(self._rates),
+            rate_date="not applicable" if us_only_2026 else self._rate_date,
+            source="No currency conversion (USD only)" if us_only_2026 else self._rate_source,
         )
 
         # Build income breakdown dict if detailed
@@ -446,16 +459,33 @@ class EnhancedComparisonEngine:
             highest_net_income_region=highest_net_region,
         )
         if tax_year == 2026:
+            countries = [r for r in regions if not r.startswith("US-")]
             comparison.disclaimers = [
-                "2026 US estimate for the listed supported states and cities only; not a complete tax return.",
-                "Single, age 40, no dependants, full-year same-state employee; "
-                "standard deduction and direct securities gains.",
-                "Qualified tips and overtime, car-loan interest, charity, itemization, "
-                "and other special deductions are not modelled.",
-                "EITC claimant eligibility is applied only when explicitly asserted; "
-                "filed-return tables may differ from the continuous estimate.",
-                "USD only; no 2025 exchange rate is applied to this 2026 comparison.",
+                "2026 estimate for the listed supported places only; not a complete tax return.",
+                "Single, age 40, no dependants, full-year resident employee in each place; "
+                "standard deduction or default reliefs, and direct securities gains.",
             ]
+            if us_regions:
+                comparison.disclaimers += [
+                    "Qualified tips and overtime, car-loan interest, charity, itemization, "
+                    "and other special deductions are not modelled.",
+                    "EITC claimant eligibility is applied only when explicitly asserted; "
+                    "filed-return tables may differ from the continuous estimate.",
+                ]
+            if countries:
+                comparison.disclaimers += [
+                    "Each country uses its tax year with most months in 2026 "
+                    "(UK and Hong Kong 2026/27, Australia 2026-27, Singapore 2026 income)"
+                    + ("; US places use calendar 2026." if us_regions else "."),
+                    "Currency conversion uses the IRS 2025 annual-average rates; the 2026 "
+                    "average is published in January 2027.",
+                    "Places marked provisional include figures derived from official "
+                    "formulas or announced measures not yet final.",
+                ]
+            else:
+                comparison.disclaimers.append(
+                    "USD only; no exchange rate is applied to this 2026 comparison."
+                )
         return comparison
 
     def _calculate_for_region(
@@ -703,6 +733,8 @@ class EnhancedComparisonEngine:
             region_name=get_country_name(country_code),
             region_type=RegionType.INTERNATIONAL.value,
             currency_code=local_currency,
+            period_label=period_label(country_code, tax_year),
+            provisional=any(w.endswith("(provisional)") for w in result.warnings),
             gross_income_local=local_income.total,
             total_tax_local=total_tax_local,
             net_income_local=net_income_local,
@@ -919,7 +951,10 @@ def get_all_comparison_regions(
                 city for city in regions["us_cities"]
                 if city["region_id"] in supported_cities
             ],
-            "international": [],
+            "international": [
+                country for country in regions["international"]
+                if country["region_id"] in set(CountryRouter.countries_for_tax_year(2026))
+            ],
         }
     raise UnsupportedComparisonCoverageError(
         f"No comparison regions are validated for {tax_year}"

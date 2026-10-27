@@ -1,0 +1,179 @@
+# =============================================================================
+# France Tax Rules - 2026 income (declared in 2027, barème set by the loi de
+# finances pour 2027)
+# =============================================================================
+# Single source of truth for src/tax_estimator/calculation/countries/fr.py.
+# Same structure as 2025.yaml.
+#
+# STATUS: PROVISIONAL. The barème, décote and quotient-familial caps below are
+# the amounts in article 2 of the Projet de loi de finances pour 2027
+# (Assemblée nationale n° 3210, tabled 1 October 2026), which indexes them by
+# 2.1%. The bill is not enacted as of 2026-10-27; Parliament may amend it.
+#
+# 2026 scope (day 1): single employee without dependants (1 part).
+#
+# French Tax Year: January 1 to December 31
+# =============================================================================
+
+# Identity
+jurisdiction_id: "FR"
+tax_year: 2026
+
+# Metadata
+jurisdiction_type: "country"
+jurisdiction_name: "France"
+jurisdiction_abbreviation: "FR"
+parent_jurisdiction_id: null
+
+# International extensions
+country_code: "FR"
+currency_code: "EUR"
+tax_year_format: "calendar"
+period_label: "2026 income (barème from the PLF 2027, provisional)"
+
+# Tax characteristics
+has_income_tax: true
+income_tax_type: "graduated"
+
+# Effective dates
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# Barème per part (art. 197 I-1 CGI as proposed by art. 2 H 1° PLF 2027:
+# 11,600 -> 11,844; 29,579 -> 30,200; 84,577 -> 86,353; 181,917 -> 185,737).
+# PROVISIONAL (bill not enacted).
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    - {bracket_id: "FR-2026-0", filing_status: "all", income_from: 0, income_to: 11844, rate: 0.00, base_tax: 0}
+    - {bracket_id: "FR-2026-11", filing_status: "all", income_from: 11844, income_to: 30200, rate: 0.11, base_tax: 0}
+    - {bracket_id: "FR-2026-30", filing_status: "all", income_from: 30200, income_to: 86353, rate: 0.30, base_tax: 2019.16}
+    - {bracket_id: "FR-2026-41", filing_status: "all", income_from: 86353, income_to: 185737, rate: 0.41, base_tax: 18865.06}
+    - {bracket_id: "FR-2026-45", filing_status: "all", income_from: 185737, income_to: null, rate: 0.45, base_tax: 59612.50}
+  surtaxes: []
+
+# Quotient familial (art. 197 I-2 CGI as proposed by art. 2 H 2° PLF 2027).
+# Not used by the 2026 day-1 profile (single, 1 part); kept for structure.
+family_quotient:
+  single_adult_parts: 1.0
+  married_couple_parts: 2.0
+  first_child_parts: 0.5
+  second_child_parts: 0.5
+  third_plus_child_parts: 1.0
+  single_parent_bonus: 0.5
+  cap_per_half_part: 1845             # 1,807 -> 1,845 (PLF 2027)
+  cap_single_parent_first_child: 4352 # 4,262 -> 4,352 (PLF 2027)
+
+# Décote (art. 197 I-4 a CGI as proposed by art. 2 H 3° PLF 2027). PROVISIONAL.
+decote:
+  single_amount: 915                  # 897 -> 915
+  couple_amount: 1513                 # 1,483 -> 1,513
+  rate: 0.4525
+
+# 10% abattement for professional expenses (art. 83 3° CGI). The minimum and
+# maximum are revised each year in the same proportion as the upper limit of
+# the barème's first bracket (11,600 -> 11,844, i.e. x 1.0210345), rounded to
+# the nearest euro: 509 x 1.0210345 = 519.71 -> 520; 14,555 x 1.0210345 =
+# 14,861.16 -> 14,861. PROVISIONAL (derived from the PLF 2027 bracket limit).
+professional_deduction:
+  rate: 0.10
+  minimum: 520
+  maximum: 14861
+
+# Contribution exceptionnelle sur les hauts revenus (art. 223 sexies CGI):
+# thresholds are fixed in the statute (not indexed).
+cehr:
+  single:
+    - {from: 250000, to: 500000, rate: 0.03}
+    - {from: 500000, to: null, rate: 0.04}
+  couple:
+    - {from: 500000, to: 1000000, rate: 0.03}
+    - {from: 1000000, to: null, rate: 0.04}
+  # CDHR (art. 224 CGI) still in force for 2026 income (the PLF 2027 revenue
+  # table carries 600 MEUR for it); not modelled, warn above these RFR levels.
+  cdhr_threshold_single: 250000
+  cdhr_threshold_couple: 500000
+
+# -----------------------------------------------------------------------------
+# Employee social contributions on salary, 2026 (private sector, non-cadre,
+# régime général, outside Alsace-Moselle). PASS 2026 = 48,060 (arrêté du
+# 22 décembre 2025). Employee rates unchanged from 2025.
+# -----------------------------------------------------------------------------
+social_contributions:
+  pass_annual: 48060
+  vieillesse_plafonnee: 0.069         # up to 1 PASS
+  vieillesse_deplafonnee: 0.004       # whole salary
+  agirc_arrco_t1: 0.0315              # up to 1 PASS
+  agirc_arrco_t2: 0.0864              # 1 to 8 PASS
+  ceg_t1: 0.0086
+  ceg_t2: 0.0108
+  cet: 0.0014                         # whole salary up to 8 PASS, only if salary > 1 PASS
+  tranche2_ceiling_pass: 8
+  csg_rate: 0.092
+  csg_deductible_rate: 0.068
+  crds_rate: 0.005
+  csg_base_rate: 0.9825               # 1.75% abattement for professional expenses
+  csg_abattement_ceiling_pass: 4      # abattement only up to 4 PASS
+
+# Capital income: prélèvement forfaitaire unique (art. 200 A CGI, 12.8%) plus
+# prélèvements sociaux. LFSS 2026 (loi n° 2025-1403, art. 12) raised CSG on
+# capital income from 9.2% to 10.6% for income received in 2026: total 18.6%
+# on dividends, interest and securities gains (PFU 31.4%). Revenus fonciers
+# (rental) stay at 17.2%.
+capital_income:
+  pfu_income_tax_rate: 0.128
+  social_levies_investment_income: 0.186
+  social_levies_capital_gains: 0.186
+  social_levies_rental: 0.172
+  social_levies_note: >-
+    Dividends, interest and securities gains received in 2026 bear 18.6% social levies
+    (CSG 10.6% after LFSS 2026), so the PFU totals 31.4%; rental income bears 17.2%.
+
+# Verification
+verification:
+  status: "provisional"
+  provisional_items:
+    - "France 2026-income tax brackets and décote are from the Projet de loi de finances pour 2027 (tabled 1 Oct 2026), not yet enacted"
+    - "France 10% employment-expense deduction limits (520 / 14,861) derived from the proposed 2.1% indexation"
+  last_verified: "2026-10-27"
+  verified_by: "eu-b tax engineer (hand calculation)"
+  notes: >-
+    Primary: PLF 2027 art. 2 text (Assemblée nationale n° 3210) for the barème, QF caps
+    and décote; arrêté du 22/12/2025 (PASS 48,060); service-public F2329 (18.6% / 17.2%
+    social levies, LFSS 2026 art. 12); economie.gouv.fr (PFU 31.4% from 1 Jan 2026).
+    Secondary (unchanged 2025 rates re-confirmed): employee vieillesse, AGIRC-ARRCO, CEG,
+    CET, CSG/CRDS (Weblex, Legisocial). Not modelled: cadre-specific contributions,
+    employer mutuelle/prévoyance in the CSG base, CDHR, Alsace-Moselle, self-employment,
+    barème option for capital income, couples and dependants (refused for 2026).
+
+references:
+  - source_name: "Projet de loi de finances pour 2027, n° 3210, article 2 (Assemblée nationale)"
+    url: "https://www.assemblee-nationale.fr/dyn/opendata/PRJLANR5L17B3210.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "Assemblée nationale - dossier PLF 2027 (tabled 1 Oct 2026)"
+    url: "https://www.assemblee-nationale.fr/dyn/17/textes/l17b3210_projet-loi"
+    retrieved_date: "2026-10-27"
+  - source_name: "LégiFiscal - PLF 2027: barème IR revalorisé de 2.1%"
+    url: "https://www.legifiscal.fr/actualites-fiscales/4659-plf-2027-texte-publie-bareme-ir-revalorise-21.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "Arrêté du 22 décembre 2025 portant fixation du plafond de la sécurité sociale pour 2026"
+    url: "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053143451"
+    retrieved_date: "2026-10-27"
+    notes: "Legifrance blocks automated fetch; amount confirmed via service-public A15386."
+  - source_name: "service-public.gouv.fr - Prélèvements sociaux sur les revenus du patrimoine et de placement"
+    url: "https://www.service-public.gouv.fr/particuliers/vosdroits/F2329"
+    retrieved_date: "2026-10-27"
+  - source_name: "economie.gouv.fr - Comment fonctionne le PFU (31.4% depuis le 1er janvier 2026)"
+    url: "https://www.economie.gouv.fr/particuliers/impots-et-fiscalite/gerer-mes-autres-impots-et-taxes/comment-fonctionne-le-prelevement"
+    retrieved_date: "2026-10-27"
+    notes: "Page returned 403 to direct fetch; content from search index."
+  - source_name: "Weblex - Cotisations sociales des salariés 2026"
+    url: "https://www.weblex.fr/chiffres-cles/cotisations-sociales-des-salaries-annee-2026"
+    retrieved_date: "2026-10-27"
+  - source_name: "Legisocial - Cotisations AGIRC-ARRCO 2026"
+    url: "https://www.legisocial.fr/reperes-sociaux/cotisations-agirc-arrco-2026.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "BOFiP BOI-BAREME-000035 (déduction forfaitaire 10%, revalorisation)"
+    url: "https://bofip.impots.gouv.fr/bofip/2287-PGP.html"
+    retrieved_date: "2026-10-27"

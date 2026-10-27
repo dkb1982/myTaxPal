@@ -1,0 +1,264 @@
+# =============================================================================
+# Japan - 2026 income (令和8年分 income tax; 令和9年度 resident tax on 2026 income)
+# =============================================================================
+# Japan tax year: calendar year (1 January - 31 December 2026).
+# Resident tax (住民税) on 2026 income is assessed and paid from June 2027
+# (令和9年度). The estimator attributes it to the 2026 income year.
+#
+# 令和8年度税制改正 (cabinet outline 2025-12-26, enacted; in force 2026-12-01,
+# applying to 令和8年分 income tax): 基礎控除 本則 58万 -> 62万 plus the 2026-27
+# special addition (42万 up to 合計所得 489万, 5万 up to 655万); 給与所得控除
+# minimum 65万 -> 69万 (本則) + 5万 special for 2026-27 = 74万, reaching salaries
+# up to ¥2.2M. Resident tax: the employment income change applies from 令和9年度;
+# the resident-tax basic deduction stays 43万.
+# =============================================================================
+
+jurisdiction_id: "JP"
+tax_year: 2026
+jurisdiction_type: "country"
+jurisdiction_name: "Japan"
+jurisdiction_abbreviation: "JP"
+parent_jurisdiction_id: null
+
+country_code: "JP"
+currency_code: "JPY"
+tax_year_format: "calendar"
+period_label: "2026 income (令和8年分 income tax; 令和9年度 resident tax)"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+# National income tax, quick-deduction form (所得税の速算表, NTA No.2260).
+# Tax = taxable income (rounded down to ¥1,000) * rate - quick deduction
+quick_deduction_brackets:
+  - {min: 0, max: 1950000, rate: 0.05, quick_deduction: 0}
+  - {min: 1950000, max: 3300000, rate: 0.10, quick_deduction: 97500}
+  - {min: 3300000, max: 6950000, rate: 0.20, quick_deduction: 427500}
+  - {min: 6950000, max: 9000000, rate: 0.23, quick_deduction: 636000}
+  - {min: 9000000, max: 18000000, rate: 0.33, quick_deduction: 1536000}
+  - {min: 18000000, max: 40000000, rate: 0.40, quick_deduction: 2796000}
+  - {min: 40000000, max: null, rate: 0.45, quick_deduction: 4796000}
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets: []  # quick_deduction_brackets above are authoritative
+  surtaxes: []
+
+# 復興特別所得税: 2.1% of base income tax for 2026 (年調年税額 = 所得税 x 102.1%,
+# 令和8年分 年末調整のしかた). The 1% 防衛特別所得税 and the cut of this surtax
+# start with 令和9年 (2027) income.
+reconstruction_tax_rate: 0.021
+
+# 給与所得控除 for 令和8年分 (令和8年分 年末調整のしかた p.3 and the 令和8年分
+# 年末調整等のための給与所得控除後の給与等の金額の表): salary 741,000-2,190,999 ->
+# salary - 740,000; three fixed rows for 2,191,000-2,199,999; from ¥2.2M the
+# unchanged 別表第五 (salary rounded down to ¥4,000, formula below).
+employment_income_deduction:
+  note: "2026 statutory employment income deduction (minimum ¥740,000 incl. 2026-27 special ¥50,000)"
+  minimum: 740000
+  minimum_applies_up_to: 2191000
+  fixed_rows:
+    - {from: 2191000, to: 2193000, employment_income: 1451000}
+    - {from: 2193000, to: 2196000, employment_income: 1453000}
+    - {from: 2196000, to: 2200000, employment_income: 1456000}
+  table_rounding_unit: 4000
+  table_upper_limit: 6600000
+  bands:
+    - {up_to: 3600000, rate: 0.30, add: 80000}
+    - {up_to: 6600000, rate: 0.20, add: 440000}
+    - {up_to: 8500000, rate: 0.10, add: 1100000}
+  maximum: 1950000
+
+# 基礎控除 (income tax) by 合計所得金額, 令和8年分: 本則 62万 + special addition
+# (42万 up to 489万, 5万 up to 655万) for 2026-27; above 2,350万 unchanged.
+basic_deduction_income_tax:
+  - {total_income_up_to: 4890000, amount: 1040000}
+  - {total_income_up_to: 6550000, amount: 670000}
+  - {total_income_up_to: 23500000, amount: 620000}
+  - {total_income_up_to: 24000000, amount: 480000}
+  - {total_income_up_to: 24500000, amount: 320000}
+  - {total_income_up_to: 25000000, amount: 160000}
+  - {total_income_up_to: null, amount: 0}
+
+# 配偶者控除 / 扶養控除 (general categories only)
+spouse_deduction:
+  spouse_income_limit: 620000  # 合計所得金額 limit from 令和8年分 (was 580,000); unused in 2026 scope
+  income_tax:
+    - {taxpayer_income_up_to: 9000000, amount: 380000}
+    - {taxpayer_income_up_to: 9500000, amount: 260000}
+    - {taxpayer_income_up_to: 10000000, amount: 130000}
+    - {taxpayer_income_up_to: null, amount: 0}
+  resident_tax:
+    - {taxpayer_income_up_to: 9000000, amount: 330000, adjustment_difference: 50000}
+    - {taxpayer_income_up_to: 9500000, amount: 220000, adjustment_difference: 40000}
+    - {taxpayer_income_up_to: 10000000, amount: 110000, adjustment_difference: 20000}
+    - {taxpayer_income_up_to: null, amount: 0, adjustment_difference: 0}
+dependent_deduction:
+  dependent_income_limit: 620000   # unused in 2026 scope (single, no dependants)
+  general_income_tax: 380000   # 一般の控除対象扶養親族 (16-18, 23-69)
+  general_resident_tax: 330000
+  adjustment_difference: 50000
+
+# Resident tax (個人住民税), standard rates (地方税法)
+resident_tax:
+  note: "Resident tax on 2026 income is levied in fiscal 2027 (令和9年度); standard 10% rate and a ¥5,000 per-capita levy (incl. ¥1,000 forest environment tax)."
+  municipal_rate: 0.06
+  prefectural_rate: 0.04
+  basic_deduction:  # unchanged at ¥430k for 令和9年度 (no resident-tax change in the 令和8年度 reform)
+    - {total_income_up_to: 24000000, amount: 430000}
+    - {total_income_up_to: 24500000, amount: 290000}
+    - {total_income_up_to: 25000000, amount: 150000}
+    - {total_income_up_to: null, amount: 0}
+  adjustment_credit:
+    basic_deduction_difference: 50000
+    rate_municipal: 0.03
+    rate_prefectural: 0.02
+    threshold: 2000000
+    minimum_municipal: 1500
+    minimum_prefectural: 1000
+    not_applied_above_total_income: 25000000
+  per_capita:
+    municipal: 3000
+    prefectural: 1000
+    forest_environment_tax: 1000
+  # Non-taxable limits for 1級地 (e.g. Tokyo 23 wards):
+  # income levy: total income <= 350k*(1+n) + 100k (+320k if n>0)
+  # per-capita:  total income <= 350k*(1+n) + 100k (+210k if n>0)
+  non_taxable:
+    per_person: 350000
+    base: 100000
+    income_levy_dependent_addition: 320000
+    per_capita_dependent_addition: 210000
+
+# Separately taxed investment income (listed shares / deposits)
+separate_taxation:
+  national_rate: 0.15
+  reconstruction_rate: 0.00315
+  resident_rate: 0.05
+
+# Employee social insurance (assumes Kyokai Kenpo Tokyo). As in 2025, the
+# fiscal-year rates are applied to all 12 months: 令和8年度 health/care rates
+# apply from March 2026 premiums (Jan-Feb 2026 were 9.91% / 1.59%); the
+# employment insurance rate from April 2026 (Jan-Mar 0.55%).
+social_insurance:
+  health_rate: 0.04925          # 9.85% total (Tokyo 令和8年度), employee half
+  care_rate: 0.0081             # 1.62% total, employee half, age 40-64
+  pension_rate: 0.0915          # 18.3% total, employee half (unchanged)
+  # 子ども・子育て支援金: new from April 2026 premiums; 0.23% nationwide
+  # (Kyokai), split equally; charged on the health standard remuneration and
+  # bonuses for April-December (9 monthly premiums; bonuses assumed paid then).
+  child_support_levy:
+    rate: 0.00115
+    months: 9
+    note: "0.23% from April 2026 premiums (employee half 0.115%), 9 months in 2026"
+  employment_insurance_rate: 0.005  # general business, 令和8年度 (from 2026-04-01)
+  employment_insurance_note: "0.5% employee rate (general business, from April 2026)"
+  enrolment_monthly_wage_threshold: 88000
+  bonus_health_annual_cap: 5730000
+  bonus_pension_per_payment_cap: 1500000
+  pension_grade_min: 88000
+  pension_grade_max: 650000
+  # 標準報酬月額 table (health): [standard amount, lower bound of range]
+  health_grades:
+    - [58000, 0]
+    - [68000, 63000]
+    - [78000, 73000]
+    - [88000, 83000]
+    - [98000, 93000]
+    - [104000, 101000]
+    - [110000, 107000]
+    - [118000, 114000]
+    - [126000, 122000]
+    - [134000, 130000]
+    - [142000, 138000]
+    - [150000, 146000]
+    - [160000, 155000]
+    - [170000, 165000]
+    - [180000, 175000]
+    - [190000, 185000]
+    - [200000, 195000]
+    - [220000, 210000]
+    - [240000, 230000]
+    - [260000, 250000]
+    - [280000, 270000]
+    - [300000, 290000]
+    - [320000, 310000]
+    - [340000, 330000]
+    - [360000, 350000]
+    - [380000, 370000]
+    - [410000, 395000]
+    - [440000, 425000]
+    - [470000, 455000]
+    - [500000, 485000]
+    - [530000, 515000]
+    - [560000, 545000]
+    - [590000, 575000]
+    - [620000, 605000]
+    - [650000, 635000]
+    - [680000, 665000]
+    - [710000, 695000]
+    - [750000, 730000]
+    - [790000, 770000]
+    - [830000, 810000]
+    - [880000, 855000]
+    - [930000, 905000]
+    - [980000, 955000]
+    - [1030000, 1005000]
+    - [1090000, 1055000]
+    - [1150000, 1115000]
+    - [1210000, 1175000]
+    - [1270000, 1235000]
+    - [1330000, 1295000]
+    - [1390000, 1355000]
+
+verification:
+  status: "verified"
+  provisional_items: []
+  last_verified: "2026-10-27"
+  verified_by: "intl-2026 CA/JP/PT/AE engineer (primary-source check)"
+  notes: |
+    Verified (NTA 令和8年分 年末調整のしかた and 令和8年度改正 Q&A, May 2026):
+    basic deduction 104万/67万/62万 tiers, employment income deduction minimum
+    74万 and the 2,191,000-2,199,999 fixed rows, 2.1% reconstruction surtax
+    (102.1%), unchanged rate table. Resident tax 令和9年度: employment income
+    change applies, basic deduction unchanged at 43万 (Sendai/Chuo city
+    notices; non-taxable salary line 110万 -> 119万 follows from the 45万
+    total-income line). Kyokai Kenpo Tokyo 令和8年度 health 9.85%, care 1.62%,
+    child support levy 0.23% (from April 2026). Employment insurance 令和8年度
+    5/1000 employee (MHLW Yamagata labour bureau). Pension 18.3% and the
+    standard remuneration grades/caps are unchanged in 2026 (the pension cap
+    rise to ¥680k starts September 2027).
+    Simplifications kept from 2025: fiscal-year rates applied to all months,
+    Tokyo rates regardless of prefecture, 標準報酬月額 boundaries reproduced
+    from the standard table. 2026 scope: single, no dependants, employee;
+    spouse/dependants/business income are refused.
+
+references:
+  - source_name: "NTA 令和8年分 年末調整のしかた"
+    url: "https://www.nta.go.jp/publication/pamph/gensen/nencho2026/pdf/nencho_all.pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "NTA 令和8年度税制改正（所得税の基礎控除の引上げ等関係）Q&A (May 2026)"
+    url: "https://www.nta.go.jp/users/gensen/2026kiso/pdf/0026005-024.pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "令和8年度税制改正の大綱（抄）個人所得課税 (NTA)"
+    url: "https://www.nta.go.jp/publication/pamph/shotoku/0026004-015.pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "NTA No.2260 所得税の税率"
+    url: "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm"
+    retrieved_date: null
+  - source_name: "協会けんぽ 令和8年度都道府県単位保険料率"
+    url: "https://www.kyoukaikenpo.or.jp/about/business/insurance_rate/rate_prefectures/r08/index.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "厚生労働省 山形労働局 令和8年度の雇用保険料率について"
+    url: "https://jsite.mhlw.go.jp/yamagata-roudoukyoku/koyouhoken-20260316.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "仙台市 令和9年度(令和8年分)から適用される個人市県民税の税制改正"
+    url: "https://www.city.sendai.jp/shiminze-kikaku/kurashi/tetsuzuki/zekin/kojin/kaisei/r8.html"
+    retrieved_date: "2026-10-27"
+  - source_name: "中央区 令和9年度 個人住民税の改正"
+    url: "https://www.city.chuo.lg.jp/a0009/kurashi/zeikin/juuminzei/r9kaisei.html"
+    retrieved_date: "2026-10-27"

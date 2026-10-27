@@ -1,4 +1,9 @@
-"""United Kingdom tax calculation for the 2025/26 tax year."""
+"""United Kingdom tax calculation.
+
+``tax_year=N`` is the UK tax year starting 6 April N (2025 = 2025/26,
+2026 = 2026/27). Every year-varying figure is loaded from
+``rules/countries/gb/<N>.yaml``.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +12,8 @@ from decimal import ROUND_HALF_UP, Decimal
 from tax_estimator.calculation.countries.base import (
     BaseCountryCalculator,
     UnsupportedIncomeError,
+    require_day1_profile,
+    rules_warnings,
 )
 from tax_estimator.calculation.countries.gb_loader import GBRules, get_gb_rules
 from tax_estimator.models.international import (
@@ -35,6 +42,7 @@ class GBCalculator(BaseCountryCalculator):
 
     def __init__(self, rules: GBRules | None = None):
         super().__init__()
+        self._override = rules
         self._rules = rules
 
     @property
@@ -44,9 +52,10 @@ class GBCalculator(BaseCountryCalculator):
         return self._rules
 
     def calculate(self, tax_input: InternationalTaxInput) -> InternationalTaxResult:
-        rules = self.rules
         if tax_input.country_code != "GB":
             raise ValueError("GBCalculator requires country_code GB")
+        self._rules = self._override or get_gb_rules(tax_input.tax_year)
+        rules = self.rules
         if tax_input.tax_year != rules.tax_year:
             raise ValueError(
                 f"GB rules are for tax year {rules.tax_year}; got {tax_input.tax_year}"
@@ -71,13 +80,15 @@ class GBCalculator(BaseCountryCalculator):
         employment, se, savings, dividends, rental, pension_income, other, gains = (
             self._resolve_income(tax_input)
         )
-        pension_gross = pension_net / Decimal("0.8")
+        require_day1_profile(tax_input, self_employment=se)
+        net_factor = 1 - self._basic_rate()
+        pension_gross = pension_net / net_factor
         if pension_gross > employment + se:
             raise UnsupportedIncomeError(
                 "Relief-at-source pension payments above modelled relevant earnings "
                 "are not supported"
             )
-        if pension_gross > Decimal("60000"):
+        if pension_gross > rules.pension_annual_allowance:
             raise UnsupportedIncomeError(
                 "Pension annual-allowance carry-forward and tapered allowances are not supported"
             )
@@ -95,7 +106,7 @@ class GBCalculator(BaseCountryCalculator):
 
         nsnd = employment + se + rental + pension_income + other
         income_total = nsnd + savings + dividends
-        extension = pension_gross + gift_net / Decimal("0.8")
+        extension = pension_gross + gift_net / net_factor
         allowance = self._personal_allowance(max(ZERO, income_total - extension))
         taxable_nsnd, taxable_savings, taxable_dividends = self._allocate_allowance(
             nsnd, savings, dividends, allowance, region, extension
@@ -113,7 +124,7 @@ class GBCalculator(BaseCountryCalculator):
             )
         ]
         notes = [
-            "Tax year 2025/26 (6 April 2025 to 5 April 2026).",
+            f"Period: {rules.period_label}.",
             "Annualised individual-resident estimate; specialist allowances, carried losses "
             "and relief claims are not modelled.",
         ]
@@ -126,7 +137,7 @@ class GBCalculator(BaseCountryCalculator):
                     TaxComponent(
                         component_id=cid,
                         name=name,
-                        amount=-_money(paid / Decimal("0.8")),
+                        amount=-_money(paid / net_factor),
                         rate=None,
                         base=None,
                         is_deductible=True,
@@ -170,7 +181,7 @@ class GBCalculator(BaseCountryCalculator):
         taxable_income = taxable_nsnd + taxable_savings + taxable_dividends
         cgt, parts = self._capital_gains(gains, taxable_income, extension)
         breakdown.extend(parts)
-        if gift_net and income_tax + cgt < (gift_net / Decimal("0.8")) * Decimal("0.20"):
+        if gift_net and income_tax + cgt < (gift_net / net_factor) * self._basic_rate():
             raise UnsupportedIncomeError("Gift Aid requiring an additional donor tax charge is not supported")
         withheld = (uk.paye_deducted + uk.ni_deducted) if uk else ZERO
         return self._create_result(
@@ -183,7 +194,14 @@ class GBCalculator(BaseCountryCalculator):
             marginal_rate=marginal,
             total_withheld=withheld,
             notes=notes,
+            warnings=rules_warnings(
+                {"verification": {"provisional_items": rules.provisional_items}}
+            ),
         )
+
+    def _basic_rate(self) -> Decimal:
+        """Basic rate of income tax (relief-at-source and Gift Aid gross-up)."""
+        return self._parse(self.rules.income_tax_brackets)[0][2]
 
     def _resolve_income(self, tax_input: InternationalTaxInput) -> tuple[Decimal, ...]:
         if tax_input.income_breakdown is not None:
@@ -278,9 +296,10 @@ class GBCalculator(BaseCountryCalculator):
         Scottish taxpayer, so Scottish NSND thresholds do not reduce the PSA.
         """
         basic, additional = self._uk_limits(extension)
+        sav = self.rules.savings
         if total > additional:
             return ZERO
-        return Decimal("500") if total > basic else Decimal("1000")
+        return sav.psa_higher if total > basic else sav.psa_basic
 
     def _raw_income_tax(
         self,
@@ -292,12 +311,13 @@ class GBCalculator(BaseCountryCalculator):
     ) -> tuple[Decimal, ...]:
         ns_tax, ns_rate = self._tax_interval(ZERO, nsnd, self._nsnd_brackets(region, extension))
         basic, additional = self._uk_limits(extension)
+        sav, div = self.rules.savings, self.rules.dividends
         ordinary = [
-            (ZERO, basic, Decimal(".20")),
-            (basic, additional, Decimal(".40")),
-            (additional, None, Decimal(".45")),
+            (ZERO, basic, sav.basic_rate),
+            (basic, additional, sav.higher_rate),
+            (additional, None, sav.additional_rate),
         ]
-        starting = min(savings, max(ZERO, Decimal("5000") - nsnd))
+        starting = min(savings, max(ZERO, sav.starting_rate_limit - nsnd))
         psa_used = min(
             max(ZERO, savings - starting),
             self._psa(nsnd + savings + dividends, extension),
@@ -306,11 +326,11 @@ class GBCalculator(BaseCountryCalculator):
             nsnd + starting + psa_used, nsnd + savings, ordinary
         )
         dividend_rates = [
-            (ZERO, basic, Decimal(".0875")),
-            (basic, additional, Decimal(".3375")),
-            (additional, None, Decimal(".3935")),
+            (ZERO, basic, div.ordinary_rate),
+            (basic, additional, div.upper_rate),
+            (additional, None, div.additional_rate),
         ]
-        da = min(dividends, Decimal("500"))
+        da = min(dividends, div.allowance)
         dividend_tax, dividend_rate = self._tax_interval(
             nsnd + savings + da, nsnd + savings + dividends, dividend_rates
         )
@@ -335,19 +355,13 @@ class GBCalculator(BaseCountryCalculator):
         taxable = max(ZERO, total - min(total, allowance))
         nlo, nhi = max(ZERO, taxable - savings - dividends), min(nsnd, taxable)
         basic, additional = self._uk_limits(extension)
-        qbreaks = {
-            ZERO,
-            taxable,
-            Decimal("5000"),
-            Decimal("5500"),
-            Decimal("6000"),
-            basic,
-            additional,
-            basic - Decimal("500"),
-            additional - Decimal("500"),
-            taxable - dividends,
-        }
-        ncandidates = {nlo, nhi, Decimal("5000")}
+        sav, da = self.rules.savings, self.rules.dividends.allowance
+        srs = sav.starting_rate_limit
+        nil_amounts = {sav.psa_basic, sav.psa_higher, da}
+        qbreaks = {ZERO, taxable, srs, basic, additional, taxable - dividends}
+        for amount in nil_amounts:
+            qbreaks.update((srs + amount, basic - amount, additional - amount))
+        ncandidates = {nlo, nhi, srs}
         for _, upper, _ in self._nsnd_brackets(region, extension):
             if upper is not None:
                 ncandidates.add(upper)
@@ -358,13 +372,8 @@ class GBCalculator(BaseCountryCalculator):
         for nvalue in ncandidates:
             n = min(nhi, max(nlo, nvalue))
             qlo, qhi = max(n, taxable - dividends), min(n + savings, taxable)
-            for qvalue in qbreaks | {
-                qlo,
-                qhi,
-                n,
-                n + savings,
-                n + Decimal("500"),
-                n + Decimal("1000"),
+            for qvalue in qbreaks | {qlo, qhi, n, n + savings} | {
+                n + amount for amount in nil_amounts
             }:
                 q = min(qhi, max(qlo, qvalue))
                 candidate = (n, q - n, taxable - q)

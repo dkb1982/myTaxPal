@@ -1506,6 +1506,11 @@ footer small {
     color: var(--color-accent);
 }
 
+.compare-card-badge--provisional {
+    background-color: var(--color-warning-light);
+    color: var(--color-warning);
+}
+
 .compare-card-name {
     font-family: var(--font-display);
     font-size: 1.2rem;

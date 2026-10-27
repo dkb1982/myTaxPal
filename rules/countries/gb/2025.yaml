@@ -19,6 +19,7 @@ parent_jurisdiction_id: null
 country_code: "GB"
 currency_code: "GBP"
 tax_year_format: "uk_fiscal"
+period_label: "2025/26 tax year (6 April 2025 to 5 April 2026)"
 
 # Tax characteristics
 has_income_tax: true
@@ -159,6 +160,29 @@ capital_gains:
   annual_exempt_amount: 3000
   basic_rate: 0.18
   higher_rate: 0.24
+
+# Savings income (ITA 2007 ss 7, 12, 12B) - 2025-26
+savings:
+  starting_rate_limit: 5000        # 0% starting rate; reduced by non-savings taxable income
+  personal_savings_allowance:
+    basic: 1000
+    higher: 500                    # additional-rate taxpayers: nil
+  rates:
+    basic: 0.20
+    higher: 0.40
+    additional: 0.45
+
+# Dividend income (ITA 2007 ss 8, 13A) - 2025-26
+dividends:
+  allowance: 500
+  rates:
+    ordinary: 0.0875
+    upper: 0.3375
+    additional: 0.3935
+
+# Relief-at-source pensions: payments above the annual allowance are rejected
+pension:
+  annual_allowance: 60000
 
 # Deductions
 deductions:

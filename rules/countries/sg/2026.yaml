@@ -1,0 +1,140 @@
+# =============================================================================
+# Singapore - tax_year 2026: income earned 1 Jan - 31 Dec 2026, assessed in YA2027
+# =============================================================================
+# Period semantics: tax_year N in this app means income earned in calendar N
+# (Year of Assessment N+1). CPF rates and ceilings are those for calendar 2026;
+# reliefs and rebates are those for YA2027.
+#
+# Loaded by src/tax_estimator/calculation/countries/sg.py.
+# =============================================================================
+
+jurisdiction_id: "SG"
+tax_year: 2026
+jurisdiction_type: "country"
+jurisdiction_name: "Singapore"
+jurisdiction_abbreviation: "SG"
+parent_jurisdiction_id: null
+
+country_code: "SG"
+currency_code: "SGD"
+tax_year_format: "year_of_assessment"
+year_of_assessment: 2027
+income_year: 2026
+period_label: "2026 income (YA2027)"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:  # resident rates, YA2024 onwards (IRAS)
+    - {bracket_id: "SG-2026-0", filing_status: "all", income_from: 0, income_to: 20000, rate: 0.00, base_tax: 0}
+    - {bracket_id: "SG-2026-2", filing_status: "all", income_from: 20000, income_to: 30000, rate: 0.02, base_tax: 0}
+    - {bracket_id: "SG-2026-3.5", filing_status: "all", income_from: 30000, income_to: 40000, rate: 0.035, base_tax: 200}
+    - {bracket_id: "SG-2026-7", filing_status: "all", income_from: 40000, income_to: 80000, rate: 0.07, base_tax: 550}
+    - {bracket_id: "SG-2026-11.5", filing_status: "all", income_from: 80000, income_to: 120000, rate: 0.115, base_tax: 3350}
+    - {bracket_id: "SG-2026-15", filing_status: "all", income_from: 120000, income_to: 160000, rate: 0.15, base_tax: 7950}
+    - {bracket_id: "SG-2026-18", filing_status: "all", income_from: 160000, income_to: 200000, rate: 0.18, base_tax: 13950}
+    - {bracket_id: "SG-2026-19", filing_status: "all", income_from: 200000, income_to: 240000, rate: 0.19, base_tax: 21150}
+    - {bracket_id: "SG-2026-19.5", filing_status: "all", income_from: 240000, income_to: 280000, rate: 0.195, base_tax: 28750}
+    - {bracket_id: "SG-2026-20", filing_status: "all", income_from: 280000, income_to: 320000, rate: 0.20, base_tax: 36550}
+    - {bracket_id: "SG-2026-22", filing_status: "all", income_from: 320000, income_to: 500000, rate: 0.22, base_tax: 44550}
+    - {bracket_id: "SG-2026-23", filing_status: "all", income_from: 500000, income_to: 1000000, rate: 0.23, base_tax: 84150}
+    - {bracket_id: "SG-2026-24", filing_status: "all", income_from: 1000000, income_to: null, rate: 0.24, base_tax: 199150}
+  surtaxes: []
+
+non_resident:
+  employment_flat_rate: 0.15      # or resident rates (no reliefs), whichever is higher
+  other_income_rate: 0.24         # from YA2024 (22% before)
+
+personal_income_tax_rebate: null  # none announced for YA2027
+
+reliefs:
+  earned_income_relief:           # by age; capped at earned income
+    - {age_below: 55, amount: 1000}
+    - {age_below: 60, amount: 6000}
+    - {age_below: null, amount: 8000}
+  course_fees_cap: 0              # Course Fees Relief discontinued from YA2026 (last claimable YA2025)
+  life_insurance_cpf_threshold: 5000  # relief = min(premiums, 5000 - CPF), only if CPF < 5000
+  overall_relief_cap: 80000
+
+# CPF (Singapore citizens / 3rd-year+ PRs), employee share, wages > S$750/month,
+# rates from 1 January 2026. Age bands are "55 and below", "above 55 to 60", ...
+cpf:
+  ordinary_wage_ceiling_monthly: 8000
+  annual_salary_ceiling: 102000        # OW subject to CPF + AW ceiling
+  no_contribution_monthly_wage: 500
+  full_rate_monthly_wage: 750
+  employee_rates:
+    - {age_up_to: 55, rate: 0.20}
+    - {age_up_to: 60, rate: 0.18}
+    - {age_up_to: 65, rate: 0.125}
+    - {age_up_to: 70, rate: 0.075}
+    - {age_up_to: null, rate: 0.05}
+
+# Legacy shape kept for any generic reader
+social_insurance:
+  components:
+    - component_id: "SG-CPF"
+      name: "Central Provident Fund"
+      type: "pension"
+      employee_rate: 0.20
+      employer_rate: 0.17
+      ceiling: 96000
+      floor: 0
+      notes: "2026 rates; age-banded rates in `cpf` above"
+  calculation_method: "percentage"
+  employer_contribution: true
+  employee_contribution: true
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+verification:
+  status: "verified"
+  last_verified: "2026-10-27"
+  provisional_items: []
+  notes: |
+    2026 income / YA2027. Resident bands unchanged since YA2024 (IRAS). No
+    Personal Income Tax Rebate has been announced for YA2027 (any rebate
+    would be announced in Budget 2027). Course Fees Relief discontinued from
+    YA2026; MOF said on 8 April 2026 there are no plans to reintroduce it.
+    CPF 2026: OW ceiling S$8,000/month (final step of the Budget 2023
+    increase), annual salary ceiling S$102,000, employee rates 20 / 18 /
+    12.5 / 7.5 / 5% (CPF table from 1 January 2026). Earned income relief
+    amounts are the standard published values, not re-fetched.
+    Not modelled: graduated rates for 1st/2nd-year PRs, phase-in rates for
+    wages of S$500-750/month, other personal reliefs (spouse, child, parent,
+    SRS, CPF top-ups), self-employed MediSave.
+
+references:
+  - source_name: "IRAS Individual income tax rates (resident bands YA2024+, non-resident 15%/24%, rebates listed to YA2025 only)"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-residency-and-tax-rates/individual-income-tax-rates"
+    retrieved_date: "2026-10-27"
+  - source_name: "IRAS Sample income tax calculations (YA2026; no Personal Income Tax Rebate applied)"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-residency-and-tax-rates/sample-income-tax-calculations"
+    retrieved_date: "2026-10-27"
+  - source_name: "IRAS Course Fees Relief (discontinued from YA2026)"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-reliefs-rebates-and-deductions/tax-reliefs/course-fees-relief"
+    retrieved_date: "2026-10-27"
+  - source_name: "IRAS Earned Income Relief"
+    url: "https://www.iras.gov.sg/taxes/individual-income-tax/basics-of-individual-income-tax/tax-reliefs-rebates-and-deductions/tax-reliefs/earned-income-relief"
+    retrieved_date: null
+  - source_name: "CPF contribution rate table from 1 January 2026"
+    url: "https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/CPFcontributionratesfrom1Jan2026.pdf"
+    retrieved_date: "2026-10-27"
+  - source_name: "CPF - Changes to contribution rates for senior workers from 1 January 2026"
+    url: "https://www.cpf.gov.sg/service/article/what-are-the-changes-to-the-cpf-contribution-rates-for-senior-workers-from-1-january-2026"
+    retrieved_date: "2026-10-27"
