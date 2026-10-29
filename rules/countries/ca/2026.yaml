@@ -164,13 +164,11 @@ country_parameters:
       supplemental_credit:
         # 2% of credit amounts above the indexed threshold (= 25% of the 8%
         # credit value above 8% x threshold).  The 2025 threshold of 60,000 is
-        # indexed by the Alberta escalator from 2026; 61,200 is derived (2.0%),
-        # matching the indexed first bracket.  It cannot apply to a single
-        # employee (max credit amount ~27,400), so it never changes a result.
+        # indexed by 2.0% for 2026 (alberta.ca: "In 2026, thresholds and credit
+        # amounts will rise by 2%"), giving 61,200, the same as the first bracket.
+        # It cannot apply to a single employee (max credit amount ~27,400).
         base_amount: 4896
         rate: 0.25
-      provisional_items:
-        - "Alberta supplemental credit threshold for 2026 ($61,200) is derived by indexation; it does not affect single employees"
 
 verification:
   status: "verified"
@@ -193,6 +191,9 @@ verification:
     stay below 58,523.  2026 T1/428 forms were not yet published.
 
 references:
+  - source_name: "Government of Alberta - Personal income tax (2026 brackets; 2% indexation of thresholds and credit amounts)"
+    url: "https://www.alberta.ca/personal-income-tax"
+    retrieved_date: "2026-10-29"
   - source_name: "CRA - Tax rates and income brackets used on the 2026 return"
     url: "https://www.canada.ca/en/revenue-agency/services/tax/individuals/frequently-asked-questions-individuals/canadian-income-tax-rates-individuals-current-previous-years/current-year.html"
     retrieved_date: "2026-10-27"

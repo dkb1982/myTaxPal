@@ -93,9 +93,9 @@ def test_louisiana_2026_eic_when_asserted() -> None:
     [
         # 40,000 - 15,700 - 5,300 = 19,000 x 5.8% = 1,102.00
         (dict(wages=D("40000")), D("1102.00")),
-        # AGI <= 102,300 so no phase-out; TI 79,000: 4,117 + 14,150 x 7.15%
+        # AGI <= 102,250 so no phase-out; TI 79,000: 4,117 + 14,150 x 7.15%
         (dict(wages=D("100000")), D("5128.73")),
-        # deduction fully phased out (AGI - 102,300 >= 75,000); exemption intact
+        # deduction fully phased out (AGI - 102,250 >= 75,000); exemption intact
         # TI 244,700: 4,117 + 179,850 x 7.15% = 16,976.275
         (dict(wages=D("250000")), D("16976.28")),
         # TI 95,000 - 21,000 = 74,000: 4,117 + 9,150 x 7.15% = 4,771.225
@@ -107,11 +107,13 @@ def test_maine_2026(kwargs, expected) -> None:
 
 
 def test_maine_2026_standard_deduction_phaseout_and_surcharge() -> None:
-    # AGI 140,000: deduction 15,700 x (1 - 37,700/75,000) = 7,808.1333;
-    # TI 126,891.8667: 4,117 + 62,041.8667 x 7.15% = 8,552.9935
+    # AGI 140,000: worksheet line 5 = 37,750/75,000 = 0.50333 -> 0.5033 (four
+    # decimals); deduction 15,700 - 15,700 x 0.5033 = 15,700 - 7,901.81 = 7,798.19;
+    # TI 140,000 - 7,798.19 - 5,300 = 126,901.81:
+    # 4,117 + 62,051.81 x 7.15% = 4,117 + 4,436.7044 = 8,553.70
     result = compute_2026("ME", wages=D("140000"))
-    assert result.total_tax == D("8552.99")
-    assert any("provisional" in w for w in result.warnings)
+    assert result.total_tax == D("8553.70")
+    assert not any("provisional" in w for w in result.warnings)
     # AGI 1,200,000: deduction and exemption fully phased out; TI 1,200,000:
     # 4,117 + 1,135,150 x 7.15% = 85,280.225 -> 85,280.23; surcharge
     # 2% x 200,000 = 4,000.
@@ -228,3 +230,18 @@ def test_minnesota_2026_working_family_credit() -> None:
     unknown = compute_2026("MN", wages=D("20000"))
     assert unknown.total_tax == D("251.45")
     assert any("Working Family Credit" in w for w in unknown.warnings)
+
+
+def test_minnesota_2026_niit_includes_interest() -> None:
+    # Minn. Stat. 290.033(a): NII per IRC 1411(c), which includes interest.
+    # NII = 300,000 interest + 900,000 dividends = 1,200,000;
+    # surtax = 1% x (1,200,000 - 1,000,000) = 2,000 (before the fix interest was
+    # dropped: NII 900,000 -> 0).
+    result = compute_2026(
+        "MN",
+        wages=D("100000"),
+        ordinary_dividends=D("900000"),
+        federal_agi=D("1300000"),
+        interest=D("300000"),
+    )
+    assert result.surtax == D("2000")

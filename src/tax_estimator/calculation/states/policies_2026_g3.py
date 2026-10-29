@@ -8,7 +8,7 @@ statute or publication that fixes them.
 
 from __future__ import annotations
 
-from decimal import ROUND_FLOOR, Decimal
+from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal
 
 from tax_estimator.calculation.states.policies_2026_common import (
     ZERO,
@@ -125,14 +125,15 @@ def _la(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
 
 # 36 M.R.S. §5124-C(1-C)(A)(1): 2026 basic standard deduction $15,700 (MRS
 # 2026 rate schedule, rev. May 20 2026). §5124-C(2)(A) phase-out threshold
-# $80,000 x MRS 2026 COLA 1.279 (§5403(4)), rounded down to $50 = $102,300.
+# $102,250 as published on the MRS 2026 standard deduction phase-out worksheet
+# (line 6a, rev. December 2025).
 _ME_STD_DEDUCTION = D("15700")
-_ME_STD_PHASEOUT_START = D("102300")
+_ME_STD_PHASEOUT_START = D("102250")
 _ME_STD_PHASEOUT_RANGE = D("75000")
-# §5126-A: exemption $5,300 (MRS schedule); phase-out applicable amount
-# $266,700 x 1.279 (§5403(8)) rounded down to $50 = $341,100; range $125,000.
+# §5126-A: exemption $5,300 (MRS schedule); phase-out begins at $341,000 per the
+# MRS 2026 personal exemption phase-out worksheet (line 6b); range $125,000.
 _ME_EXEMPTION = D("5300")
-_ME_EXEMPTION_PHASEOUT_START = D("341100")
+_ME_EXEMPTION_PHASEOUT_START = D("341000")
 _ME_EXEMPTION_PHASEOUT_RANGE = D("125000")
 # §5111(7): 2% surcharge on Maine taxable income over $1,000,000 (single), 2026.
 _ME_SURCHARGE_THRESHOLD = D("1000000")
@@ -140,7 +141,10 @@ _ME_SURCHARGE_RATE = D(".02")
 
 
 def _phase_fraction(agi: Decimal, start: Decimal, span: Decimal) -> Decimal:
-    return min(D(1), max(ZERO, agi - start) / span)
+    # MRS 2026 phase-out worksheets, line 5: fraction entered to four decimal places
+    # ("__.____"); rounding direction is not stated, conventional rounding assumed.
+    fraction = min(D(1), max(ZERO, agi - start) / span)
+    return fraction.quantize(D("0.0001"), rounding=ROUND_HALF_UP)
 
 
 def _me(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
@@ -164,20 +168,7 @@ def _me(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         childless_agi_limit=FEDERAL_CHILDLESS_EIC_AGI_LIMIT_2026,
     )
     base.credits = eitc
-    provisional: tuple[str, ...] = ()
-    if agi > _ME_STD_PHASEOUT_START:
-        provisional += (
-            "ME 2026 standard deduction phase-out threshold ($102,300) computed from "
-            "36 M.R.S. §5124-C(2) and §5403(4) with the MRS 2026 cost-of-living adjustment "
-            "1.279; Maine Revenue Services has not yet published it (provisional).",
-        )
-    if agi > _ME_EXEMPTION_PHASEOUT_START:
-        provisional += (
-            "ME 2026 personal exemption phase-out threshold ($341,100) computed from "
-            "36 M.R.S. §5126-A(2) and §5403(8) with the MRS 2026 cost-of-living adjustment "
-            "1.279; Maine Revenue Services has not yet published it (provisional).",
-        )
-    base.warnings = warnings + provisional
+    base.warnings = warnings
     base.notes = (
         "Maine 2026 rate schedule, $15,700 standard deduction and $5,300 exemption per "
         "MRS 2026 Individual Income Tax Rates (rev. May 20, 2026); 2% surcharge above "
@@ -448,7 +439,8 @@ def _mn(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     # 290.033: 1% of net investment income (IRC 1411(c)) in excess of $1,000,000.
     net_gain = max(ZERO, (tax_input.net_short_term_gains or ZERO)
                    + (tax_input.net_long_term_gains or ZERO))
-    nii = max(ZERO, tax_input.dividends) + net_gain
+    # IRC 1411(c)(1)(A)(i) gross income from interest and dividends, plus net gain.
+    nii = tax_input.interest + max(ZERO, tax_input.dividends) + net_gain
     base.surtax = max(ZERO, nii - D("1000000")) * D(".01")
 
     notes = [

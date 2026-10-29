@@ -12,6 +12,8 @@ Sources:
   https://www.comunidad.madrid/atencion-contribuyente/irpf
   https://sede.agenciatributaria.gob.es/Sede/en_gb/ayuda/manuales-videos-folletos/manuales-practicos/irpf-2025/c14-adecuacion-impuesto-circunstancias-personales/minimo-autonomico-personal-familiar/comunidad-madrid-importes-minimo-personal-familiar.html
 - SS 2025: max base 4,909.50/month; employee 4.70 + 1.55 + 0.10 + 0.13 (MEI) = 6.48%.
+- Solidarity 2025 (Orden PJC/178/2025 art. 17.1, BOE-A-2025-3780): 0.92/1.00/1.17% total,
+  employee 0.15/0.17/0.19%: https://www.boe.es/buscar/doc.php?id=BOE-A-2025-3780
 
 Scales used in the working:
   State general: 9.5% to 12,450 | 12% to 20,200 | 15% to 35,200 | 18.5% to 60,000
@@ -82,16 +84,33 @@ def test_mid_salary_50k_madrid_and_generic_reference():
 
 def test_high_salary_100k_madrid_with_solidarity():
     # SS capped: 58,914 x 6.48% = 3,817.63
-    # Solidarity (employee share 4.70/28.30) on excess 41,086:
-    #   5,891.40 x 0.92% + 23,565.60 x 1.00% + 11,629 x 1.17% = 54.20 + 235.66 + 136.06
-    #   = 425.92 x 0.166078 = 70.74 -> SS = 3,888.37
-    # Base = 100,000 - 3,888.37 - 2,000 = 94,111.63
-    # State: 8,950.75 + (94,111.63 - 60,000) x 22.5% - 527.25 = 16,098.62
-    # Madrid: 7,651.10 + (94,111.63 - 57,320.40) x 20.5% - 506.32 = 14,686.98
+    # Solidarity, employee rates stated by Orden PJC/178/2025 art. 17.1
+    # (0.15% / 0.17% / 0.19%) on the annual excess 100,000 - 58,914 = 41,086:
+    #   band 1 (to +10%, 5,891.40):        5,891.40 x 0.15% =  8.83710
+    #   band 2 (+10% to +50%, 23,565.60): 23,565.60 x 0.17% = 40.06152
+    #   band 3 (rest, 11,629.00):         11,629.00 x 0.19% = 22.09510
+    #   total 70.99372 -> 70.99 -> SS = 3,817.63 + 70.99 = 3,888.62
+    # Base = 100,000 - 3,888.62 - 2,000 = 94,111.38
+    # State: 8,950.75 + (94,111.38 - 60,000) x 22.5% - 527.25 = 16,098.56
+    # Madrid: 7,651.10 + (94,111.38 - 57,320.40) x 20.5% - 506.32 = 14,686.94
+    # IRPF = 30,785.50 ; total = 34,674.12
     r = _calc(gross="100000")
-    assert r.social_insurance == D("3888.37")
-    assert abs(r.income_tax - D("30785.61")) <= TOL
-    assert abs(r.total_tax - D("34673.98")) <= TOL
+    assert r.social_insurance == D("3888.62")
+    solidarity = next(c for c in r.breakdown if c.component_id == "ES-SS-SOLIDARITY")
+    assert solidarity.amount == D("70.99")
+    assert abs(r.income_tax - D("30785.50")) <= TOL
+    assert abs(r.total_tax - D("34674.12")) <= TOL
+
+
+def test_solidarity_top_band_200k():
+    # Excess 200,000 - 58,914 = 141,086:
+    #   5,891.40 x 0.15% = 8.83710 ; 23,565.60 x 0.17% = 40.06152
+    #   (141,086 - 29,457) = 111,629 x 0.19% = 212.09510
+    #   total 260.99372 -> 260.99
+    r = _calc(gross="200000")
+    solidarity = next(c for c in r.breakdown if c.component_id == "ES-SS-SOLIDARITY")
+    assert solidarity.amount == D("260.99")
+    assert r.social_insurance == D("3817.63") + D("260.99")
 
 
 def test_salary_dividends_and_long_term_gains_madrid():

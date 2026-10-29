@@ -326,17 +326,17 @@ _KS_TABLE_WIDTH = D("50")
 _KS_EIC_RATE = D(".17")
 
 
-def _ks_table_tax(taxable: Decimal, r: StateRules) -> Decimal:
+def _ks_table_tax(whole: Decimal, r: StateRules) -> Decimal:
     """K-40 tax table: $50 rows "at least lo, not more than hi", tax at the row midpoint.
 
-    Verified against every 2025 table row ($1,000-$100,000; same 2026 rates and
-    $23,000 threshold); the table starts at $26.
+    The first row is 26-50 (midpoint 38, tax $2). Verified against every 2025
+    table row ($1,000-$100,000; same 2026 rates and $23,000 threshold).
+    ``whole`` is whole-dollar K-40 line 7 taxable income.
     """
-    whole = round_dollar(taxable)
     if whole < D("26"):
         return ZERO
     hi = (whole / _KS_TABLE_WIDTH).to_integral_value(rounding=ROUND_CEILING) * _KS_TABLE_WIDTH
-    midpoint = (hi - D("49") + hi) / 2
+    midpoint = D("38") if hi == _KS_TABLE_WIDTH else (hi - D("49") + hi) / 2
     schedule = calculate_rate_schedule(
         midpoint, r.get_brackets_for_status("single"), use_published_base_tax=True,
     )
@@ -350,17 +350,34 @@ def _ks(t: StateTaxInput, r: StateRules) -> StatePolicyComputation:
         "Kansas 2026 rates unchanged: no SB 269 (K.S.A. 79-32,110c) reduction for tax "
         "year 2026 (KDOR Notice 25-06).",
     )
-    if ZERO < base.taxable_income <= _KS_TABLE_LIMIT:
-        table = _ks_table_tax(base.taxable_income, r)
+    warnings: tuple[str, ...] = ()
+    # K-40 amounts are whole dollars, so the table/worksheet split uses line 7 as entered.
+    whole = round_dollar(base.taxable_income)
+    if ZERO < whole <= _KS_TABLE_LIMIT:
+        table = _ks_table_tax(whole, r)
         base.ordinary_tax = table
         base.tax_before_credits = table
         notes += (
             "Kansas $50-row tax-table midpoint convention used (taxable income to $100,000).",
         )
+    elif whole > _KS_TABLE_LIMIT:
+        # 2025 Tax Computation Worksheet (ip25.pdf p. 34), single, $23,001 and over:
+        # whole-dollar line 7 x 5.58% minus the rounded $87 subtraction (23,000 x 0.38%
+        # = 87.40). The 2026 rates and threshold are unchanged; the 2026 worksheet is
+        # not yet published.
+        worksheet = round_dollar(whole * D(".0558") - D("87"))
+        base.ordinary_tax = worksheet
+        base.tax_before_credits = worksheet
+        warnings += (
+            "Kansas tax above $100,000 uses whole-dollar taxable income x 5.58% - $87, "
+            "based on the 2025 worksheet convention (provisional).",
+        )
     base.notes = notes
-    base.credits, base.warnings = _state_eic(
+    credits, eic_warnings = _state_eic(
         t, "KS-EIC", "Kansas earned income credit", _KS_EIC_RATE, base.tax_before_credits,
     )
+    base.credits = credits
+    base.warnings = eic_warnings + warnings
     return base
 
 

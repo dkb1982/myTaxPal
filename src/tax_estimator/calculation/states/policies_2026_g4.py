@@ -105,12 +105,8 @@ def _mo(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     base.notes = (
         "Missouri 2026: 0%-4.7% schedule with brackets indexed under RSMo 143.011; "
         "100% capital-gain subtraction (RSMo 143.121) and limited federal tax deduction "
-        "(RSMo 143.171); $16,100 standard deduction (RSMo 143.131).",
-    )
-    base.warnings = (
-        "MO 2026 bracket widths ($1,348) taken from the Department of Revenue 2026 "
-        "withholding formula, which mirrors the RSMo 143.011 indexed tax table; the "
-        "2026 MO-1040 tax chart has not yet been published (provisional).",
+        "(RSMo 143.171); $16,100 standard deduction (RSMo 143.131). Brackets match the "
+        "DOR 2026 Form MO-1040ES tax rate chart.",
     )
     return base
 

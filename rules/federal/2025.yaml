@@ -353,6 +353,16 @@ deductions:
     phaseout_threshold: 75000
     mfj_phaseout_threshold: 150000
     phaseout_rate: 0.06
+  # Charitable AGI limits, IRC 170(b)(1) as applied by Pub. 526 (2025)
+  # Worksheet 2: cash to 50% limit orgs <= 60% AGI (lines 12-13); capital
+  # gain property to 50% limit orgs <= smaller of 30% AGI (line 29) or
+  # 50% AGI minus cash/other 50%-limit contributions (lines 26-28). Excess
+  # carries forward 5 years (not modelled).
+  charitable:
+    cash_agi_rate: 0.60
+    capital_gain_property_agi_rate: 0.30
+    capital_gain_property_combined_agi_rate: 0.50
+    carryforward_years: 5
 
 # Payroll Taxes (2025) — verified against SSA 2025 Fact Sheet
 payroll_taxes:
@@ -462,6 +472,10 @@ references:
     url: "https://www.irs.gov/pub/irs-prior/f1040s1a--2025.pdf"
     retrieved_date: "2026-09-09"
     notes: "Enhanced deduction for seniors"
+  - source_name: "IRS Publication 526 (2025), Charitable Contributions"
+    url: "https://www.irs.gov/publications/p526"
+    retrieved_date: "2026-10-29"
+    notes: "Charitable AGI limits and Worksheet 2 ordering"
   - source_name: "2025 Schedule 8812 and Instructions"
     url: "https://www.irs.gov/instructions/i1040s8"
     retrieved_date: "2026-09-09"

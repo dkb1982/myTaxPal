@@ -64,7 +64,7 @@ def test_2026_discovery_is_limited_to_supported_states():
     assert details.json()["supported_jurisdictions"] == {
         "federal": 1, "states": len(enabled), "local": len(cities),
     }
-    jurisdictions = client.get("/v1/jurisdictions?tax_year=2026")
+    jurisdictions = client.get("/v1/jurisdictions?tax_year=2026&limit=100")
     assert jurisdictions.status_code == 200, jurisdictions.text
     assert {item["id"] for item in jurisdictions.json()["data"]} == {"US", *supported}
     texas = client.get("/v1/jurisdictions/US-TX?tax_year=2026")
@@ -152,7 +152,6 @@ def test_2026_niit_and_no_2025_fx_claim():
 
 
 @pytest.mark.parametrize(("income", "regions", "currency"), [
-    ({"employment_wages": "100000"}, ["US-CO"], "USD"),
     ({"employment_wages": "100000"}, ["US-TX"], "GBP"),
     ({"employment_wages": "100000", "interest": "1"}, ["US-TX"], "USD"),
 ])
@@ -162,10 +161,8 @@ def test_unsupported_2026_compare_requests_fail_closed(income, regions, currency
 
 
 def test_unsupported_2026_estimates_fail_closed():
-    assert _estimate("CO").status_code == 422
     assert _estimate("TX", age=41).status_code == 422
     assert client.get("/v1/comparison/regions?tax_year=2027").status_code == 422
-    assert client.get("/v1/jurisdictions/US-CO?tax_year=2026").status_code == 404
     assert _compare({"employment_wages": "100000"}, year=2027).status_code == 422
 
 
@@ -174,3 +171,25 @@ def test_2025_region_discovery_is_unchanged():
     assert response.status_code == 200
     assert len(response.json()["us_states"]) == 51
     assert response.json()["us_cities"]
+
+
+@pytest.fixture
+def colorado_pending(monkeypatch):
+    # No state is pending now; mark Colorado pending to exercise the fail-closed paths.
+    from dataclasses import replace
+
+    from tax_estimator.calculation import coverage
+
+    key = ("US-CO", 2026, coverage.US_VANILLA_PROFILE)
+    monkeypatch.setitem(coverage._COVERAGE, key, replace(
+        coverage._COVERAGE[key], status=coverage.CoverageStatus.PENDING,
+        unavailable_reason="Colorado 2026 figures are not yet published.",
+    ))
+
+
+def test_pending_state_fails_closed_through_api(colorado_pending):
+    assert _estimate("CO").status_code == 422
+    assert _compare({"employment_wages": "100000"}, regions=["US-CO"]).status_code == 422
+    assert client.get("/v1/jurisdictions/US-CO?tax_year=2026").status_code == 404
+    assert client.get("/v1/comparison/regions/US-CO?tax_year=2026").status_code == 404
+    assert client.get("/v1/states/CO?tax_year=2026").status_code == 404

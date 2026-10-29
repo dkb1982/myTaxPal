@@ -258,6 +258,24 @@ class SaltDeductionConfig(BaseModel):
     mfs_floor: float = Field(..., ge=0)
 
 
+class CharitableLimitsConfig(BaseModel):
+    """Federal charitable-contribution AGI limits (IRC 170(b)(1); Pub. 526 Worksheet 2)."""
+
+    cash_agi_rate: float = Field(
+        ..., ge=0, le=1, description="Cash to 50% limit organizations (Worksheet 2 line 12)"
+    )
+    capital_gain_property_agi_rate: float = Field(
+        ..., ge=0, le=1, description="Capital gain property to 50% limit orgs (line 29)"
+    )
+    capital_gain_property_combined_agi_rate: float = Field(
+        ...,
+        ge=0,
+        le=1,
+        description="Combined ceiling less cash contributions for capital gain property (line 26)",
+    )
+    carryforward_years: int = Field(..., ge=0, description="Years excess may be carried forward")
+
+
 class EnhancedSeniorDeductionConfig(BaseModel):
     """Schedule 1-A enhanced deduction for seniors."""
 
@@ -279,6 +297,9 @@ class DeductionRules(BaseModel):
     )
     enhanced_senior: EnhancedSeniorDeductionConfig | None = Field(
         default=None, description="Federal enhanced-senior deduction parameters"
+    )
+    charitable: CharitableLimitsConfig | None = Field(
+        default=None, description="Federal charitable-contribution AGI limits"
     )
 
 

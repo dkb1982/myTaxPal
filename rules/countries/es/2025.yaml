@@ -95,16 +95,20 @@ country_parameters:
       unemployment: 0.0155
       training: 0.001
       mei: 0.0013
-    # Cotizacion adicional de solidaridad (salary above max base), 2025 rates.
-    # Split employer/employee in the same proportion as common contingencies
-    # (23.60 / 4.70), so the employee share is 4.70 / 28.30.
+    # Cotizacion adicional de solidaridad (salary above max base), 2025 rates
+    # (Orden PJC/178/2025 art. 17.1; art. 19 bis LGSS), with the employee rate
+    # stated per band by the Orden (rounded split of 4.70/28.30):
+    #   4,909.51-5,400.45/month (max base +10%): 0.92% total, 0.15% employee
+    #   5,400.46-7,364.25/month (+50%):           1.00% total, 0.17% employee
+    #   above 7,364.25/month:                     1.17% total, 0.19% employee
+    # Applied to the annual excess over 12 x the monthly max base.
     solidarity:
-      employee_share: 0.16607774       # 4.70 / 28.30
-      note: "Employee share (4.70/28.30) of the 2025 solidarity contribution"
-      bands:                            # (fraction of max base above it, total rate)
-        - {upto_fraction: 0.10, rate: 0.0092}
-        - {upto_fraction: 0.50, rate: 0.0100}
-        - {upto_fraction: null, rate: 0.0117}
+      employee_share: 0.16607774       # fallback only; bands state employee_rate
+      note: "Employee share of the 2025 solidarity contribution (0.15% / 0.17% / 0.19%)"
+      bands:
+        - {upto_fraction: 0.10, rate: 0.0092, employee_rate: 0.0015}
+        - {upto_fraction: 0.50, rate: 0.0100, employee_rate: 0.0017}
+        - {upto_fraction: null, rate: 0.0117, employee_rate: 0.0019}
 
   work_income:
     other_expenses: 2000              # art. 19.2.f "otros gastos"
@@ -198,7 +202,8 @@ verification:
     EUR 5,956.65 (AEAT manual 2025), Madrid scale (Comunidad de Madrid page,
     labelled 2024; no 2025 change found - announced cut targets 2027).
     SS 2025 max base and employee rates per Seguridad Social; solidarity band
-    rates 0.92/1.00/1.17% are from the 2025 Orden de cotizacion (not fetched).
+    rates 0.92/1.00/1.17% and employee rates 0.15/0.17/0.19% verified against
+    Orden PJC/178/2025 art. 17.1 (BOE-A-2025-3780) on 2026-10-29.
     Communities other than Madrid use a GENERIC state-mirror scale (approximate).
 
 references:
@@ -217,6 +222,9 @@ references:
   - source_name: "Seguridad Social - Bases y tipos de cotizacion"
     url: "https://www.seg-social.es/wps/portal/wss/internet/Trabajadores/CotizacionRecaudacionTrabajadores/36537"
     retrieved_date: "2026-10-23"
+  - source_name: "BOE - Orden PJC/178/2025, de 25 de febrero (cotizacion 2025)"
+    url: "https://www.boe.es/buscar/doc.php?id=BOE-A-2025-3780"
+    retrieved_date: "2026-10-29"
   - source_name: "BOE - Ley 35/2006 del IRPF (consolidated)"
     url: "https://www.boe.es/buscar/act.php?id=BOE-A-2006-20764"
     retrieved_date: "2026-10-23"

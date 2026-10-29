@@ -77,6 +77,8 @@ class DeductionsStage(CalculationStage):
         # Calculate itemized deductions if provided
         itemized_total = Decimal(0)
         itemized_breakdown: dict[str, Decimal] = {}
+        # Charitable-limit warnings only matter if itemized deductions are used.
+        charitable_warnings: list[str] = []
 
         if input_data.itemized_deductions:
             itemized = input_data.itemized_deductions
@@ -117,9 +119,17 @@ class DeductionsStage(CalculationStage):
             mortgage_interest = itemized.mortgage_interest
             itemized_breakdown["mortgage_interest"] = mortgage_interest
 
-            # Charitable contributions
-            charitable = itemized.charitable_cash + itemized.charitable_noncash
-            # TODO: Apply AGI limits (60% cash, 30% property)
+            # Charitable contributions, AGI-limited
+            charitable = self._limit_charitable(
+                federal_rules,
+                agi,
+                itemized.charitable_cash,
+                itemized.charitable_noncash,
+                context,
+                charitable_warnings,
+            )
+            if charitable is None:
+                return self._error("Federal charitable limit rules not loaded", "RULES_NOT_FOUND")
             itemized_breakdown["charitable"] = charitable
 
             # Other
@@ -152,6 +162,9 @@ class DeductionsStage(CalculationStage):
         use_itemized = input_data.force_itemize or itemized_total > standard_deduction
         base_deduction_used = itemized_total if use_itemized else standard_deduction
         method = "itemized" if use_itemized else "standard"
+        if use_itemized:
+            for warning in charitable_warnings:
+                context.add_warning(warning)
 
         enhanced_senior = self._calculate_enhanced_senior_deduction(
             federal_rules, input_data, agi, context
@@ -202,6 +215,83 @@ class DeductionsStage(CalculationStage):
         context.set_result("itemized_breakdown", itemized_breakdown)
 
         return self._success(f"Using {method} deduction: ${deduction_used:,.2f}")
+
+    def _limit_charitable(
+        self,
+        rules: JurisdictionRules,
+        agi: Decimal,
+        cash: Decimal,
+        noncash: Decimal,
+        context: CalculationContext,
+        warnings: list[str],
+    ) -> Decimal | None:
+        """Apply the 2025 charitable AGI limits (Pub. 526 Worksheet 2).
+
+        Warnings are appended to ``warnings``; the caller surfaces them only
+        when itemized deductions are actually used.
+
+        Assumes every gift goes to a 50% limit (public) charity and treats
+        ``noncash`` as capital gain property deducted at FMV (Worksheet 2
+        line 8). Cash is applied first (lines 12-13: <= 60% AGI); property is
+        then limited to the smallest of the gift, 50% AGI minus cash
+        contributions (lines 26-28, full cash amount, not the deductible
+        part), and 30% AGI (line 29). The total therefore never exceeds 60%
+        of AGI. Carryovers of the excess are not modelled.
+        """
+        if cash <= 0 and noncash <= 0:
+            return Decimal(0)
+        config = rules.deductions.charitable
+        if config is None:
+            return None
+        agi_base = max(Decimal(0), agi)
+        cash_limit = agi_base * Decimal(str(config.cash_agi_rate))
+        cash_deductible = min(cash, cash_limit)
+        combined_limit = (
+            agi_base * Decimal(str(config.capital_gain_property_combined_agi_rate)) - cash
+        )
+        thirty_pct_limit = agi_base * Decimal(str(config.capital_gain_property_agi_rate))
+        property_limit = max(Decimal(0), min(combined_limit, thirty_pct_limit))
+        noncash_deductible = min(noncash, property_limit)
+        deductible = (cash_deductible + noncash_deductible).quantize(Decimal("0.01"))
+        excess = cash + noncash - deductible
+        context.trace.add_step(
+            step_id="DED-CHARITY",
+            label="Charitable Contributions (AGI-limited)",
+            formula=(
+                "MIN(cash, 60% AGI) + MIN(noncash property, 30% AGI, 50% AGI - cash)"
+            ),
+            inputs={
+                "agi": str(agi),
+                "charitable_cash": str(cash),
+                "charitable_noncash": str(noncash),
+                "cash_limit": str(cash_limit),
+                "noncash_property_limit": str(property_limit),
+            },
+            result=deductible,
+            jurisdiction="US",
+            note=(
+                "Non-cash gifts treated as capital gain property to public charities "
+                "(IRS Pub. 526 Worksheet 2)"
+            ),
+        )
+        if noncash > thirty_pct_limit and thirty_pct_limit < combined_limit:
+            # The 30% capital-gain-property limit strictly binds. Ordinary-income
+            # property would instead be limited to 50% AGI minus deductible cash
+            # (Worksheet 2 lines 15-17), so the deduction may be understated.
+            # When 50% AGI minus cash binds (or ties), both treatments agree.
+            warnings.append(
+                "Non-cash charitable gifts were treated as appreciated capital-gain "
+                "property (30% of AGI limit). Ordinary property such as clothing and "
+                "household goods has a 50% of AGI limit, so this deduction may be "
+                "understated."
+            )
+        if excess > 0:
+            warnings.append(
+                f"Charitable contributions of ${excess:,.2f} exceed the AGI limits and are "
+                f"not deducted this year; the excess may be carried forward for up to "
+                f"{config.carryforward_years} years (carryovers are not modelled)."
+            )
+        return deductible
 
     def _calculate_standard_deduction(
         self,

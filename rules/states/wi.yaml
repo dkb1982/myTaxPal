@@ -27,7 +27,12 @@ rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers
+    # Single filers: base taxes are exact cumulative amounts, consistent with the 2025
+    # Form 1 Tax Computation Worksheet Section A (5.3%: TI x .053 - 586.44;
+    # 7.65%: TI x .0765 - 8,183.76 -> 16,547.925 at 323,290).
+    # Corrected 2026-10-29 (issue #2): bases were 514 / 2089 / 16534.
+    # TODO: non-single rows below are unreviewed; the 2025 worksheet shows Single and
+    # Head of household share Section A and MFJ/MFS top thresholds of 431,060 / 215,530.
     - bracket_id: "WI-2025-S-1"
       filing_status: "single"
       income_from: 0
@@ -39,19 +44,19 @@ rate_schedule:
       income_from: 14680
       income_to: 50480
       rate: 0.044
-      base_tax: 514
+      base_tax: 513.80
     - bracket_id: "WI-2025-S-3"
       filing_status: "single"
       income_from: 50480
       income_to: 323290
       rate: 0.053
-      base_tax: 2089
+      base_tax: 2089.00
     - bracket_id: "WI-2025-S-4"
       filing_status: "single"
       income_from: 323290
       income_to: null
       rate: 0.0765
-      base_tax: 16534
+      base_tax: 16547.925
 
     # Married Filing Jointly
     - bracket_id: "WI-2025-MFJ-1"
@@ -207,6 +212,10 @@ verification:
   notes: "2025 tax brackets verified"
 
 references:
+  - source_name: "Wisconsin 2025 Form 1 Instructions (Tax Computation Worksheet p.44; Standard Deduction Table p.35)"
+    url: "https://www.revenue.wi.gov/TaxForms2025/2025-Form1-Inst.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Single subtraction amounts 586.44 / 8,183.76; single standard deduction $13,560 below $19,500 and reduced by 12% from $19,550 (table band midpoints)."
   - source_name: "Wisconsin Department of Revenue"
     url: "https://www.revenue.wi.gov/TaxForms2025/2025-Form1-Inst.pdf"
     retrieved_date: "2025-02-20"

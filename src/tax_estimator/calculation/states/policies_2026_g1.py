@@ -3,7 +3,8 @@
 See policies_2026_common for the supported profile. Evidence for every
 constant below is recorded in rules/states/2026/<st>.yaml ``references``.
 Like the 2025 baseline, graduated taxes use the official rate schedules
-(not the $50/$100 tax-table midpoints).
+(not the $50/$100 tax-table midpoints), except Arkansas, whose statute and DFA
+formula define tax at the $100 table-row midpoints.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from tax_estimator.calculation.states.policies_2026_common import (
     ZERO,
     PolicyFn,
+    StateAmountComponent,
     StateCreditComponent,
     StatePolicyComputation,
     StatePolicyError,
@@ -24,6 +26,7 @@ from tax_estimator.calculation.states.policies_2026_common import (
     federal_eic_credit,
     flat_policy,
     require_policy_inputs,
+    round_dollar,
     schedule_policy,
 )
 
@@ -120,6 +123,156 @@ def _az(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         rules,
         subtractions=subtractions,
         notes=("Arizona 2026 flat 2.5% rate applied to Arizona taxable income.",),
+        warnings=warnings,
+    )
+
+
+# --- Arkansas --------------------------------------------------------------
+
+_AR_STANDARD_DEDUCTION = D("2470")  # DFA 2026 AR1000ES; revised 2026 withholding formula
+_AR_PERSONAL_CREDIT = D("29")
+# Warning-only bounds (no effect on tax): 2025 Low Income Table single ceiling
+# $17,500 AGI and Additional Tax Credit ceiling $27,600, both indexed annually
+# and not yet published for 2026, with headroom for that indexing.
+_AR_LOW_INCOME_TABLE_WARNING_AGI = D("20000")
+_AR_ADDITIONAL_CREDIT_WARNING_TAXABLE = D("30000")
+
+
+def _ar_table_tax(taxable: Decimal) -> Decimal:
+    """Ark. Code 26-51-201(a)(4) as amended by Act 2 (2026 1st Ex. Sess.).
+
+    Rates and bracket adjustment are from the Act; the minus-adjustments
+    ($111.98, $223.97, $287.97, $367.16; $369.90 falling $10 per $100 row to
+    $79.90 from $97,601) match DFA's revised 2026 withholding formula. The
+    $100-row midpoints (x50 below $75,000; 74,950 for the 74,900-75,000
+    transition row; x00 - 49.5 for the x01-x00 rows from $75,001) and "$3,618 + 3.7% over $100,000" follow the DFA 2025 tax table,
+    as the 2026 table is unpublished (provisional).
+    """
+    whole = round_dollar(taxable)
+    if whole <= D("5599"):
+        return ZERO
+    if whole > D("100000"):
+        # Row 99,901-100,000: 99,950.5 x 3.7% - 79.90 = 3,618.27 -> 3,618.
+        return D("3618") + (whole - D("100000")) * D(".037")
+    if whole < D("75000"):
+        midpoint = (whole / D("100")).to_integral_value(rounding=ROUND_FLOOR) * D("100") + D("50")
+    elif whole == D("75000"):
+        # 2025 table's single 101-dollar transition row "74,900 but less than 75,001".
+        midpoint = D("74950")
+    else:
+        midpoint = (
+            (whole / D("100")).to_integral_value(rounding=ROUND_CEILING) * D("100") - D("49.5")
+        )
+    if whole <= D("11199"):
+        raw = midpoint * D(".02") - D("111.98")
+    elif whole <= D("15999"):
+        raw = midpoint * D(".03") - D("223.97")
+    elif whole <= D("26399"):
+        raw = midpoint * D(".034") - D("287.97")
+    elif whole <= D("94700"):
+        raw = midpoint * D(".037") - D("367.16")
+    else:
+        # Upper table (2% to $4,700, 3.7% above = 3.7% - $79.90) less the Act's
+        # bracket adjustment ($290 for 94,701-94,800, $10 less per $100 row).
+        step = ((whole - D("94701")) / D("100")).to_integral_value(rounding=ROUND_FLOOR)
+        raw = midpoint * D(".037") - max(D("79.90"), D("369.90") - D("10") * step)
+    return max(ZERO, round_dollar(raw))
+
+
+def _ar(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
+    require_policy_inputs(tax_input, "net_short_term_gains", "net_long_term_gains")
+    if (tax_input.net_short_term_gains or ZERO) < 0 or (tax_input.net_long_term_gains or ZERO) < 0:
+        raise StatePolicyError("Arkansas signed capital-loss combinations are not source-supported")
+    long_term = max(ZERO, tax_input.net_long_term_gains or ZERO)
+    # AR1000D lines 7b-8: 50% of the first $10m of net gain is taxable; the excess is exempt.
+    exclusion = long_term - min(long_term, D("10000000")) * D(".50")
+    subtractions = (
+        (component("AR-LTCG", "Net long-term gain exclusion (50%, plus excess over $10m)",
+                   exclusion),)
+        if exclusion
+        else ()
+    )
+    state_agi = tax_input.federal_agi - exclusion
+    taxable = max(ZERO, state_agi - _AR_STANDARD_DEDUCTION)
+    gross = _ar_table_tax(taxable)
+    personal = credit("AR-PERSONAL", "Personal tax credit", _AR_PERSONAL_CREDIT, gross)
+    warnings: tuple[str, ...] = ()
+    if gross:
+        warnings += (
+            "AR 2026 tax uses the Act 2 rates with DFA's 2025 tax-table midpoint convention "
+            "and over-$100,000 rule; DFA has not yet published the 2026 tax table "
+            "(provisional).",
+        )
+    if tax_input.federal_agi <= _AR_LOW_INCOME_TABLE_WARNING_AGI:
+        warnings += (
+            "Arkansas Low Income Tax Table not modelled (2026 table unpublished); it may "
+            "reduce this result.",
+        )
+    if taxable <= _AR_ADDITIONAL_CREDIT_WARNING_TAXABLE:
+        warnings += (
+            "Arkansas Additional Tax Credit for Qualified Individuals not modelled (2026 "
+            "indexed amounts unpublished); it may reduce this result.",
+        )
+    return StatePolicyComputation(
+        starting_income=tax_input.federal_agi,
+        state_agi=state_agi,
+        subtractions=subtractions,
+        deduction_type="standard",
+        deduction_amount=_AR_STANDARD_DEDUCTION,
+        taxable_income=taxable,
+        ordinary_taxable_income=taxable,
+        ordinary_tax=gross,
+        tax_before_credits=gross,
+        credits=(personal,),
+        marginal_rate=D(".037") if taxable > D("26399") else ZERO,
+        notes=(
+            "Arkansas 2026 Act 2 tables (top rate 3.7%), $2,470 standard deduction, $29 "
+            "personal tax credit and 50% net long-term gain exclusion applied.",
+        ),
+        warnings=warnings,
+    )
+
+
+# --- Colorado --------------------------------------------------------------
+
+_CO_ADDBACK_AGI = D("300000")
+_CO_ADDBACK_LIMIT_SINGLE_2026 = D("1000")
+
+
+def _co(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
+    require_policy_inputs(tax_input, "federal_deduction_amount")
+    additions: tuple[StateAmountComponent, ...] = ()
+    # CDOR Individual Income Tax Guide: AGI over $300,000 -> add back the federal
+    # standard/itemized deduction above $1,000 (single) for tax years 2026 and later.
+    if tax_input.federal_agi > _CO_ADDBACK_AGI:
+        addback = max(
+            ZERO, (tax_input.federal_deduction_amount or ZERO) - _CO_ADDBACK_LIMIT_SINGLE_2026
+        )
+        if addback:
+            additions = (
+                component(
+                    "CO-HIGH-INCOME-DEDUCTION", "Federal deduction above Colorado limit", addback
+                ),
+            )
+    warnings: tuple[str, ...] = ()
+    if (
+        tax_input.federal_eitc_eligibility_asserted is not False
+        and tax_input.federal_agi <= FEDERAL_CHILDLESS_EIC_AGI_LIMIT_2026
+    ):
+        warnings = (
+            "Colorado earned income tax credit omitted: the 2026 credit percentage is not "
+            "confirmed from Department of Revenue publications.",
+        )
+    return flat_policy(
+        tax_input,
+        rules,
+        starting_income=tax_input.federal_taxable_income,
+        additions=additions,
+        deduction=ZERO,
+        notes=(
+            "Colorado 2026: 4.40% of federal taxable income plus additions (no TABOR "
+            "temporary rate reduction for 2026).",
+        ),
         warnings=warnings,
     )
 
@@ -354,20 +507,11 @@ def _de(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
 POLICIES: dict[str, PolicyFn] = {
     "AL": _al,
     "AZ": _az,
+    "AR": _ar,
     "CA": _ca,
+    "CO": _co,
     "CT": _ct,
     "DE": _de,
 }
 
-PENDING: dict[str, str] = {
-    "AR": (
-        "Arkansas indexes its 2026 tax brackets, standard deduction and low-income "
-        "credit thresholds annually; DFA has not yet published the 2026 indexed amounts."
-    ),
-    "CO": (
-        "Colorado 2026 changes (high-income deduction add-back limits, TABOR-linked "
-        "rate and credit mechanisms) are not yet confirmed from Department of Revenue "
-        "publications."
-    ),
-}
-
+PENDING: dict[str, str] = {}

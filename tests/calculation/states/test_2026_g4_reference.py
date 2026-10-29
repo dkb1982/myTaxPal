@@ -92,7 +92,7 @@ def test_mississippi_2026(kwargs, expected) -> None:
 def test_missouri_2026(kwargs, expected) -> None:
     result = compute_2026("MO", **kwargs)
     assert result.total_tax == expected
-    assert any("provisional" in w for w in result.warnings)
+    assert not any("provisional" in w for w in result.warnings)
 
 
 def test_missouri_2026_federal_deduction_percentage_boundary() -> None:

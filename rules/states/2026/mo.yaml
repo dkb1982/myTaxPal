@@ -89,7 +89,7 @@ state_config:
   reciprocity_states: []
   special_notes:
     - "2026 top rate 4.7%: no further RSMo 143.011 reduction for 2026 (DOR 2026 withholding formula still 0%-4.7%)."
-    - "2026 bracket width $1,348 (RSMo 143.011 indexing) from the DOR 2026 withholding formula; base amounts sum the per-band whole-dollar amounts shown in the formula example (27/34/40/47/54/61), matching the 2025 tax-chart convention (provisional until the 2026 MO-1040 chart)."
+    - "2026 brackets ($1,348 bands, 4.7% over $9,436) and base amounts ($27/$61/$101/$148/$202/$263) as published in the DOR 2026 Form MO-1040ES Tax Rate Chart (retrieved 2026-10-29); the 2026 MO-1040 tax chart is not yet published but the MO-1040ES chart is the Department's 2026 rate schedule."
     - "Standard deduction equals the federal amount: $16,100 single (RSMo 143.131; DOR 2026 withholding formula)."
     - "100% subtraction of federal capital-gain income (RSMo 143.121, HB 594 2025, from tax year 2025)."
     - "Federal income tax deduction: 35/25/15/5/0% by Missouri AGI, capped at $5,000 single (RSMo 143.171)."
@@ -97,11 +97,15 @@ state_config:
 
 verification:
   status: "verified"
-  last_verified: "2026-10-23"
+  last_verified: "2026-10-29"
   verified_by: "source review (group 4)"
   notes: "Rates/brackets from DOR 2026 withholding formula (cross-checked: the 2025 formula equals the 2025 tax chart); capital-gain and federal-tax deduction rules from DOR year-changes page and RSMo."
 
 references:
+  - source_name: "Missouri DOR 2026 Form MO-1040ES (Tax Rate Chart)"
+    url: "https://dor.mo.gov/forms/MO-1040ES_2026.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "$0-$1,348 0%; 2.0% over $1,348; $27 + 2.5% over $2,696; $61 + 3.0% over $4,044; $101 + 3.5% over $5,392; $148 + 4.0% over $6,740; $202 + 4.5% over $8,088; $263 + 4.7% over $9,436 (identical to the rule)."
   - source_name: "Missouri DOR 2026 Withholding Tax Formula"
     url: "https://dor.mo.gov/forms/Withholding%20Formula_2026.pdf"
     retrieved_date: "2026-10-23"

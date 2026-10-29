@@ -136,7 +136,7 @@ def test_ab_100k():
     #   - (22,769 + 3,519.45 + 1,123.07) x 8% (2,192.92) = 6,470.38 ; supplemental 0
     ab = _calc(gross="100000", province="AB")
     assert abs(ab.total_tax - D("25541.50")) <= TOL   # 13,301.60 + 6,470.38 + 5,769.52
-    assert any("Alberta supplemental" in w for w in ab.warnings)
+    assert not any("(provisional)" in w for w in ab.warnings)
 
 
 def test_self_employment_refused_for_2026():

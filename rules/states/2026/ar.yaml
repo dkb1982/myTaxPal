@@ -1,0 +1,119 @@
+# Arkansas individual income-tax rule for the narrow 2026 US estimator profile
+# (single, age 40, full-year resident, W-2 wages, dividends and capital gains).
+# The policy (policies_2026_g1._ar) applies the Act 2 (2026 1st Ex. Sess.)
+# standard / upper income tables with the bracket adjustment, the $2,470
+# standard deduction, the $29 personal tax credit and the 50% net long-term
+# capital gain exclusion. The brackets below document the statutory tables; the
+# policy computes tax from them with the DFA tax-table midpoint convention.
+
+jurisdiction_id: "US-AR"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Arkansas"
+jurisdiction_abbreviation: "AR"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "graduated"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "graduated"
+  flat_rate: null
+  brackets:
+    # Ark. Code 26-51-201(a)(4)(A) as amended by Act 2 of 2026 (1st Ex. Sess.):
+    # net income of $94,700 or less. Base taxes are the DFA "minus adjustment"
+    # equivalents (2026 withholding formula, rev. 05/29/2026).
+    - bracket_id: "AR-2026-S-1"
+      filing_status: "single"
+      income_from: 0
+      income_to: 5600
+      rate: 0
+      base_tax: 0
+    - bracket_id: "AR-2026-S-2"
+      filing_status: "single"
+      income_from: 5600
+      income_to: 11200
+      rate: 0.02
+      base_tax: 0.02
+    - bracket_id: "AR-2026-S-3"
+      filing_status: "single"
+      income_from: 11200
+      income_to: 16000
+      rate: 0.03
+      base_tax: 112.03
+    - bracket_id: "AR-2026-S-4"
+      filing_status: "single"
+      income_from: 16000
+      income_to: 26400
+      rate: 0.034
+      base_tax: 256.03
+    - bracket_id: "AR-2026-S-5"
+      filing_status: "single"
+      income_from: 26400
+      income_to: null
+      rate: 0.037
+      base_tax: 609.64
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: true
+    amounts:
+      - filing_status: "single"
+        amount: 2470
+        dependent_claimed_elsewhere: null
+    additional_amounts: []
+  exemptions:
+    treatment: "credit"
+    personal_exemption_available: true
+    personal_exemption_amount: 29
+    dependent_exemption_available: true
+    dependent_exemption_amount: 29
+
+state_config:
+  starting_point: "federal_agi"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Arkansas 2026 top rate 3.7% (Act 2 of the 2026 First Extraordinary Session, approved 5/6/26, retroactive to 1/1/2026)."
+    - "Net income over $94,700: 2% on the first $4,700 and 3.7% above, less a bracket adjustment from $290 ($94,701-$94,800) falling $10 per $100 to $0 from $97,601."
+    - "Standard deduction $2,470 and personal tax credit $29 (DFA 2026 AR1000ES and revised 2026 withholding formula)."
+    - "50% of net long-term capital gain (first $10,000,000) is taxable; the excess is exempt (AR1000D)."
+    - "Not modelled: Low Income Tax Table and Additional Tax Credit for Qualified Individuals (2026 indexed amounts unpublished); warnings are shown where they may apply."
+
+verification:
+  status: "source_checked_limited_scenarios"
+  last_verified: "2026-10-29"
+  verified_by: "source review (agent); not professional sign-off"
+  notes: "Rates and bracket adjustment from enrolled Act 2 (2026 S1) and DFA fiscal impact statement; minus-adjustment amounts ($367.16; $369.90 to $79.90) match DFA's revised 2026 withholding formula. DFA has not published the 2026 AR1000F tax table: the $100-row midpoint convention and the '$3,618 + 3.7% over $100,000' rule are derived from the 2025 DFA tax table and brackets document (provisional)."
+
+references:
+  - source_name: "Arkansas General Assembly, Act 2 of the 2026 First Extraordinary Session (SB 1), enrolled"
+    url: "https://www.arkleg.state.ar.us/Home/FTPDocument?path=%2FACTS%2F2026S1%2FPublic%2FACT2.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "26-51-201(a)(4) tables for tax years beginning on or after 1/1/2026 and the bracket adjustment table; approved 5/6/26."
+  - source_name: "Arkansas DFA, HB1001 fiscal impact statement (5/1/2026)"
+    url: "https://www.arkleg.state.ar.us/Home/FTPDocument?path=%2FAssembly%2F2025%2F2026S1%2FFiscal+Impacts%2FHB1001-DFA1.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Standard and upper income tables effective for 2026 and following tax years."
+  - source_name: "Arkansas DFA, Withholding Tax Formula Method, tax year 2026 (revised 05/29/2026)"
+    url: "https://www.dfa.arkansas.gov/wp-content/uploads/Withholding-Tax-Formula.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Standard deduction $2,470; 3.7% band minus $367.16; bracket-adjustment rows $369.90 to $79.90; $29 personal credit; $50 midrange below $100,001."
+  - source_name: "Arkansas DFA, 2026 AR1000ES estimated tax worksheet"
+    url: "https://www.dfa.arkansas.gov/wp-content/uploads/2026_Final_AR1000ES.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Standard deduction $2,470 per taxpayer; single personal tax credit $29."
+  - source_name: "Arkansas DFA, 2025 Tax Tables and 2025 Indexed Tax Brackets"
+    url: "https://www.dfa.arkansas.gov/wp-content/uploads/2025_TaxTables.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Table midpoint convention ($100 rows; x01 rows from $75,001) and the over-$100,000 rule carried forward provisionally; Low Income Table ceiling $17,500 (single, 2025)."
+  - source_name: "Arkansas DFA, 2025 AR1000D capital gains schedule"
+    url: "https://www.dfa.arkansas.gov/wp-content/uploads/2025_AR1000D_CapitalGains.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Lines 7b-8: 50% of net capital gain up to $10,000,000; Act 2 does not amend the exclusion."

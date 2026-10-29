@@ -59,8 +59,8 @@ def _run(state: str, scenario: str, **extra):
 
 
 def test_group1_registry_partition() -> None:
-    assert set(policies_2026_g1.POLICIES) == {"AL", "AZ", "CA", "CT", "DE"}
-    assert set(policies_2026_g1.PENDING) == {"AR", "CO"}
+    assert set(policies_2026_g1.POLICIES) == {"AL", "AZ", "AR", "CA", "CO", "CT", "DE"}
+    assert set(policies_2026_g1.PENDING) == set()
     for state in policies_2026_g1.PENDING:
         assert state not in policies_2026_g1.POLICIES
         assert state not in POLICIES_2026
@@ -215,3 +215,89 @@ def test_delaware_low_income_and_eitc_warning() -> None:
     assert result.total_tax == D("24.25")
     assert any("Delaware earned income tax credit omitted" in w for w in result.warnings)
     assert not _run("DE", "w40").warnings
+
+
+# --- Arkansas ---------------------------------------------------------------
+# Act 2 (2026 1st Ex. Sess.) tables; $2,470 standard deduction; $29 credit.
+# Tax at the $100 row midpoint (x50 below $75,001; x00 - 49.5 from $75,001):
+#   w40:   TI 40,000 - 2,470 = 37,530 -> midpoint 37,550:
+#          37,550 x .037 = 1,389.35 - 367.16 = 1,022.19 -> 1,022; - 29 = 993
+#   w100:  TI 97,530 -> row 97,501-97,600, midpoint 97,550.5; bracket adjustment
+#          row 28 -> 369.90 - 280 = 89.90: 3,609.3685 - 89.90 = 3,519.47 -> 3,519;
+#          - 29 = 3,490
+#   w250:  TI 247,530 -> 3,618 + 147,530 x .037 = 3,618 + 5,458.61 = 9,076.61;
+#          - 29 = 9,047.61
+#   mixed: AGI 95,000; LTCG exclusion 10,000 x 50% = 5,000; TI 87,530 ->
+#          midpoint 87,550.5: 3,239.3685 - 367.16 = 2,872.21 -> 2,872; - 29 = 2,843
+
+
+@pytest.mark.parametrize(
+    ("scenario", "expected"),
+    [("w40", "993"), ("w100", "3490"), ("w250", "9047.61"), ("mixed", "2843")],
+)
+def test_arkansas_reference(scenario: str, expected: str) -> None:
+    result = _run("AR", scenario)
+    assert result.total_tax == D(expected)
+    assert any("provisional" in w for w in result.warnings)
+
+
+def test_arkansas_bracket_adjustment_boundary() -> None:
+    # TI 94,700 (AGI 97,170): last standard-table row, midpoint 94,650.5:
+    #   94,650.5 x .037 = 3,502.0685 - 367.16 = 3,134.91 -> 3,135; - 29 = 3,106
+    # TI 94,701 (AGI 97,171): upper table less $290: 94,750.5 x .037 = 3,505.7685
+    #   - 369.90 = 3,135.87 -> 3,136; - 29 = 3,107
+    # TI 97,601 (AGI 100,071): adjustment $0 -> 97,650.5 x .037 = 3,613.0685
+    #   - 79.90 = 3,533.17 -> 3,533; - 29 = 3,504
+    assert compute_2026("AR", wages=D("97170")).total_tax == D("3106")
+    assert compute_2026("AR", wages=D("97171")).total_tax == D("3107")
+    assert compute_2026("AR", wages=D("100071")).total_tax == D("3504")
+
+
+def test_arkansas_transition_row_75000() -> None:
+    # TI 75,000 (AGI 77,470): 2025 table's transition row "74,900 but less than
+    # 75,001" (midpoint 74,950): 74,950 x .037 = 2,773.15 - 367.16 = 2,405.99
+    #   -> 2,406; - 29 = 2,377
+    # TI 75,001 (AGI 77,471): row 75,001-75,100, midpoint 75,050.5:
+    #   2,776.8685 - 367.16 = 2,409.71 -> 2,410; - 29 = 2,381
+    assert compute_2026("AR", wages=D("77470")).total_tax == D("2377")
+    assert compute_2026("AR", wages=D("77471")).total_tax == D("2381")
+
+
+def test_arkansas_low_income_warnings() -> None:
+    # TI 20,000 - 2,470 = 17,530 -> midpoint 17,550: 17,550 x .034 = 596.70
+    #   - 287.97 = 308.73 -> 309; - 29 = 280
+    result = compute_2026("AR", wages=D("20000"))
+    assert result.total_tax == D("280")
+    assert any("Low Income Tax Table" in w for w in result.warnings)
+    assert any("Additional Tax Credit" in w for w in result.warnings)
+
+
+# --- Colorado ---------------------------------------------------------------
+# 4.40% of federal taxable income; AGI over $300,000 adds back the federal
+# standard deduction above $1,000 (2026 limit).
+#   w40:   23,900 x .044 = 1,051.60
+#   w100:  83,900 x .044 = 3,691.60
+#   w250:  AGI not over 300,000: 233,900 x .044 = 10,291.60
+#   mixed: 78,900 x .044 = 3,471.60
+
+
+@pytest.mark.parametrize(
+    ("scenario", "expected"),
+    [("w40", "1051.60"), ("w100", "3691.60"), ("w250", "10291.60"), ("mixed", "3471.60")],
+)
+def test_colorado_reference(scenario: str, expected: str) -> None:
+    assert _run("CO", scenario).total_tax == D(expected)
+
+
+def test_colorado_high_income_deduction_addback() -> None:
+    # AGI exactly 300,000 (not over): 283,900 x .044 = 12,491.60
+    assert compute_2026("CO", wages=D("300000")).total_tax == D("12491.60")
+    # AGI 400,000: FTI 383,900 + (16,100 - 1,000) = 399,000 x .044 = 17,556.00
+    result = compute_2026("CO", wages=D("400000"))
+    assert result.total_tax == D("17556.00")
+    assert result.additions[0].amount == D("15100")
+
+
+def test_colorado_eitc_warning_at_low_income() -> None:
+    result = compute_2026("CO", wages=D("15000"))
+    assert any("Colorado earned income tax credit" in w for w in result.warnings)

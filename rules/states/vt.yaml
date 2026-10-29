@@ -27,7 +27,10 @@ rate_schedule:
   rate_type: "graduated"
   flat_rate: null
   brackets:
-    # Single filers
+    # Single filers: 2025 Form IN-111 Instructions, Schedule X (whole-dollar base taxes).
+    # Corrected 2026-10-29 (issue #2): previously 119,000 / 246,350 with unrounded bases.
+    # TODO: non-single rows below are unreviewed and do NOT match IN-111 Schedules Y-1/Y-2/Z;
+    # the 2025 policy profile is single-only.
     - bracket_id: "VT-2025-S-1"
       filing_status: "single"
       income_from: 0
@@ -37,21 +40,21 @@ rate_schedule:
     - bracket_id: "VT-2025-S-2"
       filing_status: "single"
       income_from: 49400
-      income_to: 119000
+      income_to: 119700
       rate: 0.066
-      base_tax: 1654.90
+      base_tax: 1655
     - bracket_id: "VT-2025-S-3"
       filing_status: "single"
-      income_from: 119000
-      income_to: 246350
+      income_from: 119700
+      income_to: 249700
       rate: 0.076
-      base_tax: 6248.50
+      base_tax: 6295
     - bracket_id: "VT-2025-S-4"
       filing_status: "single"
-      income_from: 246350
+      income_from: 249700
       income_to: null
       rate: 0.0875
-      base_tax: 15927.10
+      base_tax: 16175
 
     # Married Filing Jointly
     - bracket_id: "VT-2025-MFJ-1"
@@ -227,6 +230,14 @@ verification:
   notes: "2025 tax brackets verified"
 
 references:
+  - source_name: "Vermont 2025 Form IN-111 Instructions"
+    url: "https://tax.vermont.gov/sites/tax/files/documents/IN-111-Instr-2025.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Schedule X single 0/49,400/119,700/249,700, base taxes 1,655/6,295/16,175; Line 8 3% of FAGI minimum above $150,000; $7,650 standard deduction; $5,300 exemption."
+  - source_name: "Vermont 2025 Schedule IN-153"
+    url: "https://tax.vermont.gov/sites/tax/files/documents/IN-153-2025.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Line 9 flat exclusion = smaller of adjusted net capital gain or $5,000; Lines 20-21 cap the exclusion at 40% of federal taxable income."
   - source_name: "Vermont Department of Taxes"
     url: "https://tax.vermont.gov/document/tax-year-2025-vermont-tax-rate-schedules"
     retrieved_date: "2025-02-20"

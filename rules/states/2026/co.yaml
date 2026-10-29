@@ -1,0 +1,73 @@
+# Colorado individual income-tax rule for the narrow 2026 US estimator profile
+# (single, age 40, full-year resident, W-2 wages, dividends and capital gains).
+# The policy (policies_2026_g1._co) starts from federal taxable income and adds
+# back the federal standard deduction above $1,000 when federal AGI exceeds
+# $300,000 (2026 limit).
+
+jurisdiction_id: "US-CO"
+tax_year: 2026
+
+jurisdiction_type: "state"
+jurisdiction_name: "Colorado"
+jurisdiction_abbreviation: "CO"
+parent_jurisdiction_id: "US"
+
+has_income_tax: true
+income_tax_type: "flat"
+
+effective_start_date: "2026-01-01"
+effective_end_date: "2026-12-31"
+
+rate_schedule:
+  rate_type: "flat"
+  # C.R.S. 39-22-104(1.7)(c): 4.40% of federal taxable income as modified. No
+  # 39-22-627 temporary reduction for 2026 (no FY 2025-26 TABOR refund).
+  flat_rate: 0.044
+  brackets: []
+  surtaxes: []
+
+deductions:
+  standard_deduction:
+    available: false
+    amounts: []
+    additional_amounts: []
+  exemptions:
+    personal_exemption_available: false
+    personal_exemption_amount: 0
+    dependent_exemption_available: false
+    dependent_exemption_amount: 0
+
+state_config:
+  starting_point: "federal_taxable_income"
+  has_local_income_tax: false
+  local_tax_mandatory: false
+  reciprocity_states: []
+  special_notes:
+    - "Colorado 2026 flat rate 4.40% of Colorado taxable income (federal taxable income plus additions)."
+    - "Federal AGI over $300,000: add back the federal standard or itemized deduction above $1,000 (single) for tax years 2026 and later (was $12,000 for 2023-2025)."
+    - "2026 overtime-deduction addback (Schedule 1-A) is outside the W-2 baseline profile; no addback for the qualified-tips deduction."
+    - "Colorado EITC is not computed (2026 percentage not confirmed); a warning is shown when it may apply."
+
+verification:
+  status: "source_checked_limited_scenarios"
+  last_verified: "2026-10-29"
+  verified_by: "source review (agent); not professional sign-off"
+  notes: "Rate from C.R.S. 39-22-104(1.7)(c) (FindLaw text current to 2025-01-01) with no 39-22-627 reduction for 2026 per the Legislative Council Staff September 2026 forecast (State Controller: FY 2025-26 revenue $175.9M below the Referendum C cap; evidence supplied by coordinator, the content.leg.colorado.gov PDF blocked automated retrieval). 2026 addback limits ($1,000 single, $2,000 joint; AGI over $300,000) and overtime/tips treatment from the CDOR Individual Income Tax Guide; the enacting subsection (39-22-104(3)(p.7)) text was not retrieved."
+
+references:
+  - source_name: "Colorado Revised Statutes 39-22-104 (FindLaw, current as of 2025-01-01)"
+    url: "https://codes.findlaw.com/co/title-39-taxation/co-rev-st-sect-39-22-104/"
+    retrieved_date: "2026-10-29"
+    notes: "(1.7)(c): 4.40% of federal taxable income for tax years 2022 and later, except as provided in 39-22-627; (3)(p.5): high-income addback of the federal deduction above $12,000 single for 2023 onward (CDOR applies it to filers whose AGI exceeds $300,000)."
+  - source_name: "Colorado Department of Revenue, Individual Income Tax Guide"
+    url: "https://tax.colorado.gov/individual-income-tax-guide"
+    retrieved_date: "2026-10-29"
+    notes: "Addback for filers whose AGI exceeds $300,000: limits $12,000/$16,000 (2023-2025), $1,000/$2,000 (2026 and later); overtime-deduction addback for 2026 and later; no addback for qualified tips."
+  - source_name: "Colorado Legislative Council Staff, September 2026 Economic and Revenue Forecast"
+    url: "https://content.leg.colorado.gov/sites/default/files/2026-09/sept2026-forecast-with-cover-for-remediation-and-posting-accessible.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "FY 2025-26 revenue $175.9M below the Referendum C cap (State Controller, 8 Sep 2026): no TABOR refund, so no SB 24-228 temporary rate reduction for tax year 2026 (coordinator-supplied; automated retrieval blocked)."
+  - source_name: "Colorado Legislative Council Staff, 2026 report on federal tax law provisions and changes impacting Colorado (TE5)"
+    url: "https://content.leg.colorado.gov/sites/default/files/2026-te5-report-federal-tax-law-provisions-and-changes-impact-colorado-accessible.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Identifies 39-22-104(3)(p.7) as the 2026-and-later deduction addback (seen via search index only; automated retrieval blocked)."

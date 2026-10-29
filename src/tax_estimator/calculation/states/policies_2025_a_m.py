@@ -253,9 +253,22 @@ def _ar_table_tax(taxable: Decimal) -> Decimal:
         return ZERO
     if taxable > Decimal("100000"):
         return Decimal("3809") + (taxable - Decimal("100000")) * Decimal(".039")
-    midpoint = (taxable / Decimal("100")).to_integral_value(rounding=ROUND_FLOOR) * Decimal(
-        "100"
-    ) + Decimal("50")
+    # 2025 Regular Income Tax Table (2025_TaxTables.pdf, pp. 25-28): rows below
+    # $75,001 run "as much as" x00 "but less than" x00+100 (midpoint x50); from
+    # $75,001 they run x01 to x00+100 inclusive, taxed at the true midpoint
+    # (e.g. 75,001-75,100 at 75,050.5); the transition row 74,900-75,000 uses 74,950.
+    # Checked against every printed row (949, both ends of each).
+    if taxable < Decimal("75000"):
+        midpoint = (taxable / Decimal("100")).to_integral_value(
+            rounding=ROUND_FLOOR
+        ) * Decimal("100") + Decimal("50")
+    elif taxable == Decimal("75000"):
+        # One 101-dollar transition row, "74,900 but less than 75,001" -> $2,503.
+        midpoint = Decimal("74950")
+    else:
+        midpoint = (taxable / Decimal("100")).to_integral_value(
+            rounding=ROUND_CEILING
+        ) * Decimal("100") - Decimal("49.5")
     if taxable <= Decimal("11199"):
         raw = midpoint * Decimal(".02") - Decimal("111.98")
     elif taxable <= Decimal("15999"):
@@ -263,22 +276,13 @@ def _ar_table_tax(taxable: Decimal) -> Decimal:
     elif taxable <= Decimal("26399"):
         raw = midpoint * Decimal(".034") - Decimal("287.97")
     elif taxable <= Decimal("94700"):
-        # The final lower-table band ends inclusively at $94,700, whereas the
-        # separately published phaseout starts at $94,701.  Use the final
-        # lower row's $94,650 midpoint at this otherwise lower-exclusive
-        # terminal boundary.
-        if taxable == Decimal("94700"):
-            midpoint = Decimal("94650")
         raw = midpoint * Decimal(".039") - Decimal("419.96")
     else:
-        # The indexed phaseout bands begin at $94,701 rather than on an even
-        # hundred.  Their midpoint therefore stays in the preceding hundred,
-        # and the published adjustment stops declining once it reaches $89.30
-        # for the "$97,801 and over" band.
+        # Indexed phaseout bands 94,701-94,800, ...; the published adjustment
+        # stops declining at $89.30 for the "$97,801 and over" band.
         step = ((taxable - Decimal("94701")) / Decimal("100")).to_integral_value(
             rounding=ROUND_FLOOR
         )
-        midpoint = Decimal("94750") + Decimal("100") * step
         adjustment = max(
             Decimal("89.30"), Decimal("399.30") - Decimal("10") * step
         )
@@ -641,32 +645,62 @@ def _ia(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
 
 def _ks(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     base = _schedule_policy(tax_input, rules, exemption=Decimal("9160"), use_published_base=True)
-    # The filed return uses a $100-band tax table below $100,000 taxable income.
-    if ZERO < base.taxable_income <= Decimal("100000"):
-        midpoint = (base.taxable_income / Decimal("50")).to_integral_value(
-            rounding=ROUND_FLOOR
-        ) * Decimal("50") + Decimal("25")
-        table = calculate_rate_schedule(
-            midpoint, rules.get_brackets_for_status("single"), use_published_base_tax=True
-        )
-        rounded = table.tax.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    # 2025 K-40 line 8: taxable income of $100,000 or less uses the tax table, whose
+    # $50 rows run "at least" hi-49 "but not more than" hi (51-100, ..., 99,951-100,000)
+    # on whole-dollar line 7 amounts; the first row is 26-50 (midpoint 38, tax $2).
+    # Each row's tax is the rate schedule at the row midpoint, rounded to the dollar;
+    # below $26 the tax is 0. Source: KDOR 2025 Income Tax Booklet (ip25.pdf), pp. 24
+    # and 27-33. K-40 entries are whole dollars, so the table/worksheet split is tested
+    # on the whole-dollar amount.
+    whole = base.taxable_income.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    if ZERO < whole <= Decimal("100000"):
+        rounded = ZERO
+        if whole >= Decimal("26"):
+            hi = (whole / Decimal("50")).to_integral_value(rounding=ROUND_CEILING) * Decimal(
+                "50"
+            )
+            midpoint = Decimal("38") if hi == Decimal("50") else hi - Decimal("24.5")
+            table = calculate_rate_schedule(
+                midpoint, rules.get_brackets_for_status("single"), use_published_base_tax=True
+            )
+            rounded = table.tax.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         base.ordinary_tax = rounded
         base.tax_before_credits = rounded
-        base.notes = ("Kansas official $100-band tax-table midpoint convention used.",)
+        base.notes = ("Kansas official $50-row tax-table midpoint convention used.",)
+    elif whole > Decimal("100000"):
+        # 2025 Tax Computation Worksheet (ip25.pdf p. 34), Single/HOH/MFS, $23,001 and
+        # over: whole-dollar line 7 x 5.58% minus the published $87 subtraction amount
+        # (the unrounded schedule would subtract $87.40).
+        worksheet = (whole * Decimal(".0558") - Decimal("87")).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP
+        )
+        base.ordinary_tax = worksheet
+        base.tax_before_credits = worksheet
+        base.notes = ("Kansas official Tax Computation Worksheet used above $100,000.",)
     return base
 
 
+def _me_phase_fraction(agi: Decimal, start: Decimal, span: Decimal) -> Decimal:
+    # MRS phase-out worksheets, line 5: (AGI - threshold) / range, entered to four
+    # decimal places ("__.____"; 1.0000 if one or more). The worksheets do not say
+    # round or truncate; conventional rounding is assumed.
+    fraction = min(Decimal("1"), max(ZERO, agi - start) / span)
+    return fraction.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+
 def _me(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
+    # 36 M.R.S. 5124-C(2); MRS 2025 Phaseout of Itemized/Standard Deductions
+    # Worksheet: $15,000 reduced by the fraction (AGI - $100,000) / $75,000.
     deduction = Decimal("15000")
-    if tax_input.federal_agi > Decimal("100000"):
-        deduction = max(
-            ZERO, deduction - (tax_input.federal_agi - Decimal("100000")) * Decimal(".20")
-        )
+    deduction -= deduction * _me_phase_fraction(
+        tax_input.federal_agi, Decimal("100000"), Decimal("75000")
+    )
+    # 36 M.R.S. 5126-A(2); MRS 2025 Phaseout of Personal Exemption Deduction Amount
+    # Worksheet: $5,150 reduced by the fraction (AGI - $333,450) / $125,000.
     exemption = Decimal("5150")
-    if tax_input.federal_agi > Decimal("333450"):
-        exemption = max(
-            ZERO, exemption - (tax_input.federal_agi - Decimal("333450")) * Decimal(".02")
-        )
+    exemption -= exemption * _me_phase_fraction(
+        tax_input.federal_agi, Decimal("333450"), Decimal("125000")
+    )
     base = _schedule_policy(tax_input, rules, deduction=deduction, exemption=exemption)
     eitc, warnings = _federal_eic_credit(
         tax_input,
@@ -839,12 +873,17 @@ def _mn(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         )
         deduction -= min(deduction * Decimal(".80"), reduction)
     base = _schedule_policy(tax_input, rules, deduction=deduction)
-    investment_income = max(
-        ZERO, tax_input.dividends + (tax_input.federal_agi_capital_gain or ZERO)
+    # Minn. Stat. 290.033(b): 1% of net investment income (IRC 1411(c): interest,
+    # dividends and net gain) in excess of $1,000,000. Unlike federal NIIT there is no
+    # MAGI comparison: the base is NII itself, not min(NII, AGI over a threshold).
+    # Net gain is floored at zero on its own (Treas. Reg. 1.1411-4(d)), so a net
+    # capital loss does not offset interest or dividends.
+    investment_income = (
+        max(ZERO, tax_input.interest)
+        + max(ZERO, tax_input.dividends)
+        + max(ZERO, tax_input.federal_agi_capital_gain or ZERO)
     )
-    base.surtax = min(
-        investment_income, max(ZERO, tax_input.federal_agi - Decimal("1000000"))
-    ) * Decimal(".01")
+    base.surtax = max(ZERO, investment_income - Decimal("1000000")) * Decimal(".01")
     base.notes = ("Minnesota 1% net-investment-income tax is reported as a separate surtax.",)
     return base
 

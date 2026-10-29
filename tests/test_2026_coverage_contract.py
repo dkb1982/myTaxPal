@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tax_estimator.calculation import coverage
 from tax_estimator.calculation.coverage import (
     SOURCE_LEDGER,
     CoverageStatus,
@@ -31,12 +32,18 @@ def test_texas_2026_contract_is_complete_and_executable() -> None:
     assert "TX" in enabled_us_states(2026)
 
 
-def test_unregistered_or_missing_rule_coverage_is_rejected() -> None:
+def test_unregistered_or_missing_rule_coverage_is_rejected(monkeypatch) -> None:
     # Newark has 2025 rules but is not registered for 2026.
     assert coverage_entry("US-NJ-NEW", 2026) is None
     with pytest.raises(UnsupportedCoverageError, match="no supported"):
         require_coverage("US-NJ-NEW", 2026)
-    # A pending state is discoverable but never computable.
+    # A pending state is discoverable but never computable. No state is pending
+    # now, so mark Colorado pending for this check.
+    key = ("US-CO", 2026, coverage.US_VANILLA_PROFILE)
+    monkeypatch.setitem(coverage._COVERAGE, key, replace(
+        coverage._COVERAGE[key], status=CoverageStatus.PENDING,
+        unavailable_reason="Colorado 2026 figures are not yet published.",
+    ))
     pending = coverage_entry("US-CO", 2026)
     assert pending is not None and pending.unavailable_reason
     with pytest.raises(UnsupportedCoverageError, match="Colorado"):

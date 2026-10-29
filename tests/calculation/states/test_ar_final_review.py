@@ -14,7 +14,12 @@ from tax_estimator.calculation.states.policies_2025_a_m import _ar_table_tax
     [
         # Official 2025 brackets PDF examples: use each $100 row's midpoint.
         ("14800", "222"),
-        ("75900", "2542"),
+        # The printed 2025 Regular Income Tax Table (2025_TaxTables.pdf p. 28) has
+        # rows "as much as 75,801 but less than 75,901" -> 2,538 and "75,901 but less
+        # than 76,001" -> 2,542, so the brackets-PDF example row ($2,542) starts at
+        # 75,901; 75,900 itself is in the 2,538 row (75,850.5 x .039 - 419.96 = 2,538.21).
+        ("75901", "2542"),
+        ("75900", "2538"),
         # The final lower-table row ends inclusively at $94,700. The phaseout
         # begins at $94,701 and therefore uses a different midpoint/adjustment.
         ("94700", "3271"),

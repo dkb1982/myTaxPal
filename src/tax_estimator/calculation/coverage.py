@@ -160,6 +160,16 @@ SOURCE_LEDGER: dict[str, str] = {
     "WV-2026-SRC-3": "https://code.wvlegislature.gov/11-21-22a/",
     "WV-2026-SRC-4": "https://code.wvlegislature.gov/11-21-22b/",
     "WV-2026-SRC-5": "https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines",
+    "AR-2026-SRC-1": "https://www.arkleg.state.ar.us/Home/FTPDocument?path=%2FACTS%2F2026S1%2FPublic%2FACT2.pdf",
+    "AR-2026-SRC-2": "https://www.arkleg.state.ar.us/Home/FTPDocument?path=%2FAssembly%2F2025%2F2026S1%2FFiscal+Impacts%2FHB1001-DFA1.pdf",
+    "AR-2026-SRC-3": "https://www.dfa.arkansas.gov/wp-content/uploads/Withholding-Tax-Formula.pdf",
+    "AR-2026-SRC-4": "https://www.dfa.arkansas.gov/wp-content/uploads/2026_Final_AR1000ES.pdf",
+    "AR-2026-SRC-5": "https://www.dfa.arkansas.gov/wp-content/uploads/2025_TaxTables.pdf",
+    "AR-2026-SRC-6": "https://www.dfa.arkansas.gov/wp-content/uploads/2025_AR1000D_CapitalGains.pdf",
+    "CO-2026-SRC-1": "https://codes.findlaw.com/co/title-39-taxation/co-rev-st-sect-39-22-104/",
+    "CO-2026-SRC-2": "https://tax.colorado.gov/individual-income-tax-guide",
+    "CO-2026-SRC-3": "https://content.leg.colorado.gov/sites/default/files/2026-09/sept2026-forecast-with-cover-for-remediation-and-posting-accessible.pdf",
+    "CO-2026-SRC-4": "https://content.leg.colorado.gov/sites/default/files/2026-te5-report-federal-tax-law-provisions-and-changes-impact-colorado-accessible.pdf",
     "WI-2026-SRC-1": "https://web.archive.org/web/20260307092226/https://docs.legis.wisconsin.gov/statutes/statutes/71.pdf",
     "WI-2026-SRC-2": "https://www.revenue.wi.gov/TaxForms2025/2025-Form1-Inst.pdf",
     "WI-2026-SRC-3": "https://www.revenue.wi.gov/WisconsinTaxBulletin/234-07-31-WTB.pdf",
@@ -368,6 +378,8 @@ _TAXED_STATE_EVIDENCE_2026: dict[str, tuple[tuple[str, ...], date]] = {
     "IN": (("IN-2026-SRC-1", "IN-2026-SRC-2", "IN-2026-SRC-3"), date(2026, 10, 23)),
     "IA": (("IA-2026-SRC-1", "IA-2026-SRC-2", "IA-2026-SRC-3", "IA-2026-SRC-4", "IA-2026-SRC-5"), date(2026, 10, 23)),
     "KS": (("KS-2026-SRC-1", "KS-2026-SRC-2", "KS-2026-SRC-3", "KS-2026-SRC-4", "KS-2026-SRC-5", "KS-2026-SRC-6"), date(2026, 10, 23)),
+    "AR": (("AR-2026-SRC-1", "AR-2026-SRC-2", "AR-2026-SRC-3", "AR-2026-SRC-4", "AR-2026-SRC-5", "AR-2026-SRC-6"), date(2026, 10, 29)),
+    "CO": (("CO-2026-SRC-1", "CO-2026-SRC-2", "CO-2026-SRC-3", "CO-2026-SRC-4"), date(2026, 10, 29)),
     "AL": (("AL-2026-SRC-1", "AL-2026-SRC-2", "AL-2026-SRC-3", "AL-2026-SRC-4"), date(2026, 10, 23)),
     "AZ": (("AZ-2026-SRC-1", "AZ-2026-SRC-2", "AZ-2026-SRC-3", "AZ-2026-SRC-4", "AZ-2026-SRC-5", "AZ-2026-SRC-6"), date(2026, 10, 23)),
     "CA": (("CA-2026-SRC-1", "CA-2026-SRC-2", "CA-2026-SRC-3", "CA-2026-SRC-4"), date(2026, 10, 23)),
@@ -397,10 +409,7 @@ _TAXED_STATE_EVIDENCE_2026: dict[str, tuple[tuple[str, ...], date]] = {
 }
 
 # States registered for discovery but not yet enabled: code -> public reason.
-_PENDING_STATES_2026: dict[str, str] = {
-    "AR": "Arkansas has not yet published its 2026 inflation-indexed brackets, standard deduction and credit thresholds.",
-    "CO": "Colorado's 2026 deduction add-back limits and TABOR-linked rate are not yet confirmed from Department of Revenue publications.",
-}
+_PENDING_STATES_2026: dict[str, str] = {}
 
 for _state_code, (_state_evidence_ids, _verified_on) in _TAXED_STATE_EVIDENCE_2026.items():
     _entry = CoverageEntry(

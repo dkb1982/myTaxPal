@@ -60,7 +60,7 @@ state_config:
   special_notes:
     - "2026 rate schedule, standard deduction $15,700 and personal exemption $5,300 from MRS 2026 Individual Income Tax Rates (revised May 20 2026)."
     - "2% surcharge on Maine taxable income over $1,000,000 for single filers from 2026 (36 M.R.S. 5111(7))."
-    - "Standard deduction and exemption phase-out thresholds are computed from statute with the MRS 1.279 COLA (provisional)."
+    - "MRS has published the 2026 phase-out thresholds (2026 estimated-tax worksheets, rev. December 2025): standard deduction phase-out begins at $102,250 MAGI (range $75,000) and the personal exemption phase-out at $341,000 (range $125,000), single."
 
 verification:
   status: "verified"
@@ -69,6 +69,14 @@ verification:
   notes: "Brackets, deduction, exemption and surcharge from MRS 2026 rate schedule (rev. May 20 2026) and current 36 M.R.S. text."
 
 references:
+  - source_name: "MRS 2026 Estimated Tax Worksheet line 6a, Phaseout of Itemized/Standard Deductions Worksheet (rev. December 2025)"
+    url: "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/inline-files/26_item_stand_%20ded_phaseout_wksht_0.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Phase-out applies above $102,250 Maine AGI if single/MFS; divide excess by $75,000."
+  - source_name: "MRS 2026 Estimated Tax Worksheet line 6b, Phaseout of Personal Exemption Deduction Amount Worksheet (rev. December 2025)"
+    url: "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/inline-files/26_1040es_pers_exempt_phaseout_wksht.pdf"
+    retrieved_date: "2026-10-29"
+    notes: "Phase-out applies above $341,000 Maine AGI if single; divide excess by $125,000; exemption $5,300."
   - source_name: "MRS 2026 Individual Income Tax Rates (revised)"
     url: "https://www.maine.gov/revenue/sites/maine.gov.revenue/files/2026-05/ind_tax_rate_sched_2026_rev.pdf"
     retrieved_date: "2026-10-23"

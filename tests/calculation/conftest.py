@@ -292,6 +292,12 @@ def test_federal_rules_yaml() -> dict:
                 "mfj_phaseout_threshold": 150000,
                 "phaseout_rate": 0.06,
             },
+            "charitable": {
+                "cash_agi_rate": 0.60,
+                "capital_gain_property_agi_rate": 0.30,
+                "capital_gain_property_combined_agi_rate": 0.50,
+                "carryforward_years": 5,
+            },
         },
         "payroll_taxes": {
             "social_security_wage_base": 176100,

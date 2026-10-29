@@ -21,7 +21,7 @@ from tax_estimator.main import app
 
 client = TestClient(app)
 
-PENDING_STATES = frozenset({"AR", "CO"})
+PENDING_STATES: frozenset[str] = frozenset()
 RELEASED_STATES = frozenset(code.removeprefix("US-") for code in US_STATES) - PENDING_STATES
 RELEASED_CITIES = frozenset({
     "US-NY-NYC", "US-NY-YNK", "US-PA-PHL", "US-MI-DET", "US-OH-CLE", "US-OH-CIN",
@@ -30,7 +30,7 @@ RELEASED_CITIES = frozenset({
 
 
 def test_released_2026_set_is_pinned():
-    assert len(RELEASED_STATES) == 49
+    assert len(RELEASED_STATES) == 51
     assert enabled_us_states(2026) == RELEASED_STATES
     assert enabled_us_cities(2026) == RELEASED_CITIES
 

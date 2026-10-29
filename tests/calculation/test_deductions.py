@@ -522,3 +522,130 @@ class Test2025DeductionRepairs:
             earned_income="2000",
         )
         assert context.get_decimal_result("standard_deduction") == Decimal("2450")
+
+
+class TestCharitableAgiLimits2025:
+    """IRC 170(b)(1) limits via IRS Pub. 526 (2025) Worksheet 2.
+
+    All cases use AGI $100,000, so 60% = $60,000, 50% = $50,000, 30% = $30,000.
+    Cash is applied first (lines 12-13); non-cash is treated as capital gain
+    property to a 50% limit organization (line 8), limited to the smallest of
+    the gift, 50% AGI minus *all* cash contributions (lines 26-28) and 30% AGI.
+    """
+
+    @pytest.mark.parametrize(
+        "cash,noncash,expected,excess,understated",
+        [
+            # Cash below 60%: $40,000 <= $60,000 -> fully deductible.
+            ("40000", "0", "40000.00", None, False),
+            # Cash above 60%: MIN($70,000, $60,000) = $60,000; $10,000 excess.
+            ("70000", "0", "60000.00", "10,000.00", False),
+            # Non-cash above 30%: MIN($45,000, $50,000 - $0, $30,000) = $30,000;
+            # the 30% limit binds ($30,000 < $50,000) -> understatement warning.
+            ("0", "45000", "30000.00", "15,000.00", True),
+            # Household goods case: $40,000 non-cash -> $30,000 as capital-gain
+            # property (it would be $40,000 as ordinary property, 50% limit).
+            ("0", "40000", "30000.00", "10,000.00", True),
+            # Mixed: cash $45,000 deductible; property MIN($30,000,
+            # $50,000 - $45,000 = $5,000, $30,000) = $5,000 -> total $50,000.
+            # 50%-minus-cash binds, not 30% -> no understatement warning.
+            ("45000", "30000", "50000.00", "25,000.00", False),
+            # Mixed hitting the 60% total: cash MIN($70,000, $60,000) = $60,000;
+            # property limit $50,000 - $70,000 < 0 -> $0 -> total $60,000.
+            ("70000", "10000", "60000.00", "20,000.00", False),
+            # Small cash: $10,000 + MIN($40,000, $50,000 - $10,000, $30,000)
+            # = $10,000 + $30,000 = $40,000; 30% binds ($30,000 < $40,000).
+            ("10000", "40000", "40000.00", "10,000.00", True),
+            # Tie: cash $20,000 -> 50% - cash = $30,000 = 30% AGI. Ordinary
+            # property would also get $50,000 - $20,000 = $30,000 -> no warning.
+            ("20000", "40000", "50000.00", "10,000.00", False),
+        ],
+    )
+    def test_limits(
+        self,
+        federal_rules: JurisdictionRules,
+        cash: str,
+        noncash: str,
+        expected: str,
+        excess: str | None,
+        understated: bool,
+    ) -> None:
+        context = _deduction_context(
+            TaxInput(
+                tax_year=2025,
+                filing_status=FilingStatus.SINGLE,
+                residence_state="TX",
+                itemized_deductions=ItemizedDeductions(
+                    charitable_cash=Decimal(cash),
+                    charitable_noncash=Decimal(noncash),
+                ),
+                force_itemize=True,
+            ),
+            federal_rules,
+            "100000",
+        )
+        assert context.get_result("itemized_breakdown")["charitable"] == Decimal(expected)
+        assert context.get_decimal_result("itemized_deduction") == Decimal(expected)
+        carry = [w for w in context.warnings if "carried forward" in w]
+        if excess is None:
+            assert carry == []
+        else:
+            assert len(carry) == 1
+            assert f"${excess}" in carry[0]
+            assert "5 years" in carry[0]
+        property_warnings = [w for w in context.warnings if "capital-gain property" in w]
+        if understated:
+            assert len(property_warnings) == 1
+            assert "50% of AGI limit" in property_warnings[0]
+            assert "understated" in property_warnings[0]
+        else:
+            assert property_warnings == []
+        step = next(s for s in context.trace.steps if s.step_id == "DED-CHARITY")
+        assert Decimal(str(step.result)) == Decimal(expected)
+
+    @pytest.mark.parametrize("force_itemize", [False, True])
+    def test_warnings_only_when_itemizing(
+        self, federal_rules: JurisdictionRules, force_itemize: bool
+    ) -> None:
+        # AGI $20,000, non-cash $8,000: MIN($8,000, $10,000 - $0, $6,000) = $6,000
+        # ($2,000 excess; 30% binds) -> carry-forward + understatement warnings.
+        # Itemized $6,000 < standard $15,000, so the standard deduction wins
+        # unless itemizing is forced; warnings must follow the chosen method.
+        context = _deduction_context(
+            TaxInput(
+                tax_year=2025,
+                filing_status=FilingStatus.SINGLE,
+                residence_state="TX",
+                itemized_deductions=ItemizedDeductions(charitable_noncash=Decimal("8000")),
+                force_itemize=force_itemize,
+            ),
+            federal_rules,
+            "20000",
+        )
+        assert context.get_result("itemized_breakdown")["charitable"] == Decimal("6000.00")
+        charity_warnings = [
+            w for w in context.warnings if "carried forward" in w or "capital-gain" in w
+        ]
+        if force_itemize:
+            assert context.get_result("deduction_method") == "itemized"
+            assert len(charity_warnings) == 2
+            assert any("$2,000.00" in w for w in charity_warnings)
+        else:
+            assert context.get_result("deduction_method") == "standard"
+            assert charity_warnings == []
+
+    def test_real_2025_yaml_has_charitable_limits(self) -> None:
+        from pathlib import Path
+
+        from tax_estimator.rules.loader import get_rules_for_jurisdiction
+
+        rules_dir = Path(__file__).resolve().parents[2] / "rules"
+        rules = get_rules_for_jurisdiction("US", 2025, rules_dir)
+        cfg = rules.deductions.charitable
+        assert cfg is not None
+        assert (
+            cfg.cash_agi_rate,
+            cfg.capital_gain_property_agi_rate,
+            cfg.capital_gain_property_combined_agi_rate,
+            cfg.carryforward_years,
+        ) == (0.60, 0.30, 0.50, 5)

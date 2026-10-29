@@ -1,5 +1,6 @@
 """Independent source arithmetic for the reviewed 2025 A--M state policies."""
 
+from dataclasses import replace
 from decimal import Decimal as D  # noqa: N817 - compact source-arithmetic tables
 
 import pytest
@@ -315,3 +316,141 @@ def test_hawaii_food_credit_omission_preserves_income_table_boundaries(agi, pote
     assert bool(warning) is (potential is not None)
     if potential:
         assert f"${potential}" in warning
+
+
+# --- GitHub issue #2: Kansas tax-table rows, Maine exemption phase-out, MN NIIT base ---
+
+
+@pytest.mark.parametrize(
+    ("taxable", "expected"),
+    [
+        # KDOR 2025 Income Tax Booklet (ip25.pdf) tax table, Single column. Rows run
+        # "at least" hi-49 "but not more than" hi, so an exact $50 multiple belongs to
+        # the row that ENDS there (the old code moved it to the next row up).
+        ("25", D("0")),  # table starts at the 26-50 row; old code charged $1
+        # First row 26-50 -> $2 (ip25.pdf p. 27): midpoint 38 x 5.2% = 1.98 -> 2.
+        ("50", D("2")),
+        ("26", D("2")),
+        ("1050", D("53")),  # row 1,001-1,050 -> 53 (old: 56)
+        ("30000", D("1585")),  # row 29,951-30,000 -> 1,585 (old: 1,588)
+        ("100000", D("5491")),  # row 99,951-100,000 -> 5,491 (old: 5,494)
+        # Cross-check by hand: 30,000 row midpoint 29,975.5:
+        # 1,196 + 5.58% x (29,975.5 - 23,000) = 1,196 + 389.23 = 1,585.23 -> 1,585.
+    ],
+)
+def test_kansas_tax_table_row_ending_on_fifty_multiple(taxable: str, expected: D) -> None:
+    # AGI = taxable + $3,605 standard deduction + $9,160 exemption.
+    agi = str(D(taxable) + D("3605") + D("9160"))
+    result = StateCalculator().calculate(_input("KS", agi, wages=agi))
+    assert result.taxable_income == D(taxable)
+    assert result.total_tax == expected
+
+
+def test_maine_personal_exemption_phaseout_uses_125k_fraction() -> None:
+    # MRS 2025 Phaseout of Personal Exemption Deduction Amount Worksheet:
+    # AGI 395,950 - 333,450 = 62,500; 62,500 / 125,000 = 0.5000;
+    # exemption = 5,150 - 5,150 x 0.5 = 2,575 (old code: 5,150 - 2% x 62,500 = 3,900).
+    # Standard deduction fully phased out (AGI > 100,000 + 75,000).
+    # Taxable = 395,950 - 2,575 = 393,375.
+    # Tax = 4,028 + 7.15% x (393,375 - 63,450) = 4,028 + 23,589.6375 = 27,617.64.
+    result = StateCalculator().calculate(_input("ME", "395950", wages="395950"))
+    assert result.personal_exemption == D("2575")
+    assert result.taxable_income == D("393375")
+    assert result.total_tax == D("27617.64")
+
+
+def test_maine_personal_exemption_fully_phased_out_at_458450() -> None:
+    # 333,450 + 125,000 = 458,450 -> fraction 1.0 -> exemption 0.
+    result = StateCalculator().calculate(_input("ME", "458450", wages="458450"))
+    assert result.personal_exemption == D("0")
+
+
+@pytest.mark.parametrize(
+    ("wages", "interest", "dividends", "expected_surtax"),
+    [
+        # Minn. Stat. 290.033(b): 1% x (NII - 1,000,000), NII = interest + dividends
+        # + net gain. NII 500,000 is under $1M -> 0 (old: min(500k, 2.5M - 1M) x 1% = 5,000).
+        ("2000000", "0", "500000", D("0")),
+        # NII = 300,000 + 1,200,000 = 1,500,000 -> 1% x 500,000 = 5,000
+        # (old: min(1.2M dividends, 2.5M - 1M) x 1% = 12,000).
+        ("1000000", "300000", "1200000", D("5000")),
+    ],
+)
+def test_minnesota_niit_base_is_nii_over_one_million(
+    wages: str, interest: str, dividends: str, expected_surtax: D
+) -> None:
+    agi = str(D(wages) + D(interest) + D(dividends))
+    tax_input = replace(
+        _input("MN", agi, wages=wages), interest=D(interest), dividends=D(dividends)
+    )
+    result = StateCalculator().calculate(tax_input)
+    assert result.surtax == expected_surtax
+
+
+def test_kansas_above_100k_uses_tax_computation_worksheet() -> None:
+    # ip25.pdf p. 34 worksheet, Single $23,001 and over: TI x 5.58% - $87.
+    # TI 150,000 (AGI 150,000 + 3,605 + 9,160 = 162,765):
+    # 150,000 x .0558 = 8,370; 8,370 - 87 = 8,283
+    # (old schedule: 1,196 + 5.58% x 127,000 = 8,282.60).
+    result = StateCalculator().calculate(_input("KS", "162765", wages="162765"))
+    assert result.taxable_income == D("150000")
+    assert result.total_tax == D("8283")
+
+
+@pytest.mark.parametrize(
+    ("taxable", "expected_gross"),
+    [
+        # DFA 2025 Regular Income Tax Table (2025_TaxTables.pdf p. 27): from $75,001
+        # rows run x01-x00+100 inclusive. Row 75,001-75,100 -> $2,507:
+        # 75,050.5 x 3.9% - 419.96 = 2,926.9695 - 419.96 = 2,507.01 -> 2,507
+        # (old code put 75,100 in the next row: 75,150 x 3.9% - 419.96 -> 2,511).
+        ("75100", D("2507")),
+        # Transition row "74,900 but less than 75,001" -> $2,503 (2025_TaxTables.pdf
+        # p. 28): 74,950 x 3.9% - 419.96 = 2,923.05 - 419.96 = 2,503.09 -> 2,503.
+        ("75000", D("2503")),
+        # Row 75,501-75,600 -> $2,527: 75,550.5 x 3.9% - 419.96 = 2,526.51 -> 2,527
+        # (old code: 75,550 -> 2,526.49 -> 2,526).
+        ("75501", D("2527")),
+        # Row 99,901-100,000 -> $3,809: 99,950.5 x 3.9% - 89.30 = 3,808.77 -> 3,809.
+        ("100000", D("3809")),
+    ],
+)
+def test_arkansas_upper_table_rows(taxable: str, expected_gross: D) -> None:
+    # AGI = taxable + $2,470 standard deduction; no low-income credit at this level.
+    agi = str(D(taxable) + D("2470"))
+    result = StateCalculator().calculate(_input("AR", agi, wages=agi))
+    assert result.taxable_income == D(taxable)
+    assert result.tax_before_credits == expected_gross
+    assert result.total_tax == expected_gross - D("29")  # $29 personal tax credit
+
+
+def test_kansas_table_split_uses_whole_dollar_taxable_income() -> None:
+    # Taxable 100,000.40 is entered on K-40 line 7 as 100,000 (whole dollars), so the
+    # tax table applies: row 99,951-100,000 -> $5,491 (not the worksheet's
+    # 100,000.40 x 5.58% - 87 = 5,493).
+    result = StateCalculator().calculate(_input("KS", "112765.40", wages="112765.40"))
+    assert result.taxable_income == D("100000.40")
+    assert result.total_tax == D("5491")
+
+
+def test_maine_phaseout_fraction_rounded_to_four_decimals() -> None:
+    # MRS 2025 standard-deduction phase-out worksheet line 5 ("__.____"):
+    # (120,000 - 100,000) / 75,000 = 0.26667 -> 0.2667;
+    # deduction 15,000 - 15,000 x 0.2667 = 15,000 - 4,000.50 = 10,999.50
+    # (unrounded fraction would give 11,000.00).
+    # Taxable 120,000 - 10,999.50 - 5,150 = 103,850.50;
+    # tax 4,028 + 7.15% x 40,400.50 = 4,028 + 2,888.6358 = 6,916.64.
+    result = StateCalculator().calculate(_input("ME", "120000", wages="120000"))
+    assert result.deduction_amount == D("10999.50")
+    assert result.total_tax == D("6916.64")
+
+
+def test_minnesota_niit_net_capital_loss_does_not_offset_dividends() -> None:
+    # Net gain floored at zero separately (Treas. Reg. 1.1411-4(d)):
+    # NII = 1,050,000 dividends + max(0, -3,000) = 1,050,000 -> 1% x 50,000 = 500
+    # (old: 1,050,000 - 3,000 = 1,047,000 -> 470).
+    tax_input = replace(
+        _input("MN", "3047000", wages="2000000", lt="-3000"), dividends=D("1050000")
+    )
+    result = StateCalculator().calculate(tax_input)
+    assert result.surtax == D("500")

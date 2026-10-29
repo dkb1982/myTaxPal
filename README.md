@@ -90,8 +90,8 @@ comments) plus a Compare-path parity test.
 
 2026 covers a single resident employee with no dependants: wages, interest,
 dividends and capital gains. Married/family profiles, self-employment and rental
-income are refused. France (2026 brackets from the PLF 2027, not yet enacted), Italy
-(default surtax rates) and Canada/Alberta (one derived threshold) carry provisional
+income are refused. France (2026 brackets from the PLF 2027, not yet enacted) and Italy
+(default surtax rates) carry provisional
 warnings. 2026 Compare converts currency at the IRS 2025 annual averages until the
 2026 averages are published.
 

@@ -776,7 +776,13 @@ def _vt(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         tax_input.net_short_term_gains or ZERO,
         tax_input.net_long_term_gains or ZERO,
     )
-    exclusion = min(Decimal("5000"), net_capital_gain)
+    # 2025 Schedule IN-153: Line 9 = smaller of adjusted net capital gain or $5,000;
+    # Lines 20-21 cap the exclusion at 40% of federal taxable income.
+    exclusion = min(
+        Decimal("5000"),
+        net_capital_gain,
+        max(ZERO, tax_input.federal_taxable_income) * Decimal("0.40"),
+    )
     computation = _ordinary_computation(
         tax_input,
         rules,
@@ -793,7 +799,8 @@ def _vt(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         personal_exemption=Decimal("5300"),
         notes=(
             "Publicly traded securities receive Vermont's flat $5,000 exclusion, not "
-            "the 40% business/property option.",
+            "the 40% business/property option; the exclusion is capped at 40% of "
+            "federal taxable income (Schedule IN-153 line 20).",
         ),
     )
     federal_eitc = _federal_eitc(tax_input, "Vermont")
@@ -875,13 +882,18 @@ def _wa_wftc(tax_input: StateTaxInput) -> Decimal:
     age = tax_input.taxpayer_age_at_year_end
     if not federal_eitc or age is None or not 25 <= age <= 64:
         return ZERO
-    income = max(tax_input.federal_agi, tax_input.wages)
-    if income > Decimal("19104"):
+    # Eligibility follows the federal EITC limit ($19,104 single, no children).
+    if max(tax_input.federal_agi, tax_input.wages) > Decimal("19104"):
         return ZERO
-    if income <= Decimal("16604"):
+    # WAC 458-20-285 Answer 10C/10E: the refund reduction is computed on earned
+    # income (wages for this profile), not AGI, and the refund is rounded to the
+    # nearest dollar. TY2025 maximum $335 (DOR TY2025 flyer); reduction $0.134 per
+    # dollar above $16,604 (ETA 3240: max refund / $2,500 phase-out window).
+    earned_income = tax_input.wages
+    if earned_income <= Decimal("16604"):
         return Decimal("335")
-    calculated = Decimal("335") - (income - Decimal("16604")) * Decimal("0.134")
-    return max(Decimal("50"), calculated)
+    calculated = Decimal("335") - (earned_income - Decimal("16604")) * Decimal("0.134")
+    return _round_dollar(max(Decimal("50"), calculated))
 
 
 def _wa(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
@@ -974,6 +986,24 @@ def _wv(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     return computation
 
 
+def _wi_table_standard_deduction(wi_income: Decimal) -> Decimal:
+    """2025 Form 1 Standard Deduction Table, single column (instructions pp.35-37).
+
+    The table is indexed on Form 1 line 7 income (after the Schedule WD 30%
+    exclusion) and covers every income for single filers: $13,560 below $13,500,
+    then $500 rows whose value is $13,560 - 12% x (row midpoint - $19,550), floored
+    at zero (row 19,500-20,000 -> 13,536; 70,000-70,500 -> 7,476; 0 from 132,500).
+    Values are whole dollars by construction (midpoint offsets are multiples of $100).
+    """
+    if wi_income < Decimal("13500"):
+        return Decimal("13560")
+    midpoint = (wi_income // Decimal("500")) * Decimal("500") + Decimal("250")
+    return max(
+        ZERO,
+        Decimal("13560") - Decimal("0.12") * max(ZERO, midpoint - Decimal("19550")),
+    )
+
+
 def _wi(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     require_policy_inputs(tax_input, "net_short_term_gains", "net_long_term_gains")
     net_capital_gain = irc_net_capital_gain(
@@ -982,14 +1012,7 @@ def _wi(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
     )
     capital_exclusion = net_capital_gain * Decimal("0.30")
     wi_income = tax_input.federal_agi - capital_exclusion
-    if wi_income <= Decimal("19549"):
-        deduction = Decimal("13560")
-    else:
-        deduction = max(
-            ZERO,
-            Decimal("13560") - Decimal("0.12") * (wi_income - Decimal("19549")),
-        )
-    deduction = _round_dollar(deduction)
+    deduction = _wi_table_standard_deduction(wi_income)
     computation = _ordinary_computation(
         tax_input,
         rules,
@@ -1006,8 +1029,8 @@ def _wi(tax_input: StateTaxInput, rules: StateRules) -> StatePolicyComputation:
         personal_exemption=Decimal("700"),
         round_tax_to_dollar=True,
         notes=(
-            "2025 Form 1 computes the income-dependent standard deduction after the "
-            "Schedule WD 30% exclusion and reports whole dollars.",
+            "2025 Form 1 Standard Deduction Table ($500 rows) is read on line 7 income "
+            "after the Schedule WD 30% exclusion; tax is reported in whole dollars.",
         ),
     )
     return computation

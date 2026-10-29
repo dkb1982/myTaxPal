@@ -212,8 +212,9 @@ def test_iowa_2026_refundable_eic_and_limited_exemption_credit() -> None:
         (W40, D("1432.00")),
         # 87,235 -> midpoint 87,225.5: 1,196 + 64,225.5 x 5.58% = 4,779.78
         (W100, D("4780.00")),
-        # 237,235 (schedule): 1,196 + 214,235 x 5.58% = 13,150.313
-        (W250, D("13150.31")),
+        # 237,235 (worksheet convention, provisional): 237,235 x 5.58% = 13,237.713
+        # - 87 = 13,150.713 -> 13,151
+        (W250, D("13151.00")),
         # 82,235 -> midpoint 82,225.5: 1,196 + 59,225.5 x 5.58% = 4,500.78
         (MIXED, D("4501.00")),
     ],
@@ -228,5 +229,15 @@ def test_kansas_2026_table_row_edges() -> None:
     assert _tax("KS", wages=D("52765")) == D("2143.00")
     # Taxable 100,000 is the last table row (99,951-100,000 -> $5,491).
     assert _tax("KS", wages=D("112765")) == D("5491.00")
-    # Taxable 100,001 uses the schedule: 1,196 + 77,001 x 5.58% = 5,492.6558.
-    assert _tax("KS", wages=D("112766")) == D("5492.66")
+    # Taxable 100,001 uses the worksheet convention (2025 ip25.pdf p. 34):
+    # 100,001 x 5.58% = 5,580.0558 - 87 = 5,493.0558 -> 5,493.
+    result = compute_2026("KS", wages=D("112766"))
+    assert result.total_tax == D("5493.00")
+    assert any("2025 worksheet convention (provisional)" in w for w in result.warnings)
+    # Taxable 100,000.40 is entered as 100,000 on K-40 line 7 -> table row -> $5,491.
+    assert _tax("KS", wages=D("112765.40")) == D("5491.00")
+    # First table row 26-50 (2025 ip25.pdf p. 27: $2): midpoint 38 x 5.2% = 1.98 -> 2.
+    # Taxable 50 = wages 12,815 - 3,605 - 9,160.
+    assert _tax("KS", wages=D("12815")) == D("2.00")
+    # Taxable 25 is below the first row -> 0.
+    assert _tax("KS", wages=D("12790")) == D("0.00")
